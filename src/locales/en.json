@@ -1,0 +1,402 @@
+{
+  "auth": {
+    "brandName": "CynoPlanning",
+    "tagline": "Operational planning & cynotechnician management",
+    "secureBadge": "Secure Operational Planning Platform",
+    "subtitle": "Secure Operational Planning Platform",
+    "cardTitle": "Sign in to your account",
+    "cardDescription": "Access the operational planning console.",
+    "placeholder": {
+      "email": "you@agency.gov"
+    },
+    "submit": {
+      "signIn": "Sign in"
+    },
+    "footer": "Restricted Access • Authorized Personnel Only"
+  },
+  "specialty": {
+    "narcotics": "Narcotics & Banknotes",
+    "narcoticsDetection": "Narcotics & Banknotes",
+    "explosives": "Explosives",
+    "explosivesDetection": "Explosives",
+    "all": "All specialties"
+  },
+  "shift": {
+    "day": "Day",
+    "night": "Night",
+    "rest": "Rest",
+    "dayHours": "Day (09:00–21:00)",
+    "nightHours": "Night (21:00–09:00)",
+    "dayShort": "Day (09→21)",
+    "nightShort": "Night (21→09)"
+  },
+  "dogs": {
+    "export": {
+      "pdfLabel": "Export list PDF",
+      "pdfSuccess": "PDF list downloaded",
+      "pdfError": "PDF export failed"
+    },
+    "stat": {
+      "narcotics": "Narcotics & Banknotes",
+      "explosives": "Explosives"
+    },
+    "gender": {
+      "male": "Male",
+      "female": "Female",
+      "all": "All sexes"
+    }
+  },
+  "checkpoints": {
+    "tooltip": {
+      "narcoticsExplosives": "Narcotics & Banknotes / Explosives"
+    },
+    "staffing": {
+      "narcoticsK9": "Narcotics & banknotes K9",
+      "explosivesK9": "Explosives K9"
+    },
+    "config": {
+      "priority": "Priority",
+      "priorityHint": "Assignment order for Smart Rotation (1 = critical first).",
+      "priorityLevel": {
+        "1": "Critical",
+        "2": "High",
+        "3": "Normal",
+        "4": "Low"
+      }
+    },
+    "error": {
+      "loadFailed": "Failed to load checkpoints.",
+      "retry": "Retry"
+    }
+  },
+  "dailyPlanning": {
+    "attendanceSheet": {
+      "generate": "Generate attendance sheet",
+      "download": "Attendance sheet (PDF)",
+      "success": "Attendance sheet downloaded",
+      "error": "Failed to generate PDF",
+      "noPlanning": "Generate and validate a daily planning first.",
+      "noPlanningAgents": "No agents in the active planning for this section.",
+      "noAssignedAgents": "No agents assigned to operational checkpoints in this planning.",
+      "validationFailed": "Incomplete data for the attendance sheet"
+    },
+    "export": {
+      "menu": "Export planning",
+      "pdf": "Export PDF",
+      "docx": "Export Word (.docx)",
+      "both": "Export PDF + Word",
+      "success": "Export saved",
+      "successBoth": "PDF and Word saved",
+      "canceled": "Export canceled",
+      "error": "Failed to export planning",
+      "noPlanning": "Generate and validate a daily planning first."
+    },
+    "stat": {
+      "unassigned": "Point 653",
+      "totalEmployees": "Total handlers",
+      "assigned": "Assigned (checkpoints)",
+      "rest": "REST",
+      "point653": "Point 653",
+      "fullyStaffed": "Fully staffed checkpoints",
+      "understaffed": "Understaffed checkpoints",
+      "excluded": "Excluded handlers"
+    },
+    "rest": {
+      "title": "REST ({{count}})",
+      "description": "Inactive Female Rotation group — no section, checkpoint, reserve, or night assignment.",
+      "badge": "REST",
+      "noticeTitle": "Female REST"
+    },
+    "point653": {
+      "name": "Point 653",
+      "title": "Point 653 ({{count}})",
+      "description": "K9 unit headquarters — teams not deployed to operational checkpoints.",
+      "badge": "Point 653",
+      "noticeTitle": "Point 653"
+    },
+    "reserve": {
+      "title": "Point 653 ({{count}})",
+      "description": "K9 unit headquarters — teams not deployed to operational checkpoints.",
+      "badge": "Point 653",
+      "noticeTitle": "Point 653"
+    }
+  },
+  "planning": {
+    "warning": {
+      "unassignedEligible": "{{count}} cynotechnician(s) assigned to Point 653.",
+      "point653Assigned": "{{count}} cynotechnician(s) assigned to {{point}}.",
+      "femaleRest": "{{count}} female cynotechnician(s) marked REST (inactive Female Rotation group)."
+    },
+    "point653": {
+      "reason": {
+        "no_operational_assignment": "No operational assignment",
+        "no_assigned_dog": "No assigned dog",
+        "dog_sick": "Dog sick",
+        "dog_in_heat": "Dog in heat",
+        "administrative_duty": "Administrative duty",
+        "absence": "Absence",
+        "sickness": "Sickness",
+        "annual_leave": "Annual leave",
+        "special_leave": "Special leave",
+        "mission": "Mission",
+        "training": "Training",
+        "other_exclusion": "Unavailable"
+      }
+    }
+  },
+  "exclusions": {
+    "field": {
+      "durationDays": "Duration (days)",
+      "endDateCalculated": "End date (calculated)"
+    },
+    "hint": {
+      "endDateEditable": "Calculated automatically from duration. You may edit it manually."
+    },
+    "summary": {
+      "title": "Summary",
+      "starts": "Starts",
+      "ends": "Ends",
+      "durationLabel": "Duration",
+      "duration_one": "{{count}} day",
+      "duration_other": "{{count}} days"
+    }
+  },
+  "validation": {
+    "durationMin": "Duration must be at least 1 day"
+  },
+  "dashboard": {
+    "operationalSummary": {
+      "title": "OPERATIONAL SUMMARY",
+      "subtitle": "Active section status for today",
+      "noSection": "No active section for the current shift.",
+      "noPlanning": "No validated planning for the current section and shift.",
+      "planningReady": "Validated planning for the current section and shift.",
+      "commanderMissing": "Section chief not configured",
+      "activeSection": "Active section",
+      "currentShift": "Current shift",
+      "sectionChief": "Section chief",
+      "agentsMaladie": "Sick leave",
+      "agentsFormation": "Training",
+      "agentsConge": "Leave",
+      "unavailableDogs": "Unavailable dogs"
+    }
+  },
+  "statistics": {
+    "title": "Statistics",
+    "description": "Operational dashboard — key figures and activity.",
+    "center": {
+      "description": "Operational statistics center — tabular reports by year, section, and resource.",
+      "yearlyTitle": "Yearly operational statistics",
+      "monthlySummary": {
+        "title": "Monthly summary"
+      },
+      "checkpoints": {
+        "title": "Checkpoint statistics"
+      },
+      "agents": {
+        "title": "Cynotechnician statistics"
+      },
+      "dogs": {
+        "title": "Dog statistics"
+      },
+      "sections": {
+        "title": "Section statistics"
+      },
+      "yearSummary": {
+        "title": "Year summary"
+      },
+      "filters": {
+        "year": "Year",
+        "month": "Month",
+        "allMonths": "All months",
+        "checkpoint": "Checkpoint",
+        "allCheckpoints": "All checkpoints",
+        "agent": "Cynotechnician",
+        "allAgents": "All cynotechniciens",
+        "dog": "Dog",
+        "allDogs": "All dogs"
+      },
+      "columns": {
+        "month": "Month",
+        "generatedPlanning": "Generated planning",
+        "operationalCases": "Operational cases",
+        "drugDetections": "Drug detections",
+        "explosiveDetections": "Explosive detections",
+        "currencyDetections": "Currency detections",
+        "exclusions": "Exclusions",
+        "activeTeams": "Active teams",
+        "inactiveTeams": "Inactive teams",
+        "checkpoint": "Checkpoint",
+        "missionsGenerated": "Generated missions",
+        "assignedTeams": "Assigned teams",
+        "lastActivity": "Last activity",
+        "name": "Name",
+        "dog": "Dog",
+        "totalMissions": "Total missions",
+        "dayMissions": "Day missions",
+        "nightMissions": "Night missions",
+        "attendanceRate": "Attendance rate",
+        "lastMission": "Last mission",
+        "handler": "Handler",
+        "availabilityPct": "Availability %",
+        "daysUnavailable": "Days unavailable",
+        "activeAgents": "Active agents",
+        "activeDogs": "Active dogs",
+        "metric": "Metric",
+        "value": "Value"
+      }
+    },
+    "intelligence": {
+      "description": "Operational intelligence center — analytical reports for supervisors and command.",
+      "reportPeriod": "Reporting period",
+      "sections": {
+        "annualSummary": "Annual operational summary",
+        "monthlyActivity": "Monthly activity report",
+        "topAgents": "Top cynotechnicians ranking",
+        "topDogs": "Top dogs ranking",
+        "topCheckpoints": "Top checkpoints ranking",
+        "sectionPerformance": "Section performance",
+        "monthlyDetailed": "Monthly detailed reports",
+        "dailyActivity": "Daily operational activity",
+        "highlights": "Operational performance highlights",
+        "casesHistory": "Operational cases history"
+      },
+      "metrics": {
+        "planning": "Generated planning",
+        "cases": "Operational cases",
+        "assignments": "Operational assignments",
+        "drug": "Drug detections",
+        "explosive": "Explosive detections",
+        "currency": "Currency detections",
+        "exclusions": "Exclusions"
+      },
+      "columns": {
+        "metric": "Metric",
+        "annualTotal": "Annual total",
+        "monthlyAverage": "Monthly average",
+        "month": "Month",
+        "planning": "Planning",
+        "assignments": "Assignments",
+        "cases": "Cases",
+        "drug": "Narcotics",
+        "explosive": "Explosives",
+        "currency": "Currency",
+        "exclusions": "Exclusions",
+        "activeTeams": "Active teams",
+        "inactiveTeams": "Inactive teams",
+        "avgMissionsPerDay": "Avg missions/day",
+        "avgCasesPerDay": "Avg cases/day",
+        "rank": "Rank",
+        "name": "Name",
+        "detail": "Detail",
+        "missions": "Missions",
+        "detections": "Detections",
+        "activityScore": "Activity score",
+        "activeAgents": "Active agents",
+        "avgMissionsPerMonth": "Avg missions/month",
+        "date": "Date"
+      },
+      "highlights": {
+        "mostActiveMonth": "Most active month",
+        "mostActiveCheckpoint": "Most active checkpoint",
+        "mostActiveDog": "Most active dog",
+        "mostActiveAgent": "Most active cynotechnician",
+        "mostActiveSection": "Most active section"
+      }
+    },
+    "summary": {
+      "empty": "No data for the selected period"
+    },
+    "filter": {
+      "range": "Period: {{from}} → {{to}}"
+    },
+    "export": {
+      "excel": "Export Excel",
+      "pdf": "Export PDF",
+      "excelSuccess": "Excel export downloaded",
+      "pdfSuccess": "PDF export downloaded",
+      "error": "Export failed"
+    },
+    "casesHistory": {
+      "filter": {
+        "dateFrom": "From",
+        "dateTo": "To"
+      }
+    },
+    "operational": {
+      "currentYear": "Current year — {{year}}",
+      "totalOperationalCases": "Total operational cases",
+      "totalPlanningGenerated": "Total planning generated",
+      "totalControlsPerformed": "Total controls performed",
+      "totalNarcoticsDetections": "Total narcotics detections",
+      "totalExplosivesDetections": "Total explosives detections",
+      "totalCurrencyDetections": "Total currency detections",
+      "monthly": "Monthly statistics",
+      "weekly": "Weekly statistics",
+      "weekLabel": "Week {{number}}",
+      "today": "Today's statistics",
+      "todayPlanning": "Today's planning",
+      "todayCases": "Today's operational cases",
+      "todayExclusions": "Today's exclusions",
+      "todayActiveTeams": "Today's active teams",
+      "topAgents": "Top 10 cynotechniciens",
+      "topCheckpoints": "Top 10 checkpoints",
+      "topDogs": "Top 10 dogs",
+      "missions": "missions",
+      "controls": "controls"
+    }
+  },
+  "language": {
+    "english": "English"
+  },
+  "history": {
+    "title": "History",
+    "description": "Archive of past planning schedules.",
+    "open": "Open",
+    "loadError": "Unable to load this planning.",
+    "stat": {
+      "total": "Archived plannings"
+    },
+    "table": {
+      "count": "{{count}} archived planning(s)",
+      "date": "Date",
+      "section": "Section",
+      "shift": "Shift",
+      "agentsLabel": "Handlers",
+      "dogsLabel": "Dogs",
+      "agents": "{{count}} handler(s)",
+      "dogs": "{{count}} dog(s)"
+    },
+    "detail": {
+      "title": "Planning details"
+    },
+    "export": {
+      "menu": "Export planning",
+      "pdf": "Export PDF",
+      "docx": "Export Word (.docx)",
+      "both": "Export PDF + Word",
+      "success": "Export saved",
+      "successBoth": "PDF and Word saved",
+      "pdfSuccess": "PDF downloaded",
+      "canceled": "Export canceled",
+      "error": "Failed to export planning"
+    },
+    "delete": {
+      "action": "Delete",
+      "title": "Delete this planning?",
+      "description": "This action cannot be undone. Saved assignments for this date will be removed.",
+      "confirm": "Delete",
+      "deleting": "Deleting…",
+      "success": "Planning deleted",
+      "error": "Failed to delete"
+    },
+    "error": {
+      "title": "Unable to load history",
+      "description": "An error occurred while loading archived plannings."
+    },
+    "empty": {
+      "title": "No history",
+      "description": "Past plannings will appear here."
+    }
+  }
+}

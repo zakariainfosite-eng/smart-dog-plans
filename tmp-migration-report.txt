@@ -1,0 +1,16 @@
+table                            |   supabase |     sqlite |   status
+---------------------------------------------------------------------
+sections                         |          3 |          3 |       OK
+dogs                             |         33 |         33 |       OK
+agents                           |         34 |         34 |       OK
+checkpoints                      |         11 |         11 |       OK
+checkpoint_posts                 |         33 |         33 |       OK
+agent_exclusions                 |          2 |          2 |       OK
+planning                         |         22 |         22 |       OK
+planning_assignments             |        310 |        310 |       OK
+rotation_history                 |        314 |        314 |       OK
+operational_cases                |          1 |          1 |       OK
+operational_case_attachments     |          0 |          0 |       OK
+application_settings             |          0 |          0 |       OK
+---------------------------------------------------------------------
+RESULT: OK — no data lost[migration-runner] 2026-08-01T00:43:13.895Z SUCCESS

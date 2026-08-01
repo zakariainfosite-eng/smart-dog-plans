@@ -1,0 +1,1768 @@
+{
+  "app": {
+    "name": "التخطيط الذكي للكلاب البوليسية",
+    "subtitle": "وحدة تحكم الإدارة",
+    "brandShort": "Smart K9",
+    "brandTagline": "التخطيط",
+    "description": "وحدة تحكم احترافية لإدارة وحدات الكلاب والتخطيط."
+  },
+  "nav": {
+    "group": "التنقل",
+    "dashboard": "لوحة القيادة",
+    "sections": "الأقسام",
+    "employees": "Cynotechniciens",
+    "dogs": "الكلاب",
+    "checkpoints": "نقاط المراقبة",
+    "exclusions": "الاستثناءات",
+    "operationalCases": "القضايا التشغيلية",
+    "dailyPlanning": "التخطيط اليومي",
+    "history": "السجل",
+    "statistics": "الإحصائيات",
+    "settings": "الإعدادات"
+  },
+  "action": {
+    "signOut": "تسجيل الخروج",
+    "profile": "الملف الشخصي",
+    "toggleTheme": "تبديل السمة",
+    "notifications": "الإشعارات",
+    "language": "اللغة",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "save": "حفظ",
+    "saveChanges": "حفظ التغييرات",
+    "saving": "جارٍ الحفظ…",
+    "create": "إنشاء",
+    "edit": "تعديل",
+    "tryAgain": "إعادة المحاولة",
+    "goHome": "العودة للرئيسية"
+  },
+  "account": {
+    "my": "حسابي",
+    "fallback": "الحساب"
+  },
+  "common": {
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "loading": "جارٍ التحميل…",
+    "actions": "إجراءات",
+    "name": "الاسم",
+    "status": "الحالة",
+    "notes": "ملاحظات",
+    "yes": "نعم",
+    "no": "لا",
+    "none": "— لا شيء —",
+    "allStatuses": "جميع الحالات",
+    "allSections": "جميع الأقسام",
+    "searchByName": "البحث بالاسم…",
+    "tryAdjustFilters": "جرّب تعديل البحث أو عوامل التصفية.",
+    "required": "مطلوب",
+    "page": {
+      "lastUpdated": "آخر تحديث",
+      "filterReset": "إعادة تعيين الفلاتر",
+      "prev": "السابق",
+      "next": "التالي",
+      "showing": "{{displayed}} معروض من {{total}}",
+      "totalRecords": "إجمالي السجلات"
+    }
+  },
+  "gender": {
+    "male": "ذكر",
+    "female": "أنثى",
+    "all": "جميع الأجناس"
+  },
+  "specialty": {
+    "narcotics": "مخدرات وأوراق نقدية",
+    "narcoticsDetection": "مخدرات وأوراق نقدية",
+    "explosives": "متفجرات",
+    "explosivesDetection": "متفجرات",
+    "all": "جميع التخصصات"
+  },
+  "dogStatus": {
+    "available": "متاح",
+    "sick": "مريض",
+    "heat": "حرارة",
+    "heatFemaleOnly": "(إناث فقط)"
+  },
+  "shift": {
+    "day": "نهار",
+    "night": "ليل",
+    "rest": "راحة",
+    "dayHours": "نهار (09:00–21:00)",
+    "nightHours": "ليل (21:00–09:00)",
+    "dayShort": "نهار (09→21)",
+    "nightShort": "ليل (21→09)"
+  },
+  "weekday": {
+    "monday": "الإثنين",
+    "tuesday": "الثلاثاء",
+    "wednesday": "الأربعاء",
+    "thursday": "الخميس",
+    "friday": "الجمعة",
+    "saturday": "السبت",
+    "sunday": "الأحد"
+  },
+  "status": {
+    "validated": "معتمد",
+    "draft": "مسودة",
+    "upcoming": "قادم",
+    "expired": "منتهٍ",
+    "retired": "متقاعد",
+    "enabled": "مفعّل",
+    "active": "نشط"
+  },
+  "field": {
+    "section": "القسم",
+    "grade": "الرتبة",
+    "gender": "الجنس",
+    "specialty": "التخصص",
+    "active": "نشط",
+    "startDate": "تاريخ البداية",
+    "endDate": "تاريخ النهاية",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور"
+  },
+  "aria": {
+    "edit": "تعديل",
+    "delete": "حذف",
+    "openProfile": "فتح الملف",
+    "togglePosts": "تبديل المناصب"
+  },
+  "meta": {
+    "appTitle": "التخطيط الذكي — وحدة إدارة الكلاب",
+    "auth": {
+      "title": "تسجيل الدخول — التخطيط الذكي",
+      "description": "سجّل الدخول إلى وحدة التحكم."
+    },
+    "dashboard": {
+      "title": "لوحة القيادة — التخطيط الذكي"
+    },
+    "employees": {
+      "title": "Cynotechniciens — التخطيط الذكي"
+    },
+    "dogs": {
+      "title": "الكلاب — التخطيط الذكي"
+    },
+    "dogProfile": {
+      "title": "ملف الكلب — التخطيط الذكي"
+    },
+    "agentProfile": {
+      "title": "ملف Cynotechnicien — التخطيط الذكي"
+    },
+    "checkpoints": {
+      "title": "نقاط المراقبة — التخطيط الذكي"
+    },
+    "exclusions": {
+      "title": "الاستثناءات — التخطيط الذكي"
+    },
+    "operationalCases": {
+      "title": "القضايا التشغيلية — التخطيط الذكي"
+    },
+    "dailyPlanning": {
+      "title": "التخطيط اليومي — التخطيط الذكي"
+    },
+    "sections": {
+      "title": "الأقسام — التخطيط الذكي"
+    },
+    "settings": {
+      "title": "الإعدادات — التخطيط الذكي"
+    },
+    "statistics": {
+      "title": "الإحصائيات — التخطيط الذكي"
+    },
+    "history": {
+      "title": "السجل — التخطيط الذكي"
+    }
+  },
+  "error": {
+    "pageNotFound": "الصفحة غير موجودة",
+    "pageNotFoundDesc": "الصفحة التي تبحث عنها غير موجودة أو نُقلت.",
+    "pageLoadFailed": "تعذّر تحميل هذه الصفحة",
+    "pageLoadFailedDesc": "حدث خطأ. يمكنك التحديث أو العودة للرئيسية.",
+    "auth": {
+      "invalidCredentials": "البريد أو كلمة المرور غير صحيحة.",
+      "failed": "فشل المصادقة"
+    }
+  },
+  "auth": {
+    "brandName": "CynoPlanning",
+    "tagline": "التخطيط التشغيلي وإدارة معالجي الكلاب",
+    "secureBadge": "منصة آمنة للتخطيط التشغيلي",
+    "subtitle": "منصة آمنة للتخطيط التشغيلي",
+    "cardTitle": "الوصول إلى وحدة التحكم",
+    "cardDescription": "سجّل الدخول لإدارة عمليات التخطيط.",
+    "placeholder": {
+      "email": "vous@agence.gov"
+    },
+    "submit": {
+      "signIn": "تسجيل الدخول"
+    },
+    "footer": "وصول مقيّد • للموظفين المصرّح لهم فقط"
+  },
+  "toast": {
+    "auth": {
+      "welcomeBack": "مرحباً بعودتك"
+    }
+  },
+  "dashboard": {
+    "title": "لوحة القيادة",
+    "description": "نظرة عامة على العمليات والتخطيط.",
+    "stat": {
+      "activeAgents": "Cynotechniciens نشطون",
+      "activeK9": "وحدات كلاب نشطة",
+      "activeCheckpoints": "نقاط مراقبة نشطة",
+      "todayPlannings": "تخطيطات اليوم"
+    },
+    "todayPlanning": "تخطيط اليوم",
+    "noPlanningToday": "لا يوجد تخطيط لليوم.",
+    "sectionFallback": "قسم",
+    "upcomingDeployments": "عمليات نشر قادمة",
+    "deploymentsSubtitle": "الجدول التشغيلي والتناوب",
+    "deploymentsPlaceholder": "ستظهر عمليات النشر المجدولة هنا.",
+    "validationProgress": "{{validated}} من {{total}} تخطيطات معتمدة",
+    "operationalSummary": {
+      "title": "ملخص تشغيلي",
+      "subtitle": "وضع القسم النشط اليوم",
+      "noSection": "لا يوجد قسم نشط للوردية الحالية.",
+      "noPlanning": "لا يوجد تخطيط معتمد للقسم والوردية الحالية.",
+      "planningReady": "تخطيط معتمد للقسم والوردية الحالية.",
+      "commanderMissing": "لم يتم تحديد رئيس القسم",
+      "activeSection": "القسم النشط",
+      "currentShift": "الوردية الحالية",
+      "sectionChief": "رئيس القسم",
+      "agentsMaladie": "مرض",
+      "agentsFormation": "تكوين",
+      "agentsConge": "إجازة",
+      "unavailableDogs": "كلاب غير متاحة"
+    }
+  },
+  "employees": {
+    "title": "Cynotechniciens",
+    "description": "معالجو الكلاب والأفراد العاملون.",
+    "addAgent": "إضافة Cynotechnicien",
+    "hero": {
+      "title": "إدارة Cynotechniciens",
+      "subtitle": "إدارة معالجي الكلاب والكوادر العاملة.",
+      "activeToday": "Cynotechniciens المتاحون اليوم",
+      "lastUpdated": "آخر تحديث"
+    },
+    "export": {
+      "label": "تصدير",
+      "success": "تم تنزيل ملف CSV",
+      "pdfLabel": "تصدير قائمة PDF",
+      "pdfSuccess": "تم تنزيل قائمة PDF",
+      "pdfError": "فشل تصدير PDF"
+    },
+    "stat": {
+      "total": "إجمالي Cynotechniciens",
+      "withDog": "معالجون مع كلب",
+      "available": "متاحون",
+      "excluded": "مستثنون",
+      "female": "إناث",
+      "male": "ذكور",
+      "narcoticsHandlers": "معالجو مخدرات",
+      "explosivesHandlers": "معالجو متفجرات",
+      "nightEligible": "مؤهلون لليل",
+      "trendThisMonth": "+{{count}} هذا الشهر"
+    },
+    "search": "البحث بالاسم أو الرقم المهني",
+    "filter": {
+      "allStatuses": "جميع الحالات",
+      "operationalStatus": "الحالة التشغيلية",
+      "specialty": "التخصص",
+      "activeState": "حالة الملف",
+      "reset": "إعادة تعيين الفلاتر"
+    },
+    "operationalStatus": {
+      "available": "متاح",
+      "excluded": "خارج الخدمة",
+      "rest": "راحة",
+      "onMission": "في مهمة"
+    },
+    "table": {
+      "name": "الاسم",
+      "profNumber": "الرقم المهني",
+      "assignedDog": "الكلب المعيّن",
+      "showing": "{{displayed}} Cynotechnicien معروض من {{total}} إجمالاً",
+      "pagination": "عرض {{from}}–{{to}} من {{total}}"
+    },
+    "dialog": {
+      "addTitle": "إضافة Cynotechnicien",
+      "editTitle": "تعديل Cynotechnicien",
+      "addDesc": "إنشاء معالج كلاب جديد.",
+      "editDesc": "تحديث المعلومات والتعيين.",
+      "section": {
+        "identity": "الهوية",
+        "assignment": "التعيين",
+        "contact": "معلومات الاتصال"
+      },
+      "matriculePlaceholder": "الرقم المهني غير محدد",
+      "noSpecialty": "بدون تخصص",
+      "noSection": "بدون قسم",
+      "card": {
+        "personal": "المعلومات الشخصية",
+        "dog": "الكلب المعيّن",
+        "contact": "معلومات الاتصال",
+        "additional": "معلومات إضافية"
+      }
+    },
+    "field": {
+      "firstName": "الاسم الأول",
+      "lastName": "اسم العائلة",
+      "professionalNumber": "الرقم المهني",
+      "assignedDog": "الكلب المعيّن",
+      "phone": "الهاتف",
+      "address": "العنوان",
+      "observations": "ملاحظات",
+      "photo": "صورة Cynotechnicien"
+    },
+    "photo": {
+      "hint": "JPG أو JPEG أو PNG أو WEBP — بحد أقصى 5 ميغابايت.",
+      "upload": "اختيار صورة",
+      "replace": "استبدال الصورة",
+      "change": "تغيير الصورة",
+      "remove": "حذف الصورة",
+      "removeShort": "حذف",
+      "error": {
+        "invalidType": "صيغة غير مدعومة. استخدم JPG أو JPEG أو PNG أو WEBP.",
+        "tooLarge": "يجب ألا تتجاوز الصورة {{maxMb}} ميغابايت."
+      }
+    },
+    "select": {
+      "noDog": "— لا كلب —",
+      "assigned": "(معيّن)"
+    },
+    "hint": {
+      "specialtyInherited": "التخصص موروث من الكلب المعيّن.",
+      "inactiveExcluded": "Cynotechniciens غير النشطين مستبعدون من التخطيط.",
+      "femaleNoSection": "تناوب نسائي مستقل — بدون أقسام A/B/C."
+    },
+    "empty": {
+      "title": "لا Cynotechniciens",
+      "description": "أضف معالجي كلاب لبناء القائمة."
+    },
+    "delete": {
+      "title": "حذف Cynotechnicien؟",
+      "description": "سيُحذف {{name}} نهائياً. لا يمكن التراجع."
+    },
+    "toast": {
+      "updated": "تم تحديث Cynotechnicien",
+      "created": "تم إنشاء Cynotechnicien",
+      "deleted": "تم حذف Cynotechnicien",
+      "profNumberUnique": "الرقم المهني يجب أن يكون فريداً",
+      "dogAlreadyAssigned": "هذا الكلب معيّن لCynotechnicien آخر"
+    },
+    "error": {
+      "saveFailed": "فشل الحفظ",
+      "deleteFailed": "فشل الحذف"
+    }
+  },
+  "agentProfile": {
+    "notFound": "Cynotechnicien غير موجود.",
+    "backToAgents": "العودة إلى Cynotechniciens",
+    "allAgents": "جميع Cynotechniciens",
+    "generalInfo": "معلومات عامة",
+    "assignment": "التعيين",
+    "contact": "معلومات الاتصال"
+  },
+  "agentDetails": {
+    "title": "ملف Cynotechnicien",
+    "error": {
+      "loadFailed": "تعذّر تحميل ملف Cynotechnicien."
+    },
+    "action": {
+      "edit": "تعديل Cynotechnicien",
+      "exportPdf": "تصدير PDF",
+      "print": "طباعة الملف"
+    },
+    "photo": {
+      "viewFullscreen": "عرض الصورة ملء الشاشة",
+      "lightboxTitle": "صورة {{name}}",
+      "close": "إغلاق",
+      "zoomIn": "تكبير",
+      "zoomOut": "تصغير"
+    },
+    "section": {
+      "personal": "المعلومات الشخصية",
+      "k9": "معلومات K9",
+      "stats": "إحصائيات تشغيلية",
+      "caseStats": "إحصائيات الضبط",
+      "casesHistory": "سجل القضايا",
+      "exclusionsHistory": "سجل الاستثناءات",
+      "careerSummary": "ملخص المسار المهني",
+      "history": "السجل",
+      "notes": "ملاحظات"
+    },
+    "stats": {
+      "totalAssignments": "إجمالي التعيينات",
+      "totalRotations": "إجمالي الدورات",
+      "hqReserve": "Point 653",
+      "lastAssignment": "آخر تعيين",
+      "topCheckpoint": "أكثر نقطة مراقبة"
+    },
+    "caseStats": {
+      "totalCases": "إجمالي القضايا",
+      "cannabisKg": "حشيش مهشور (كغ)",
+      "cocaineKg": "كوكايين (كغ)",
+      "heroinKg": "هيروين (كغ)",
+      "syntheticDrugsKg": "مخدرات اصطناعية (كغ)",
+      "hashishKg": "حشيش (كغ)",
+      "largestSeizure": "أكبر ضبط",
+      "lastCase": "آخر قضية تشغيلية",
+      "totalObjects": "إجمالي الأشياء المضبوطة",
+      "totalBanknotes": "إجمالي الأوراق النقدية",
+      "totalAmount": "المبلغ الإجمالي المضبوط"
+    },
+    "caseDetail": {
+      "description": "تفاصيل القضية التشغيلية لـ Cynotechnicien {{agent}}."
+    },
+    "careerSummary": {
+      "totalCases": "إجمالي القضايا التشغيلية",
+      "totalExclusions": "إجمالي الاستثناءات",
+      "totalLeave": "إجمالي فترات الإجازة",
+      "totalTraining": "إجمالي استثناءات التدريب",
+      "totalMedical": "إجمالي الإجازات المرضية",
+      "totalDogRelated": "إجمالي الاستثناءات المرتبطة بالكلب"
+    },
+    "cases": {
+      "card": {
+        "date": "التاريخ",
+        "caseNumber": "رقم القضية",
+        "checkpoint": "نقطة التفتيش",
+        "specialty": "التخصص",
+        "seizureDetails": "تفاصيل الضبط",
+        "quantity": "الكمية",
+        "assignedDog": "الكلب المعيّن",
+        "notes": "ملاحظات"
+      }
+    },
+    "exclusions": {
+      "empty": "لا توجد استثناءات مسجّلة.",
+      "emptyFilter": "لا توجد استثناءات مطابقة للتصفية المحددة.",
+      "filter": {
+        "all": "الكل",
+        "active": "نشطة",
+        "ended": "منتهية"
+      },
+      "status": {
+        "active": "نشطة",
+        "ended": "منتهية"
+      },
+      "card": {
+        "period": "الفترة",
+        "from": "من",
+        "to": "إلى",
+        "exclusionType": "نوع الاستثناء",
+        "reason": "السبب",
+        "createdBy": "أنشأها",
+        "notes": "ملاحظات"
+      },
+      "table": {
+        "startDate": "تاريخ البداية",
+        "endDate": "تاريخ النهاية",
+        "exclusionType": "نوع الاستثناء",
+        "reason": "السبب",
+        "status": "الحالة",
+        "createdBy": "أنشأها",
+        "notes": "ملاحظات"
+      }
+    },
+    "history": {
+      "cases": "القضايا التشغيلية الأخيرة",
+      "emptyCases": "لا توجد قضايا تشغيلية مسجّلة.",
+      "planning": "التخطيطات الأخيرة",
+      "rotations": "سجل الدورات",
+      "exclusions": "الاستثناءات",
+      "emptyPlanning": "لا توجد تخطيطات مسجّلة.",
+      "emptyRotations": "لا توجد دورات مسجّلة.",
+      "emptyExclusions": "لا توجد استثناءات مسجّلة."
+    }
+  },
+  "dogs": {
+    "title": "الكلاب",
+    "description": "ملفات الكلاب والتخصصات والحالات.",
+    "addDog": "إضافة كلب",
+    "stat": {
+      "total": "إجمالي الكلاب",
+      "narcotics": "مخدرات وأوراق نقدية",
+      "explosives": "متفجرات"
+    },
+    "gender": {
+      "male": "ذكر",
+      "female": "أنثى",
+      "all": "جميع الأجناس"
+    },
+    "search": "البحث بالاسم أو السلالة أو الشريحة…",
+    "filter": {
+      "activeAndRetired": "نشط ومتقاعد",
+      "activeOnly": "نشط فقط",
+      "retiredOnly": "متقاعد فقط"
+    },
+    "export": {
+      "pdfLabel": "تصدير القائمة PDF",
+      "pdfSuccess": "تم تنزيل القائمة PDF",
+      "pdfError": "فشل تصدير PDF"
+    },
+    "table": {
+      "photo": "الصورة",
+      "currentAgent": "Cynotechnicien المعيّن"
+    },
+    "age": {
+      "days_zero": "{{count}} يوم",
+      "days_one": "{{count}} يوم",
+      "days_two": "يومان",
+      "days_few": "{{count}} أيام",
+      "days_many": "{{count}} يومًا",
+      "days_other": "{{count}} يوم",
+      "months_zero": "{{count}} شهر",
+      "months_one": "{{count}} شهر",
+      "months_two": "شهران",
+      "months_few": "{{count}} أشهر",
+      "months_many": "{{count}} شهرًا",
+      "months_other": "{{count}} شهر",
+      "years_zero": "{{count}} سنة",
+      "years_one": "{{count}} سنة",
+      "years_two": "سنتان",
+      "years_few": "{{count}} سنوات",
+      "years_many": "{{count}} سنة",
+      "years_other": "{{count}} سنة",
+      "yearsAndMonths_zero": "{{years}} سنة {{months}} شهر",
+      "yearsAndMonths_one": "{{years}} سنة {{months}} شهر",
+      "yearsAndMonths_two": "{{years}} سنتان {{months}} شهر",
+      "yearsAndMonths_few": "{{years}} سنوات {{months}} أشهر",
+      "yearsAndMonths_many": "{{years}} سنة {{months}} شهرًا",
+      "yearsAndMonths_other": "{{years}} سنة {{months}} شهر"
+    },
+    "empty": {
+      "noMatch": "لا كلاب تطابق التصفية",
+      "noProfiles": "لا ملفات كلاب بعد",
+      "registerFirst": "سجّل أول وحدة كلاب للبدء."
+    },
+    "dialog": {
+      "addTitle": "إضافة كلب",
+      "editTitle": "تعديل الكلب",
+      "addDesc": "تسجيل وحدة كلاب جديدة.",
+      "editDesc": "تحديث ملف الكلب.",
+      "microchipPlaceholder": "الشريحة الإلكترونية غير محددة",
+      "card": {
+        "personal": "المعلومات الشخصية",
+        "operational": "المعلومات التشغيلية",
+        "medical": "المعلومات الطبية",
+        "additional": "معلومات إضافية"
+      }
+    },
+    "field": {
+      "dogName": "اسم الكلب",
+      "photo": "صورة الكلب",
+      "breed": "السلالة",
+      "microchip": "الشريحة الإلكترونية",
+      "dateOfBirth": "تاريخ الميلاد",
+      "age": "العمر",
+      "ageReadOnly": "يُحسب تلقائياً من تاريخ الميلاد",
+      "currentAgent": "Cynotechnicien المعيّن",
+      "assignmentDate": "تاريخ التعيين",
+      "trainingLevel": "مستوى التدريب",
+      "veterinaryNotes": "ملاحظات بيطرية",
+      "vaccinationInfo": "معلومات التطعيم",
+      "healthStatus": "الحالة الصحية",
+      "observations": "ملاحظات عامة"
+    },
+    "photo": {
+      "hint": "JPG أو JPEG أو PNG أو WEBP — بحد أقصى 5 ميغابايت.",
+      "upload": "اختيار صورة",
+      "change": "تغيير الصورة",
+      "removeShort": "حذف",
+      "error": {
+        "invalidType": "صيغة غير مدعومة. استخدم JPG أو JPEG أو PNG أو WEBP.",
+        "tooLarge": "يجب ألا تتجاوز الصورة {{maxMb}} ميغابايت."
+      }
+    },
+    "select": {
+      "unassigned": "غير معيّن"
+    },
+    "hint": {
+      "agentsWithoutDog": "يُعرض فقط Cynotechniciens بلا كلب حالي.",
+      "retiredExcluded": "الكلاب المتقاعدة مستبعدة من التخطيط."
+    },
+    "submit": {
+      "createDog": "إنشاء الكلب"
+    },
+    "delete": {
+      "title": "حذف الكلب؟",
+      "description": "حذف نهائي لـ «{{name}}». سيُلغى تعيين Cynotechnicien المرتبط."
+    },
+    "toast": {
+      "updated": "تم تحديث الكلب",
+      "created": "تم إنشاء الكلب",
+      "deleted": "تم حذف الكلب"
+    },
+    "error": {
+      "loadFailed": "تعذّر تحميل ملف الكلب."
+    }
+  },
+  "dogDetails": {
+    "title": "تفاصيل الكلب",
+    "error": {
+      "loadFailed": "تعذّر تحميل تفاصيل الكلب."
+    },
+    "action": {
+      "edit": "تعديل الكلب"
+    },
+    "photo": {
+      "viewFullscreen": "عرض الصورة ملء الشاشة"
+    },
+    "section": {
+      "information": "معلومات الكلب",
+      "operational": "المعلومات التشغيلية",
+      "medical": "المعلومات الطبية",
+      "casesHistory": "سجل القضايا",
+      "exclusionsHistory": "سجل الاستثناءات",
+      "notes": "ملاحظات"
+    },
+    "history": {
+      "emptyCases": "لا قضايا تشغيلية مسجلة لهذا الكلب."
+    },
+    "exclusions": {
+      "noAgent": "لا Cynotechnicien معيّن — الاستثناءات مرتبطة بـ Cynotechnicien."
+    },
+    "cases": {
+      "card": {
+        "date": "التاريخ",
+        "caseNumber": "رقم القضية",
+        "location": "المكان",
+        "specialty": "التخصص",
+        "seizureDetails": "تفاصيل الضبط",
+        "quantity": "الكمية",
+        "assignedAgent": "Cynotechnicien المعيّن",
+        "notes": "ملاحظات"
+      }
+    }
+  },
+  "dogProfile": {
+    "notFound": "الكلب غير موجود.",
+    "backToDogs": "العودة إلى الكلاب",
+    "allDogs": "جميع الكلاب",
+    "subtitle": "ملف وحدة الكلاب",
+    "generalInfo": "معلومات عامة",
+    "currentAssignment": "التعيين الحالي",
+    "handler": "المعالج",
+    "profNumber": "الرقم المهني",
+    "unassigned": "غير معيّن",
+    "noAgentLinked": "لا Cynotechnicien مرتبط حالياً.",
+    "historyPlanning": "السجل والتخطيط",
+    "historyPlaceholder": "سيظهر سجل التناوب والتعيينات هنا."
+  },
+  "checkpoints": {
+    "title": "نقاط المراقبة",
+    "description": "إدارة نقاط المراقبة ومتطلباتها.",
+    "new": "نقطة مراقبة جديدة",
+    "stat": {
+      "total": "إجمالي النقاط",
+      "nightOnly": "ليل فقط",
+      "requiredTeams": "فرق كلاب مطلوبة"
+    },
+    "filter": {
+      "all": "جميع النقاط",
+      "nightOnly": "ليل فقط"
+    },
+    "table": {
+      "nightOnly": "ليل فقط",
+      "operationalReqs": "المتطلبات",
+      "total": "({{count}} إجمالي)",
+      "shifts": "الورديات"
+    },
+    "config": {
+      "subtitle": "الإعداد التشغيلي الذي يقرأه محرك Smart Rotation.",
+      "general": "معلومات عامة",
+      "name": "اسم النقطة",
+      "operatingDays": "أيام العمل",
+      "dayShift": "وردية النهار",
+      "nightShift": "وردية الليل",
+      "dayShiftHint": "الفرق المطلوبة صباحاً (09:00–21:00).",
+      "nightShiftHint": "الفرق المطلوبة ليلاً (21:00–09:00).",
+      "femaleAgents": "العاملات",
+      "priority": "الأولوية",
+      "priorityHint": "ترتيب التعيين في التخطيط (1 = حرج أولاً).",
+      "priorityLevel": {
+        "1": "حرج",
+        "2": "عالٍ",
+        "3": "عادي",
+        "4": "منخفض"
+      },
+      "team": {
+        "explosives": "متفجرات",
+        "narcotics": "مخدرات"
+      },
+      "femalePolicy": {
+        "allowed": "مسموح",
+        "preferred": "مفضّل",
+        "not_allowed": "غير مسموح"
+      }
+    },
+    "validation": {
+      "shiftRequired": "فعّل وردية واحدة على الأقل (نهار أو ليل) مع فرق مطلوبة."
+    },
+    "badge": {
+      "narcotics": "مخ.",
+      "explosives": "متف."
+    },
+    "tooltip": {
+      "narcoticsExplosives": "مخدرات وأوراق نقدية / متفجرات"
+    },
+    "empty": {
+      "noMatch": "لا نقاط تطابق التصفية",
+      "none": "لا نقاط مراقبة",
+      "createFirst": "أنشئ أول نقطة مراقبة."
+    },
+    "allowedGender": {
+      "all": "الجميع",
+      "maleOnly": "ذكور فقط",
+      "femaleOnly": "إناث فقط"
+    },
+    "dialog": {
+      "newTitle": "نقطة مراقبة جديدة",
+      "editTitle": "تعديل النقطة",
+      "newDesc": "إنشاء نقطة مراقبة جديدة.",
+      "editDesc": "تحديث التفاصيل."
+    },
+    "field": {
+      "namePlaceholder": "مثال: 77، 77 Bis، 78، 753"
+    },
+    "hint": {
+      "nameUnique": "الاسم هو المعرّف ويجب أن يكون فريداً.",
+      "nightOnly": "يعمل في الورديات الليلية فقط.",
+      "inactiveExcluded": "النقاط غير النشطة مستبعدة."
+    },
+    "allowedHandlers": "المعالجون المسموحون",
+    "staffingReqs": "متطلبات التوظيف",
+    "staffing": {
+      "narcoticsK9": "كلاب مخدرات وأوراق نقدية",
+      "explosivesK9": "كلاب متفجرات"
+    },
+    "submit": {
+      "create": "إنشاء النقطة"
+    },
+    "posts": {
+      "title": "المتطلبات التشغيلية",
+      "description": "صف لكل تخصص. محرك التخطيط يستخدم هذه القيم.",
+      "add": "إضافة متطلب",
+      "empty": "لا متطلبات. أضف تخصصاً واحداً على الأقل.",
+      "requiredHandlers": "معالجون مطلوبون",
+      "hint": {
+        "inactiveIgnored": "المتطلبات غير النشطة تُتجاهل."
+      }
+    },
+    "post": {
+      "dialog": {
+        "addTitle": "إضافة متطلب",
+        "editTitle": "تعديل المتطلب",
+        "desc": "اختر التخصص وعدد المعالجين."
+      },
+      "submit": {
+        "add": "إضافة المتطلب"
+      },
+      "delete": {
+        "title": "حذف المتطلب؟",
+        "description": "حذف نهائي. محظور إن وُجد سجل."
+      }
+    },
+    "delete": {
+      "title": "حذف النقطة؟",
+      "description": "حذف نهائي لـ «{{name}}» ومتطلباتها."
+    },
+    "toast": {
+      "updated": "تم تحديث النقطة",
+      "created": "تم إنشاء النقطة",
+      "deleted": "تم حذف النقطة",
+      "nameUnique": "الاسم يجب أن يكون فريداً",
+      "reqUpdated": "تم تحديث المتطلب",
+      "reqAdded": "تمت إضافة المتطلب",
+      "reqDeleted": "تم حذف المتطلب"
+    },
+    "error": {
+      "historyExists": "لا يمكن الحذف: يوجد سجل.",
+      "postHistoryExists": "لا يمكن الحذف: يوجد سجل للمنصب.",
+      "loadFailed": "تعذّر تحميل نقاط المراقبة.",
+      "retry": "إعادة المحاولة"
+    }
+  },
+  "exclusions": {
+    "title": "الاستثناءات",
+    "description": "غيابات مؤقتة تستبعد Cynotechniciens من التخطيط.",
+    "new": "استثناء جديد",
+    "stat": {
+      "active": "استثناءات نشطة",
+      "sickAgents": "Cynotechniciens مرضيون",
+      "dogsInHeat": "كلاب في حرارة",
+      "sickDogs": "كلاب مرضى"
+    },
+    "search": "البحث باسم أو رقم Cynotechnicien…",
+    "filter": {
+      "reason": "السبب",
+      "allReasons": "جميع الأسباب",
+      "allAgents": "جميع Cynotechniciens"
+    },
+    "table": {
+      "agent": "Cynotechnicien",
+      "profNumber": "الرقم المهني",
+      "assignedDog": "الكلب المعيّن",
+      "type": "النوع",
+      "start": "البداية",
+      "end": "النهاية",
+      "enabled": "مفعّل"
+    },
+    "type": {
+      "sickness": "مريض",
+      "annual_leave": "إجازة سنوية",
+      "administrative_leave": "إجازة إدارية",
+      "mission": "مهمة",
+      "training": "تدريب",
+      "dog_sick": "كلب مريض",
+      "female_dog_heat": "أنثى في حرارة",
+      "other": "أخرى",
+      "absence": "غياب",
+      "special_leave": "إجازة خاصة"
+    },
+    "empty": {
+      "noMatch": "لا استثناءات تطابق التصفية",
+      "none": "لا استثناءات",
+      "recordFirst": "سجّل استثناءً لإزالة Cynotechnicien."
+    },
+    "dialog": {
+      "newTitle": "استثناء جديد",
+      "editTitle": "تعديل الاستثناء",
+      "newDesc": "تسجيل غياب Cynotechnicien.",
+      "editDesc": "تحديث التفاصيل."
+    },
+    "field": {
+      "agent": "Cynotechnicien",
+      "exclusionType": "نوع الاستثناء",
+      "durationDays": "المدة (أيام)",
+      "endDateCalculated": "تاريخ النهاية (محسوب)"
+    },
+    "selectAgent": "اختر Cynotechnicien",
+    "placeholder": {
+      "notes": "سياق أو مرجع اختياري…"
+    },
+    "hint": {
+      "disabledIgnored": "الاستثناءات المعطّلة تُتجاهل.",
+      "endDateEditable": "يُحسب تلقائياً من المدة. يمكنك تعديله يدوياً."
+    },
+    "summary": {
+      "title": "ملخص",
+      "starts": "البداية",
+      "ends": "النهاية",
+      "durationLabel": "المدة",
+      "duration_zero": "{{count}} يوم",
+      "duration_one": "يوم واحد",
+      "duration_two": "يومان",
+      "duration_few": "{{count}} أيام",
+      "duration_many": "{{count}} يوماً",
+      "duration_other": "{{count}} يوم"
+    },
+    "submit": {
+      "create": "إنشاء الاستثناء"
+    },
+    "delete": {
+      "title": "حذف الاستثناء؟",
+      "description": "حذف نهائي."
+    },
+    "aria": {
+      "disable": "تعطيل الاستثناء",
+      "enable": "تفعيل الاستثناء"
+    },
+    "history": {
+      "empty": "لا استثناءات مسجّلة."
+    },
+    "toast": {
+      "updated": "تم تحديث الاستثناء",
+      "created": "تم إنشاء الاستثناء",
+      "enabled": "تم تفعيل الاستثناء",
+      "disabled": "تم تعطيل الاستثناء",
+      "deleted": "تم حذف الاستثناء"
+    },
+    "error": {
+      "overlap": "يوجد استثناء متداخل لهذا Cynotechnicien."
+    }
+  },
+  "operationalCases": {
+    "title": "القضايا التشغيلية",
+    "description": "الوحدة المركزية لإدارة القضايا التشغيلية والضبط والمرفقات.",
+    "new": "قضية جديدة",
+    "newAffair": "قضية جديدة",
+    "search": "بحث برقم القضية أو Cynotechnicien أو نقطة المراقبة…",
+    "action": {
+      "view": "عرض القضية",
+      "viewShort": "عرض",
+      "print": "طباعة",
+      "menu": "إجراءات القضية"
+    },
+    "submit": {
+      "create": "إنشاء القضية"
+    },
+    "stat": {
+      "total": "إجمالي القضايا",
+      "thisMonth": "هذا الشهر",
+      "narcotics": "قضايا مخدرات",
+      "explosives": "قضايا متفجرات",
+      "currency": "كشف العملات",
+      "totalSeized": "إجمالي المضبوطات",
+      "cannabisKg": "حشيش مهشور (كغ)"
+    },
+    "caseStatus": {
+      "closed": "مغلق",
+      "in_progress": "قيد المعالجة",
+      "draft": "مسودة"
+    },
+    "filter": {
+      "specialty": "التخصص",
+      "seizureType": "نوع الضبط",
+      "agent": "Cynotechnicien",
+      "date": "التاريخ",
+      "allSpecialties": "جميع التخصصات",
+      "allSeizureTypes": "جميع الأنواع",
+      "allAgents": "جميع Cynotechniciens"
+    },
+    "table": {
+      "date": "التاريخ",
+      "caseNumber": "رقم القضية",
+      "agent": "Cynotechnicien",
+      "dog": "الكلب المعيّن",
+      "specialty": "التخصص",
+      "checkpoint": "نقطة المراقبة",
+      "location": "المكان",
+      "seizureType": "الضبط / الشيء",
+      "quantity": "الكمية",
+      "objectLabel": "الشيء",
+      "threatLabel": "التهديد",
+      "details": "تفاصيل الضبط"
+    },
+    "specialty": {
+      "narcotics": "مخدرات",
+      "explosives": "متفجرات",
+      "currency": "أوراق نقدية / كشف العملات"
+    },
+    "drugType": {
+      "exta": "إكستا",
+      "hashish": "حشيش",
+      "cocaine": "كوكايين",
+      "heroin": "هيروين",
+      "synthetic_drugs": "مخدرات اصطناعية",
+      "pofa": "بوفا",
+      "other": "أخرى",
+      "cannabis": "حشيش مهشور"
+    },
+    "objectType": {
+      "firearm": "سلاح ناري",
+      "bladed_weapon": "سلاح أبيض",
+      "grenade": "قنبلة يدوية",
+      "homemade_explosive": "متفجرات محلية الصنع",
+      "ammunition": "ذخيرة",
+      "detonator": "مفجر",
+      "explosive_material": "مادة متفجرة",
+      "other": "أخرى"
+    },
+    "threatLevel": {
+      "low": "منخفض",
+      "medium": "متوسط",
+      "high": "مرتفع"
+    },
+    "currency": {
+      "other": "عملة أخرى"
+    },
+    "seizureType": {
+      "cannabis": "حشيش مهشور",
+      "cocaine": "كوكايين",
+      "heroin": "هيروين",
+      "synthetic_drugs": "مخدرات اصطناعية",
+      "hashish": "حشيش",
+      "explosives": "متفجرات",
+      "counterfeit_currency": "أوراق مزيفة",
+      "other": "أخرى"
+    },
+    "unit": {
+      "kg": "كغ",
+      "g": "غ",
+      "tonne": "طن",
+      "units": "وحدات",
+      "pieces": "قطع",
+      "liters": "لتر",
+      "banknotes": "أوراق"
+    },
+    "field": {
+      "date": "التاريخ",
+      "caseNumber": "رقم القضية",
+      "caseNumberPlaceholder": "مثال CO-2026-0142",
+      "caseNumberAuto": "يُعيَّن تلقائياً عند الحفظ",
+      "caseNumberGenerating": "جاري التوليد…",
+      "agent": "Cynotechnicien",
+      "agentPlaceholder": "اختر Cynotechnicien",
+      "dog": "الكلب المعيّن",
+      "specialty": "التخصص",
+      "checkpoint": "نقطة المراقبة",
+      "checkpointPlaceholder": "اختر نقطة المراقبة",
+      "location": "المكان",
+      "locationPlaceholder": "مكان التدخل",
+      "seizureType": "نوع الضبط",
+      "drugType": "نوع المخدر",
+      "quantity": "الكمية",
+      "unit": "الوحدة",
+      "objectType": "نوع الشيء",
+      "objectCount": "عدد الأشياء",
+      "threatLevel": "مستوى التهديد",
+      "threatLevelOptional": "اختياري",
+      "currency": "العملة",
+      "totalAmount": "المبلغ الإجمالي",
+      "banknoteCount": "عدد الأوراق",
+      "country": "البلد",
+      "countryPlaceholder": "مثال المغرب",
+      "observations": "ملاحظات",
+      "attachments": "مرفقات"
+    },
+    "attachments": {
+      "none": "لا توجد مرفقات.",
+      "pending": "{{count}} ملف(ات) جاهز(ة) للحفظ."
+    },
+    "validation": {
+      "caseNumberRequired": "رقم القضية مطلوب.",
+      "checkpointRequired": "نقطة المراقبة مطلوبة.",
+      "locationRequired": "المكان مطلوب.",
+      "quantityPositive": "يجب أن تكون الكمية أكبر من صفر.",
+      "drugTypeRequired": "نوع المخدر مطلوب.",
+      "unitRequired": "الوحدة مطلوبة.",
+      "objectTypeRequired": "نوع الشيء مطلوب.",
+      "objectCountPositive": "يجب أن يكون عدد الأشياء أكبر من صفر.",
+      "currencyRequired": "العملة مطلوبة.",
+      "totalAmountRequired": "المبلغ الإجمالي مطلوب.",
+      "banknoteCountRequired": "عدد الأوراق مطلوب.",
+      "countryRequired": "البلد مطلوب."
+    },
+    "empty": {
+      "noMatch": "لا توجد قضايا مطابقة",
+      "none": "لا توجد قضايا تشغيلية",
+      "createFirst": "سجّل أول قضية تشغيلية للبدء."
+    },
+    "dialog": {
+      "newTitle": "قضية تشغيلية جديدة",
+      "editTitle": "تعديل القضية",
+      "newDesc": "تسجيل قضية تشغيلية جديدة.",
+      "editDesc": "تحديث تفاصيل القضية.",
+      "section": {
+        "general": "معلومات عامة",
+        "seizure": "معلومات الضبط",
+        "additional": "معلومات إضافية"
+      },
+      "sidebar": {
+        "today": "اليوم"
+      },
+      "dropzone": {
+        "hint": "اسحب الملفات وأفلتها أو انقر للتصفح",
+        "upload": "استيراد الملفات"
+      }
+    },
+    "delete": {
+      "title": "حذف القضية؟",
+      "description": "حذف نهائي للقضية {{number}}."
+    },
+    "toast": {
+      "created": "تم إنشاء القضية",
+      "updated": "تم تحديث القضية",
+      "deleted": "تم حذف القضية",
+      "deleteError": "فشل الحذف",
+      "attachmentDeleted": "تم حذف المرفق"
+    }
+  },
+  "dailyPlanning": {
+    "title": "التخطيط اليومي",
+    "description": "إنشاء وحفظ تعيينات نقاط المراقبة تلقائياً.",
+    "create": {
+      "title": "إنشاء التخطيط اليومي",
+      "description": "اختر التاريخ والوردية. القسم يُحدد بالتناوب 12/24."
+    },
+    "field": {
+      "planningDate": "تاريخ التخطيط",
+      "shift": "الوردية"
+    },
+    "generating": "جارٍ الإنشاء…",
+    "createButton": "إنشاء التخطيط اليومي",
+    "attendanceSheet": {
+      "generate": "إنشاء ورقة الحضور",
+      "download": "ورقة الحضور (PDF)",
+      "success": "تم تنزيل ورقة الحضور",
+      "error": "فشل إنشاء PDF",
+      "noPlanning": "قم أولاً بإنشاء وتصديق التخطيط اليومي.",
+      "missingCommander": "يرجى إدخال رئيس القسم في وحدة الأقسام قبل إنشاء ورقة الحضور.",
+      "noPlanningAgents": "لا يوجد وكلاء في التخطيط النشط لهذا القسم.",
+      "noAssignedAgents": "لا يوجد وكلاء معيّنون لنقاط التفتيش التشغيلية في هذا التخطيط.",
+      "validationFailed": "بيانات ناقصة لورقة الحضور"
+    },
+    "export": {
+      "menu": "تصدير التخطيط",
+      "pdf": "تصدير PDF",
+      "docx": "تصدير Word (.docx)",
+      "both": "تصدير PDF + Word",
+      "success": "تم حفظ التصدير",
+      "successBoth": "تم حفظ PDF و Word",
+      "canceled": "تم إلغاء التصدير",
+      "error": "فشل تصدير التخطيط",
+      "noPlanning": "قم أولاً بإنشاء وتصديق التخطيط اليومي."
+    },
+    "alert": {
+      "rotationUnavailable": "التناوب غير متاح",
+      "needThreeSections": "التناوب 12/24 يتطلب 3 أقسام نشطة. وُجد: {{count}}."
+    },
+    "error": {
+      "title": "فشل الإنشاء",
+      "message": "الرسالة:",
+      "code": "الرمز:",
+      "details": "التفاصيل:",
+      "hint": "تلميح:"
+    },
+    "warnings": {
+      "title": "تحذيرات ({{count}})"
+    },
+    "complete": {
+      "title": "اكتمل التخطيط",
+      "description": "جميع النقاط مكتملة. تم حفظ التعيينات."
+    },
+    "stat": {
+      "totalEmployees": "إجمالي Cynotechniciens",
+      "assigned": "معيّنون (نقاط)",
+      "rest": "راحة",
+      "point653": "Point 653",
+      "fullyStaffed": "نقاط مكتملة",
+      "understaffed": "نقاط ناقصة",
+      "excluded": "مستبعدون"
+    },
+    "rest": {
+      "title": "راحة ({{count}})",
+      "description": "المجموعة النسائية غير النشطة — بدون قسم أو نقطة أو احتياط أو ليل. الحالة: راحة.",
+      "badge": "راحة",
+      "noticeTitle": "راحة (التناوب النسائي)"
+    },
+    "point653": {
+      "name": "Point 653",
+      "title": "Point 653 ({{count}})",
+      "description": "مقر وحدة الكلاب — تعيين تلقائي للفرق غير المنتشرة على نقاط المراقبة.",
+      "badge": "Point 653",
+      "noticeTitle": "Point 653"
+    },
+    "reserve": {
+      "title": "Point 653 ({{count}})",
+      "description": "مقر وحدة الكلاب — تعيين تلقائي للفرق غير المنتشرة على نقاط المراقبة.",
+      "badge": "Point 653",
+      "noticeTitle": "Point 653"
+    },
+    "unassigned": {
+      "title": "Point 653 ({{count}})",
+      "description": "مقر وحدة الكلاب — تعيين تلقائي للفرق غير المنتشرة على نقاط المراقبة."
+    },
+    "excluded": {
+      "title": "مستبعدون ({{count}})",
+      "none": "لم يُستبعد أي Cynotechnicien."
+    },
+    "assignments": {
+      "title": "تعيينات النقاط",
+      "description": "تعيينات من متطلبات التخصص.",
+      "noCheckpoints": "لا نقاط نشطة لهذه الوردية."
+    },
+    "badge": {
+      "nightOnly": "ليل فقط",
+      "understaffed": "ناقص التوظيف",
+      "fullyStaffed": "مكتمل"
+    },
+    "posts": {
+      "none": "لا مناصب تخصص نشطة."
+    },
+    "table": {
+      "specialty": "التخصص",
+      "handler": "المعالج",
+      "dog": "الكلب"
+    },
+    "slot": {
+      "unfilled": "شاغر"
+    },
+    "confirm": {
+      "title": "استبدال التخطيط؟",
+      "description": "يوجد تخطيط. الاستبدال يحدّث السجل. لا رجعة.",
+      "keep": "الإبقاء",
+      "replace": "استبدال وإنشاء"
+    },
+    "toast": {
+      "savedWithWarnings": "تم الحفظ مع {{count}} تحذير(ات).",
+      "success": "تم إنشاء التخطيط وحفظه بنجاح."
+    }
+  },
+  "planning": {
+    "reason": {
+      "inactive": "غير نشط",
+      "noAssignedDog": "لا كلب معيّن",
+      "dogInactive": "كلب غير نشط",
+      "dogSick": "كلب مريض",
+      "femaleDogHeat": "أنثى في حرارة",
+      "absent": "غائب",
+      "sick": "مريض",
+      "onLeave": "في إجازة",
+      "onSpecialLeave": "إجازة خاصة",
+      "administrativeLeave": "إجازة إدارية",
+      "onMission": "في مهمة",
+      "inTraining": "في تدريب",
+      "excluded": "مستبعد",
+      "femaleDayShiftOnly": "المعالجات الإناث للوردية النهارية فقط.",
+      "dogStatus": "حالة الكلب: {{status}}"
+    },
+    "warning": {
+      "understaffed": "النقطة {{name}} ناقصة ({{staffed}}/{{required}}، {{missing}} منصب شاغر).",
+      "understaffed_plural": "النقطة {{name}} ناقصة ({{staffed}}/{{required}}، {{missing}} مناصب شاغرة).",
+      "unassignedEligible": "{{count}} Cynotechnicien(s) معيّن(ون) في Point 653.",
+      "point653Assigned": "{{count}} Cynotechnicien(s) معيّن(ون) في {{point}}.",
+      "femaleRest": "{{count}} من الإناث في حالة راحة (المجموعة غير النشطة في التناوب النسائي)."
+    },
+    "point653": {
+      "reason": {
+        "no_operational_assignment": "لا تعيين تشغيلي",
+        "no_assigned_dog": "لا كلب معيّن",
+        "dog_sick": "كلب مريض",
+        "dog_in_heat": "كلبة في حرارة",
+        "administrative_duty": "خدمة إدارية",
+        "absence": "غياب",
+        "sickness": "مرض",
+        "annual_leave": "إجازة سنوية",
+        "special_leave": "إجازة خاصة",
+        "mission": "مهمة",
+        "training": "تدريب",
+        "other_exclusion": "غير متاح"
+      }
+    }
+  },
+  "sections": {
+    "title": "الأقسام",
+    "description": "إدارة الأقسام التشغيلية.",
+    "new": "قسم جديد",
+    "filter": {
+      "dayShift": "وردية نهار",
+      "nightShift": "وردية ليل"
+    },
+    "table": {
+      "shift": "الوردية",
+      "assignedAgents": "Cynotechniciens المعيّنون",
+      "created": "تاريخ الإنشاء"
+    },
+    "empty": {
+      "noMatch": "لا أقسام تطابق التصفية",
+      "none": "لا أقسام",
+      "createFirst": "أنشئ أول قسم."
+    },
+    "dialog": {
+      "newTitle": "قسم جديد",
+      "editTitle": "تعديل القسم",
+      "newDesc": "إنشاء قسم تشغيلي.",
+      "editDesc": "تحديث التفاصيل."
+    },
+    "field": {
+      "sectionName": "اسم القسم",
+      "shiftType": "نوع الوردية",
+      "commanderFullName": "رئيس القسم",
+      "commanderGrade": "الرتبة",
+      "commanderMle": "رقم التسجيل (MLE)"
+    },
+    "commander": {
+      "title": "رئيس القسم"
+    },
+    "placeholder": {
+      "name": "مثال: قسم ألفا",
+      "commanderFullName": "مثال: ALAMI Hassan",
+      "commanderGrade": "مثال: BRIGADIER",
+      "commanderMle": "مثال: 12345"
+    },
+    "hint": {
+      "inactiveHidden": "الأقسام غير النشطة مخفية."
+    },
+    "submit": {
+      "create": "إنشاء القسم"
+    },
+    "delete": {
+      "title": "حذف القسم؟",
+      "hasAgents": "«{{name}}» لديه {{count}} Cynotechnicien(s). أعد التعيين أولاً.",
+      "confirm": "حذف نهائي لـ «{{name}}»."
+    },
+    "toast": {
+      "updated": "تم تحديث القسم",
+      "created": "تم إنشاء القسم",
+      "deleted": "تم حذف القسم"
+    },
+    "error": {
+      "hasAgents": "لا يمكن الحذف: Cynotechniciens ما زالوا معيّنين."
+    }
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "description": "ضبط وحدة التحكم والتفضيلات.",
+    "appearance": {
+      "title": "المظهر",
+      "description": "التبديل بين الوضع الفاتح والداكن.",
+      "darkMode": "الوضع الداكن"
+    },
+    "organization": {
+      "title": "المؤسسة",
+      "description": "التفاصيل ستكون قابلة للضبط هنا.",
+      "placeholder": "ستظهر إعدادات إضافية."
+    }
+  },
+  "statistics": {
+    "title": "الإحصائيات",
+    "description": "لوحة تحكم تشغيلية — أرقام رئيسية ونشاط.",
+    "center": {
+      "description": "مركز الإحصائيات التشغيلية — تقارير جدولية حسب السنة والقسم والموارد.",
+      "yearlyTitle": "إحصائيات تشغيلية سنوية",
+      "monthlySummary": {
+        "title": "ملخص شهري"
+      },
+      "checkpoints": {
+        "title": "إحصائيات نقاط التفتيش"
+      },
+      "agents": {
+        "title": "إحصائيات Cynotechniciens"
+      },
+      "dogs": {
+        "title": "إحصائيات الكلاب"
+      },
+      "sections": {
+        "title": "إحصائيات الأقسام"
+      },
+      "yearSummary": {
+        "title": "ملخص سنوي"
+      },
+      "filters": {
+        "year": "السنة",
+        "month": "الشهر",
+        "allMonths": "كل الأشهر",
+        "checkpoint": "نقطة تفتيش",
+        "allCheckpoints": "كل نقاط التفتيش",
+        "agent": "Cynotechnicien",
+        "allAgents": "كل Cynotechniciens",
+        "dog": "كلب",
+        "allDogs": "كل الكلاب"
+      },
+      "columns": {
+        "month": "الشهر",
+        "generatedPlanning": "تخطيطات مُنشأة",
+        "operationalCases": "قضايا تشغيلية",
+        "drugDetections": "كشف مخدرات",
+        "explosiveDetections": "كشف متفجرات",
+        "currencyDetections": "كشف عملات",
+        "exclusions": "استثناءات",
+        "activeTeams": "فرق نشطة",
+        "inactiveTeams": "فرق غير نشطة",
+        "checkpoint": "نقطة تفتيش",
+        "missionsGenerated": "مهام مُنشأة",
+        "assignedTeams": "فرق مُكلفة",
+        "lastActivity": "آخر نشاط",
+        "name": "الاسم",
+        "dog": "كلب",
+        "totalMissions": "إجمالي المهام",
+        "dayMissions": "مهام نهارية",
+        "nightMissions": "مهام ليلية",
+        "attendanceRate": "نسبة الحضور",
+        "lastMission": "آخر مهمة",
+        "handler": "المُرشد",
+        "availabilityPct": "نسبة التوفر %",
+        "daysUnavailable": "أيام غير متاحة",
+        "activeAgents": "وكلاء نشطون",
+        "activeDogs": "كلاب نشطة",
+        "metric": "المؤشر",
+        "value": "القيمة"
+      }
+    },
+    "intelligence": {
+      "description": "مركز الاستخبارات التشغيلية — تقارير تحليلية للمشرفين والقيادة.",
+      "reportPeriod": "فترة التقرير",
+      "sections": {
+        "annualSummary": "ملخص تشغيلي سنوي",
+        "monthlyActivity": "تقرير النشاط الشهري",
+        "topAgents": "ترتيب Cynotechniciens",
+        "topDogs": "ترtib الكلاب",
+        "topCheckpoints": "ترtib نقاط التفتيش",
+        "sectionPerformance": "أداء الأقسام",
+        "monthlyDetailed": "تقارير شهرية مفصلة",
+        "dailyActivity": "النشاط التشغيلي اليومي",
+        "highlights": "أبرز مؤشرات الأداء",
+        "casesHistory": "سجل القضايا التشغيلية"
+      },
+      "metrics": {
+        "planning": "تخطيطات مُنشأة",
+        "cases": "قضايا تشغيلية",
+        "assignments": "تكليفات تشغيلية",
+        "drug": "كشف مخدرات",
+        "explosive": "كشف متفجرات",
+        "currency": "كشف عملات",
+        "exclusions": "استثناءات"
+      },
+      "columns": {
+        "metric": "المؤشر",
+        "annualTotal": "الإجمالي السنوي",
+        "monthlyAverage": "المتوسط الشهري",
+        "month": "الشهر",
+        "planning": "التخطيط",
+        "assignments": "التكليفات",
+        "cases": "القضايا",
+        "drug": "مخدرات",
+        "explosive": "متفجرات",
+        "currency": "عملات",
+        "exclusions": "استثناءات",
+        "activeTeams": "فرق نشطة",
+        "inactiveTeams": "فرق غير نشطة",
+        "avgMissionsPerDay": "متوسط مهام/يوم",
+        "avgCasesPerDay": "متوسط قضايا/يوم",
+        "rank": "الترتيب",
+        "name": "الاسم",
+        "detail": "التفصيل",
+        "missions": "المهام",
+        "detections": "الكشوفات",
+        "activityScore": "نقاط النشاط",
+        "activeAgents": "وكلاء نشطون",
+        "avgMissionsPerMonth": "متوسط مهام/شهر",
+        "date": "التاريخ"
+      },
+      "highlights": {
+        "mostActiveMonth": "الشهر الأكثر نشاطاً",
+        "mostActiveCheckpoint": "نقطة التفتيش الأكثر نشاطاً",
+        "mostActiveDog": "الكلب الأكثر نشاطاً",
+        "mostActiveAgent": "Cynotechnicien الأكثر نشاطاً",
+        "mostActiveSection": "القسم الأكثر نشاطاً"
+      }
+    },
+    "operational": {
+      "currentYear": "السنة الجارية — {{year}}",
+      "totalOperationalCases": "إجمالي القضايا التشغيلية",
+      "totalPlanningGenerated": "إجمالي التخطيطات المُنشأة",
+      "totalControlsPerformed": "إجمالي التفتيشات المنفذة",
+      "totalNarcoticsDetections": "إجمالي كشف المخدرات",
+      "totalExplosivesDetections": "إجمالي كشف المتفجرات",
+      "totalCurrencyDetections": "إجمالي كشف العملات",
+      "monthly": "إحصائيات شهرية",
+      "weekly": "إحصائيات أسبوعية",
+      "weekLabel": "الأسبوع {{number}}",
+      "today": "إحصائيات اليوم",
+      "todayPlanning": "تخطيط اليوم",
+      "todayCases": "قضايا اليوم التشغيلية",
+      "todayExclusions": "استثناءات اليوم",
+      "todayActiveTeams": "فرق نشطة اليوم",
+      "topAgents": "أفضل 10 Cynotechniciens",
+      "topCheckpoints": "أفضل 10 نقاط تفتيش",
+      "topDogs": "أفضل 10 كلاب",
+      "missions": "مهام",
+      "controls": "تفتيشات"
+    },
+    "filter": {
+      "today": "اليوم",
+      "week": "هذا الأسبوع",
+      "month": "هذا الشهر",
+      "year": "هذه السنة",
+      "custom": "فترة مخصصة",
+      "range": "الفترة: {{from}} → {{to}}",
+      "updating": "جاري التحديث…"
+    },
+    "summary": {
+      "total": "الإجمالي",
+      "percentage": "التوزيع بالنسبة المئوية",
+      "details": "تفصيل حسب الفترة والفئة",
+      "lastUpdated": "آخر تحديث: {{date}}",
+      "empty": "لا توجد بيانات للفترة المحددة",
+      "affairs": "قضية",
+      "casesTotal": "إجمالي القضايا",
+      "ofTotal": "من الإجمالي"
+    },
+    "export": {
+      "excel": "تصدير Excel",
+      "pdf": "تصدير PDF",
+      "excelSuccess": "تم تنزيل Excel",
+      "pdfSuccess": "تم تنزيل PDF",
+      "error": "فشل التصدير"
+    },
+    "kpi": {
+      "totalAgents": "إجمالي Cynotechniciens",
+      "activeAgents": "Cynotechniciens نشطون",
+      "inactiveAgents": "Cynotechniciens غير نشطين",
+      "totalDogs": "إجمالي الكلاب",
+      "availableDogs": "كلاب متاحة",
+      "excludedDogs": "كلاب غير متاحة",
+      "totalCases": "الحالات التشغيلية",
+      "totalExclusions": "إجمالي الاستثناءات",
+      "totalPlanning": "التخطيطات المُنشأة",
+      "totalCheckpoints": "إجمالي نقاط التفتيش",
+      "totalSections": "إجمالي الأقسام"
+    },
+    "section": {
+      "operationalCases": "الحالات التشغيلية",
+      "operationalCasesDesc": "النشاط والتخصصات والضبطيات",
+      "casesHistory": "السجل الكامل للقضايا",
+      "casesHistoryDesc": "جدول شامل مع التصفية والبحث والتصدير",
+      "planning": "التخطيط",
+      "planningDesc": "التخطيطات حسب الفترة والقسم",
+      "exclusions": "الاستثناءات",
+      "exclusionsDesc": "تعذّر توفر Cynotechniciens والكلاب",
+      "leave": "الإجازات",
+      "leaveDesc": "الإجازات والغيابات",
+      "dogs": "الكلاب",
+      "dogsDesc": "توزيع وحدات K9",
+      "agents": "Cynotechniciens",
+      "agentsDesc": "توزيع Cynotechniciens",
+      "rankings": "التصنيفات",
+      "rankingsDesc": "أفضل 10"
+    },
+    "seizures": {
+      "cannabis": "حشيش مهضوم",
+      "hashish": "حشيش",
+      "cocaine": "كوكايين",
+      "heroin": "هيروين",
+      "synthetic": "مخدرات اصطناعية"
+    },
+    "planning": {
+      "thisMonth": "تخطيطات هذا الشهر"
+    },
+    "exclusions": {
+      "total": "إجمالي الاستثناءات",
+      "active": "استثناءات نشطة",
+      "finished": "استثناءات منتهية",
+      "reason": {
+        "sickDog": "كلب مريض",
+        "sickAgent": "Cynotechnicien مريض",
+        "leave": "إجازة / غياب",
+        "training": "تدريب",
+        "vacation": "عطلة",
+        "other": "أخرى"
+      }
+    },
+    "leave": {
+      "total": "إجمالي الإجازات"
+    },
+    "dogs": {
+      "assigned": "كلاب معيّنة",
+      "unassigned": "كلاب غير معيّنة",
+      "age": {
+        "under1": "أقل من سنة",
+        "1to3": "1–3 سنوات",
+        "3to5": "3–5 سنوات",
+        "5plus": "أكثر من 5 سنوات",
+        "unknown": "غير معروف"
+      }
+    },
+    "agents": {
+      "withDog": "Cynotechniciens مع كلب",
+      "withoutDog": "Cynotechniciens بلا كلب"
+    },
+    "rankings": {
+      "topAgents": "أفضل 10 Cynotechniciens",
+      "topDogs": "أفضل 10 كلاب",
+      "topCheckpoints": "أكثر نقاط التفتيش استخداماً",
+      "topExclusionReasons": "أكثر أسباب الاستثناء"
+    },
+    "chart": {
+      "casesByMonth": "حالات حسب الشهر",
+      "casesBySpecialty": "حسب التخصص",
+      "casesByCheckpoint": "حسب نقطة التفتيش",
+      "casesByDog": "حسب الكلب",
+      "casesByAgent": "حسب Cynotechnicien",
+      "planningByMonth": "تخطيط حسب الشهر",
+      "planningBySection": "تخطيط حسب القسم",
+      "planningByCheckpoint": "تخطيط حسب نقطة التفتيش",
+      "exclusionsByMonth": "استثناءات حسب الشهر",
+      "exclusionsByReason": "حسب السبب",
+      "exclusionsByType": "حسب النوع",
+      "leaveByMonth": "إجازات حسب الشهر",
+      "leaveBySection": "إجازات حسب القسم",
+      "dogsBySpecialty": "كلاب حسب التخصص",
+      "dogsByStatus": "كلاب حسب الحالة",
+      "dogsByBreed": "كلاب حسب السلالة",
+      "dogsByAge": "كلاب حسب العمر",
+      "agentsBySection": "Cynotechniciens حسب القسم",
+      "agentsByGrade": "Cynotechniciens حسب الرتبة",
+      "agentsByGender": "Cynotechniciens حسب الجنس",
+      "agentsBySpecialty": "Cynotechniciens حسب التخصص"
+    },
+    "casesHistory": {
+      "title": "السجل الكامل للقضايا",
+      "description": "سجل شامل للقضايا التشغيلية مع التصفية والبحث والتصدير.",
+      "search": "البحث برقم القضية، Cynotechnicien، الكلب، الموقع، نقطة التفتيش…",
+      "results": "{{count}} قضية معروضة من {{total}} إجمالاً",
+      "summary": {
+        "total": "إجمالي القضايا التشغيلية",
+        "thisMonth": "قضايا هذا الشهر",
+        "thisYear": "قضايا هذه السنة",
+        "narcotics": "قضايا مخدرات",
+        "explosives": "قضايا متفجرات",
+        "currency": "قضايا كشف العملات"
+      },
+      "filter": {
+        "dateFrom": "من",
+        "dateTo": "إلى",
+        "year": "السنة",
+        "month": "الشهر",
+        "allYears": "جميع السنوات",
+        "allMonths": "جميع الأشهر",
+        "allDogs": "جميع الكلاب",
+        "allCheckpoints": "جميع نقاط التفتيش"
+      },
+      "months": {
+        "10": "أكتوبر",
+        "11": "نوفمبر",
+        "12": "ديسمبر",
+        "01": "يناير",
+        "02": "فبراير",
+        "03": "مارس",
+        "04": "أبريل",
+        "05": "مايو",
+        "06": "يونيو",
+        "07": "يوليو",
+        "08": "أغسطس",
+        "09": "سبتمبر"
+      },
+      "table": {
+        "seizureObject": "ضبط / نوع الشيء"
+      },
+      "pagination": "عرض {{from}}–{{to}} من {{total}}",
+      "empty": {
+        "none": "لا توجد قضايا مسجلة",
+        "noMatch": "لا توجد قضايا تطابق عوامل التصفية"
+      },
+      "export": {
+        "count": "عدد القضايا",
+        "more": "قضايا إضافية"
+      }
+    },
+    "checkpointStats": {
+      "title": "إحصائيات نقاط التفتيش",
+      "description": "النشاط التشغيلي والضبطيات والتخطيط حسب نقطة التفتيش.",
+      "table": {
+        "name": "نقطة التفتيش",
+        "cases": "القضايا",
+        "planning": "التخطيطات",
+        "agents": "Cynotechniciens المعيّنون",
+        "dogs": "الكلاب المعيّنة",
+        "narcoticsKg": "المخدرات (كغ)"
+      },
+      "seizures": {
+        "narcotics": "مخدرات",
+        "explosives": "متفجرات",
+        "currency": "عملات",
+        "khat": "القات",
+        "firearms": "أسلحة نارية",
+        "bladedWeapons": "أسلحة بيضاء",
+        "grenades": "قنابل",
+        "detonators": "مفجرات",
+        "explosiveMaterials": "مواد متفجرة",
+        "ammunition": "ذخيرة",
+        "totalAmount": "المبلغ الإجمالي المضبوط",
+        "banknotes": "الأوراق النقدية المضبوطة",
+        "currencyTypes": "أنواع العملات"
+      },
+      "analytics": {
+        "casesThisMonth": "قضايا هذا الشهر",
+        "casesThisYear": "قضايا هذه السنة",
+        "mostActiveSpecialty": "التخصص الأكثر نشاطاً",
+        "mostCommonSeizure": "الضبط الأكثر شيوعاً",
+        "mostActiveAgent": "Cynotechnicien الأكثر نشاطاً",
+        "mostActiveDog": "الكلب الأكثر نشاطاً"
+      },
+      "rankings": {
+        "byCases": "أفضل نقاط التفتيش (قضايا)",
+        "byNarcotics": "أفضل نقاط التفتيش (كغ مخدرات)",
+        "byExplosives": "أفضل نقاط التفتيش (قضايا متفجرات)",
+        "byCurrency": "أفضل نقاط التفتيش (قضايا عملات)"
+      },
+      "chart": {
+        "casesByCheckpoint": "القضايا حسب نقطة التفتيش",
+        "seizureTypesByCheckpoint": "أنواع الضبط حسب نقطة التفتيش",
+        "specialtyDistribution": "توزيع التخصصات"
+      },
+      "detail": {
+        "description": "لوحة تفصيلية لنقطة التفتيش",
+        "monthlyEvolution": "التطور الشهري للقضايا",
+        "assignedAgents": "Cynotechniciens المعيّنون",
+        "assignedDogs": "الكلاب المعيّنة",
+        "allCases": "السجل الكامل ({{count}} قضية)"
+      },
+      "empty": {
+        "none": "لا توجد نقاط تفتيش بنشاط لهذه الفلاتر",
+        "cases": "لا توجد قضايا لهذه النقطة",
+        "chart": "لا توجد بيانات ضبط للعرض"
+      }
+    }
+  },
+  "history": {
+    "title": "السجل",
+    "description": "أرشيف التخطيط السابق.",
+    "open": "فتح",
+    "loadError": "تعذّر تحميل هذا التخطيط.",
+    "stat": {
+      "total": "تخطيطات مؤرشفة"
+    },
+    "table": {
+      "count": "{{count}} تخطيط(ات) مؤرشف(ة)",
+      "date": "التاريخ",
+      "section": "القسم",
+      "shift": "الوردية",
+      "agentsLabel": "Cynotechniciens",
+      "dogsLabel": "الكلاب",
+      "agents": "{{count}} Cynotechnicien(s)",
+      "dogs": "{{count}} كلب(كلاب)"
+    },
+    "detail": {
+      "title": "تفاصيل التخطيط"
+    },
+    "export": {
+      "menu": "تصدير التخطيط",
+      "pdf": "تصدير PDF",
+      "docx": "تصدير Word (.docx)",
+      "both": "تصدير PDF + Word",
+      "success": "تم حفظ التصدير",
+      "successBoth": "تم حفظ PDF و Word",
+      "pdfSuccess": "تم تنزيل PDF",
+      "canceled": "تم إلغاء التصدير",
+      "error": "فشل تصدير التخطيط"
+    },
+    "delete": {
+      "action": "حذف",
+      "title": "حذف هذا التخطيط؟",
+      "description": "هذا الإجراء لا يمكن التراجع عنه. سيتم حذف التعيينات المحفوظة لهذا التاريخ.",
+      "confirm": "حذف",
+      "deleting": "جارٍ الحذف…",
+      "success": "تم حذف التخطيط",
+      "error": "فشل الحذف"
+    },
+    "error": {
+      "title": "تعذّر تحميل السجل",
+      "description": "حدث خطأ أثناء تحميل التخطيطات المؤرشفة."
+    },
+    "empty": {
+      "title": "لا سجل",
+      "description": "ستظهر السجلات السابقة هنا."
+    }
+  },
+  "validation": {
+    "firstNameRequired": "الاسم الأول مطلوب",
+    "lastNameRequired": "اسم العائلة مطلوب",
+    "profNumberRequired": "الرقم المهني مطلوب",
+    "gradeRequired": "الرتبة مطلوبة",
+    "profNumberUsed": "الرقم مستخدم",
+    "dogAlreadyAssigned": "الكلب معيّن",
+    "nameRequired": "الاسم مطلوب",
+    "commanderFullNameRequired": "اسم رئيس القسم الكامل مطلوب",
+    "heatFemaleOnly": "الحرارة للإناث فقط",
+    "minZero": "يجب ≥ 0",
+    "atLeastOne": "على الأقل 1",
+    "agentRequired": "Cynotechnicien مطلوب",
+    "startDateRequired": "تاريخ البداية مطلوب",
+    "dateRequired": "التاريخ مطلوب",
+    "endDateRequired": "تاريخ النهاية مطلوب",
+    "endBeforeStart": "النهاية قبل البداية",
+    "durationMin": "يجب أن تكون المدة يوماً واحداً على الأقل",
+    "nameMinLength": "الاسم حرفان على الأقل",
+    "observationsMax": "500 حرفاً كحد أقصى"
+  },
+  "language": {
+    "french": "Français",
+    "english": "English",
+    "arabic": "العربية"
+  }
+}

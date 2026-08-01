@@ -1,0 +1,87 @@
+appId: com.cynoplanning.desktop
+productName: CynoPlanning
+copyright: Copyright © 2026 CynoPlanning
+# CynoPlanning is fully offline — no online auto-update.
+# Distribute new versions as CynoPlanning-{version}-Setup.exe (Windows) or DMG (macOS).
+# The installer replaces application files only. User data (SQLite database, media,
+# auth session) lives under Electron userData and is never bundled or overwritten.
+artifactName: ${productName}-${version}-${arch}.${ext}
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist-electron/**/*
+  - package.json
+  - node_modules/better-sqlite3/**/*
+  - node_modules/bindings/**/*
+  - node_modules/file-uri-to-path/**/*
+  - "!dist-electron/**/*.map"
+  - "!node_modules/better-sqlite3/build/Release/obj/**/*"
+  - "!node_modules/better-sqlite3/deps/**/*"
+  - "!node_modules/better-sqlite3/src/**/*"
+
+asar: true
+asarUnpack:
+  - "**/*.node"
+  - "**/better-sqlite3/**"
+
+npmRebuild: true
+
+extraResources:
+  - from: .output
+    to: app-server
+    filter:
+      - "**/*"
+  - from: .env
+    to: .env
+
+mac:
+  category: public.app-category.business
+  target:
+    - dmg
+  icon: build/icon.icns
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+
+dmg:
+  title: ${productName} ${version}
+  icon: build/icon.icns
+  window:
+    width: 540
+    height: 380
+  contents:
+    - x: 140
+      y: 180
+      type: file
+    - x: 400
+      y: 180
+      type: link
+      path: /Applications
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.ico
+  executableName: CynoPlanning
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  allowElevation: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: CynoPlanning
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  installerHeaderIcon: build/icon.ico
+  # Preserves %APPDATA%\CynoPlanning\ (cynoplanning.db, media/, auth-session.json)
+  deleteAppDataOnUninstall: false
+  runAfterFinish: true
+  artifactName: ${productName}-${version}-Setup.${ext}

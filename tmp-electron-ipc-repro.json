@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "res": {
+    "canceled": false,
+    "paths": [
+      "/Users/mac/Desktop/smart-dog-plans-main/tmp-export-ipc/Planning_2026-07-27.docx"
+    ]
+  },
+  "ms": 1151.2000000476837,
+  "payloadLength": 593879
+}

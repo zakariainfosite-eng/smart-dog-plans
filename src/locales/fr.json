@@ -1,0 +1,1747 @@
+{
+  "app": {
+    "name": "Smart K9 Planning",
+    "subtitle": "Console d'administration",
+    "brandShort": "Smart K9",
+    "brandTagline": "Planning",
+    "description": "Console d'administration professionnelle pour la gestion des unités K9 et la planification."
+  },
+  "nav": {
+    "group": "Navigation",
+    "dashboard": "Tableau de bord",
+    "sections": "Sections",
+    "employees": "Cynotechniciens",
+    "dogs": "Chiens",
+    "checkpoints": "Points de contrôle",
+    "exclusions": "Exclusions",
+    "operationalCases": "Cas opérationnels",
+    "dailyPlanning": "Planification quotidienne",
+    "history": "Historique",
+    "statistics": "Statistiques",
+    "settings": "Paramètres"
+  },
+  "action": {
+    "signOut": "Se déconnecter",
+    "profile": "Profil",
+    "toggleTheme": "Changer le thème",
+    "notifications": "Notifications",
+    "language": "Langue",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "save": "Enregistrer",
+    "saveChanges": "Enregistrer les modifications",
+    "saving": "Enregistrement…",
+    "create": "Créer",
+    "edit": "Modifier",
+    "tryAgain": "Réessayer",
+    "goHome": "Retour à l'accueil"
+  },
+  "account": {
+    "my": "Mon compte",
+    "fallback": "Compte"
+  },
+  "common": {
+    "active": "Actif",
+    "inactive": "Inactif",
+    "loading": "Chargement…",
+    "actions": "Actions",
+    "name": "Nom",
+    "status": "Statut",
+    "notes": "Notes",
+    "yes": "Oui",
+    "no": "Non",
+    "none": "— Aucun —",
+    "allStatuses": "Tous les statuts",
+    "allSections": "Toutes les sections",
+    "searchByName": "Rechercher par nom…",
+    "tryAdjustFilters": "Essayez d'ajuster votre recherche ou vos filtres.",
+    "required": "obligatoire",
+    "page": {
+      "lastUpdated": "Dernière mise à jour",
+      "filterReset": "Réinitialiser les filtres",
+      "prev": "Précédent",
+      "next": "Suivant",
+      "showing": "{{displayed}} affichés sur {{total}}",
+      "totalRecords": "Total enregistrements"
+    }
+  },
+  "gender": {
+    "male": "Homme",
+    "female": "Femme",
+    "all": "Tous les genres"
+  },
+  "specialty": {
+    "narcotics": "Stupéfiants & Billets de banque",
+    "narcoticsDetection": "Stupéfiants & Billets de banque",
+    "explosives": "Explosifs",
+    "explosivesDetection": "Explosifs",
+    "all": "Toutes les spécialités"
+  },
+  "dogStatus": {
+    "available": "Disponible",
+    "sick": "Malade",
+    "heat": "Chaleur",
+    "heatFemaleOnly": "(femelles uniquement)"
+  },
+  "shift": {
+    "day": "Jour",
+    "night": "Nuit",
+    "rest": "Repos",
+    "dayHours": "Jour (09:00–21:00)",
+    "nightHours": "Nuit (21:00–09:00)",
+    "dayShort": "Jour (09→21)",
+    "nightShort": "Nuit (21→09)"
+  },
+  "weekday": {
+    "monday": "Lundi",
+    "tuesday": "Mardi",
+    "wednesday": "Mercredi",
+    "thursday": "Jeudi",
+    "friday": "Vendredi",
+    "saturday": "Samedi",
+    "sunday": "Dimanche"
+  },
+  "status": {
+    "validated": "Validé",
+    "draft": "Brouillon",
+    "upcoming": "À venir",
+    "expired": "Expiré",
+    "retired": "Retraité",
+    "enabled": "Activé",
+    "active": "Actif"
+  },
+  "field": {
+    "section": "Section",
+    "grade": "Grade",
+    "gender": "Genre",
+    "specialty": "Spécialité",
+    "active": "Actif",
+    "startDate": "Date de début",
+    "endDate": "Date de fin",
+    "email": "E-mail",
+    "password": "Mot de passe"
+  },
+  "aria": {
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "openProfile": "Ouvrir le profil",
+    "togglePosts": "Afficher/masquer les postes"
+  },
+  "meta": {
+    "appTitle": "Smart K9 Planning — Console de gestion K9",
+    "auth": {
+      "title": "Connexion — Smart K9 Planning",
+      "description": "Connectez-vous à la console d'administration Smart K9 Planning."
+    },
+    "dashboard": {
+      "title": "Tableau de bord — Smart K9 Planning"
+    },
+    "employees": {
+      "title": "Cynotechniciens — Smart K9 Planning"
+    },
+    "dogs": {
+      "title": "Chiens — Smart K9 Planning"
+    },
+    "dogProfile": {
+      "title": "Profil chien — Smart K9 Planning"
+    },
+    "agentProfile": {
+      "title": "Profil cynotechnicien — Smart K9 Planning"
+    },
+    "checkpoints": {
+      "title": "Points de contrôle — Smart K9 Planning"
+    },
+    "exclusions": {
+      "title": "Exclusions — Smart K9 Planning"
+    },
+    "operationalCases": {
+      "title": "Cas opérationnels — Smart K9 Planning"
+    },
+    "dailyPlanning": {
+      "title": "Planification quotidienne — Smart K9 Planning"
+    },
+    "sections": {
+      "title": "Sections — Smart K9 Planning"
+    },
+    "settings": {
+      "title": "Paramètres — Smart K9 Planning"
+    },
+    "statistics": {
+      "title": "Statistiques — Smart K9 Planning"
+    },
+    "history": {
+      "title": "Historique — Smart K9 Planning"
+    }
+  },
+  "error": {
+    "pageNotFound": "Page introuvable",
+    "pageNotFoundDesc": "La page que vous recherchez n'existe pas ou a été déplacée.",
+    "pageLoadFailed": "Cette page n'a pas pu se charger",
+    "pageLoadFailedDesc": "Une erreur s'est produite. Vous pouvez actualiser ou retourner à l'accueil.",
+    "auth": {
+      "invalidCredentials": "E-mail ou mot de passe incorrect.",
+      "failed": "Échec de l'authentification"
+    }
+  },
+  "auth": {
+    "brandName": "CynoPlanning",
+    "tagline": "Planification opérationnelle & gestion des cynotechniciens",
+    "secureBadge": "Plateforme sécurisée de planification opérationnelle",
+    "subtitle": "Plateforme sécurisée de planification opérationnelle",
+    "cardTitle": "Accéder à la console",
+    "cardDescription": "Connectez-vous pour gérer les opérations de planification K9.",
+    "placeholder": {
+      "email": "vous@agence.gov"
+    },
+    "submit": {
+      "signIn": "Se connecter"
+    },
+    "footer": "Accès restreint • Personnel autorisé uniquement"
+  },
+  "toast": {
+    "auth": {
+      "welcomeBack": "Bon retour"
+    }
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "description": "Aperçu des opérations et de la planification.",
+    "stat": {
+      "activeAgents": "Cynotechniciens actifs",
+      "activeK9": "Unités K9 actives",
+      "activeCheckpoints": "Points de contrôle actifs",
+      "todayPlannings": "Planifications du jour"
+    },
+    "todayPlanning": "Planification du jour",
+    "noPlanningToday": "Aucune planification pour aujourd'hui.",
+    "sectionFallback": "Section",
+    "upcomingDeployments": "Déploiements à venir",
+    "deploymentsSubtitle": "Calendrier opérationnel et rotations",
+    "deploymentsPlaceholder": "Les déploiements programmés apparaîtront ici.",
+    "validationProgress": "{{validated}} sur {{total}} planifications validées",
+    "operationalSummary": {
+      "title": "RÉSUMÉ OPÉRATIONNEL",
+      "subtitle": "Situation de la section en service aujourd'hui",
+      "noSection": "Aucune section active disponible pour le quart en cours.",
+      "noPlanning": "Aucune planification validée pour la section et le quart en cours.",
+      "planningReady": "Planification validée pour la section et le quart en cours.",
+      "commanderMissing": "Chef de section non renseigné",
+      "activeSection": "Section active",
+      "currentShift": "Quart en cours",
+      "sectionChief": "Chef de section",
+      "agentsMaladie": "Maladie",
+      "agentsFormation": "Formation",
+      "agentsConge": "Congé",
+      "unavailableDogs": "Chiens indisponibles"
+    }
+  },
+  "employees": {
+    "title": "Cynotechniciens",
+    "description": "Maîtres-chiens et personnel opérationnel.",
+    "addAgent": "Ajouter un cynotechnicien",
+    "hero": {
+      "title": "Gestion des cynotechniciens",
+      "subtitle": "Gestion des maîtres-chiens et du personnel cynotechnique.",
+      "activeToday": "Cynotechniciens disponibles aujourd'hui",
+      "lastUpdated": "Dernière mise à jour"
+    },
+    "export": {
+      "label": "Exporter",
+      "success": "Export CSV téléchargé",
+      "pdfLabel": "Exporter la liste PDF",
+      "pdfSuccess": "Liste PDF téléchargée",
+      "pdfError": "Échec de l'export PDF"
+    },
+    "stat": {
+      "total": "Total cynotechniciens",
+      "withDog": "Maîtres avec chien",
+      "available": "Disponibles",
+      "excluded": "Exclus",
+      "female": "Femmes",
+      "male": "Hommes",
+      "narcoticsHandlers": "Maîtres stupéfiants",
+      "explosivesHandlers": "Maîtres explosifs",
+      "nightEligible": "Éligibles de nuit",
+      "trendThisMonth": "+{{count}} ce mois"
+    },
+    "search": "Rechercher par nom ou matricule",
+    "filter": {
+      "allStatuses": "Tous les statuts",
+      "operationalStatus": "Statut opérationnel",
+      "specialty": "Spécialité",
+      "activeState": "État du dossier",
+      "reset": "Réinitialiser les filtres"
+    },
+    "operationalStatus": {
+      "available": "Disponible",
+      "excluded": "Hors service",
+      "rest": "Repos",
+      "onMission": "En mission"
+    },
+    "table": {
+      "name": "Nom",
+      "profNumber": "Matricule",
+      "assignedDog": "Chien assigné",
+      "showing": "{{displayed}} cynotechnicien(s) affiché(s) sur {{total}} au total",
+      "pagination": "Affichage {{from}}–{{to}} sur {{total}}"
+    },
+    "dialog": {
+      "addTitle": "Ajouter un cynotechnicien",
+      "editTitle": "Modifier le cynotechnicien",
+      "addDesc": "Créer un nouveau maître-chien.",
+      "editDesc": "Mettre à jour les informations et l'affectation.",
+      "section": {
+        "identity": "Identité",
+        "assignment": "Affectation",
+        "contact": "Coordonnées"
+      },
+      "matriculePlaceholder": "Matricule à définir",
+      "noSpecialty": "Sans spécialité",
+      "noSection": "Sans section",
+      "card": {
+        "personal": "Informations personnelles",
+        "dog": "Chien assigné",
+        "contact": "Coordonnées",
+        "additional": "Informations complémentaires"
+      }
+    },
+    "field": {
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "professionalNumber": "Matricule",
+      "assignedDog": "Chien assigné",
+      "phone": "Téléphone",
+      "address": "Adresse",
+      "observations": "Observations",
+      "photo": "Photo du cynotechnicien"
+    },
+    "photo": {
+      "hint": "JPG, JPEG, PNG ou WEBP — 5 Mo maximum.",
+      "upload": "Choisir une photo",
+      "replace": "Remplacer la photo",
+      "change": "Changer la photo",
+      "remove": "Supprimer la photo",
+      "removeShort": "Supprimer",
+      "error": {
+        "invalidType": "Format non pris en charge. Utilisez JPG, JPEG, PNG ou WEBP.",
+        "tooLarge": "La photo ne doit pas dépasser {{maxMb}} Mo."
+      }
+    },
+    "select": {
+      "noDog": "— Aucun chien —",
+      "assigned": "(assigné)"
+    },
+    "hint": {
+      "specialtyInherited": "La spécialité est héritée du chien assigné.",
+      "inactiveExcluded": "Les cynotechniciens inactifs sont exclus de la planification.",
+      "femaleNoSection": "Rotation féminine indépendante — pas de section A/B/C."
+    },
+    "empty": {
+      "title": "Aucun cynotechnicien",
+      "description": "Ajoutez des maîtres-chiens pour constituer votre effectif."
+    },
+    "delete": {
+      "title": "Supprimer le cynotechnicien ?",
+      "description": "Cela supprimera définitivement {{name}}. Action irréversible."
+    },
+    "toast": {
+      "updated": "Cynotechnicien mis à jour",
+      "created": "Cynotechnicien créé",
+      "deleted": "Cynotechnicien supprimé",
+      "profNumberUnique": "Le matricule doit être unique",
+      "dogAlreadyAssigned": "Ce chien est déjà assigné à un autre cynotechnicien"
+    },
+    "error": {
+      "saveFailed": "Échec de l'enregistrement",
+      "deleteFailed": "Échec de la suppression"
+    }
+  },
+  "agentProfile": {
+    "notFound": "Cynotechnicien introuvable.",
+    "backToAgents": "Retour aux cynotechniciens",
+    "allAgents": "Tous les cynotechniciens",
+    "generalInfo": "Informations générales",
+    "assignment": "Affectation",
+    "contact": "Coordonnées"
+  },
+  "agentDetails": {
+    "title": "Profil du cynotechnicien",
+    "error": {
+      "loadFailed": "Impossible de charger le profil du cynotechnicien."
+    },
+    "action": {
+      "edit": "Modifier le cynotechnicien",
+      "exportPdf": "Exporter PDF",
+      "print": "Imprimer le profil"
+    },
+    "photo": {
+      "viewFullscreen": "Voir la photo en plein écran",
+      "lightboxTitle": "Photo de {{name}}",
+      "close": "Fermer",
+      "zoomIn": "Zoom avant",
+      "zoomOut": "Zoom arrière"
+    },
+    "section": {
+      "personal": "Informations personnelles",
+      "k9": "Informations de son chien dressé",
+      "stats": "Statistiques opérationnelles",
+      "caseStats": "Statistiques des saisies",
+      "casesHistory": "Historique des affaires",
+      "exclusionsHistory": "Historique des exclusions",
+      "careerSummary": "Résumé de carrière",
+      "history": "Historique",
+      "notes": "Notes"
+    },
+    "stats": {
+      "totalAssignments": "Affectations totales",
+      "totalRotations": "Rotations totales",
+      "hqReserve": "Point 653",
+      "lastAssignment": "Dernière affectation",
+      "topCheckpoint": "Point de contrôle le plus assigné"
+    },
+    "caseStats": {
+      "totalCases": "Nombre total de cas",
+      "cannabisKg": "Cannabis saisi (kg)",
+      "cocaineKg": "Cocaïne saisie (kg)",
+      "heroinKg": "Héroïne saisie (kg)",
+      "syntheticDrugsKg": "Drogues de synthèse saisies (kg)",
+      "hashishKg": "Haschich saisi (kg)",
+      "largestSeizure": "Plus importante saisie",
+      "lastCase": "Dernier cas opérationnel",
+      "totalObjects": "Nombre total d'objets saisis",
+      "totalBanknotes": "Nombre total de billets",
+      "totalAmount": "Montant total saisi"
+    },
+    "caseDetail": {
+      "description": "Détails du cas opérationnel de {{agent}}."
+    },
+    "careerSummary": {
+      "totalCases": "Total des affaires opérationnelles",
+      "totalExclusions": "Total des exclusions",
+      "totalLeave": "Total des périodes de congé",
+      "totalTraining": "Total des exclusions formation",
+      "totalMedical": "Total des arrêts maladie",
+      "totalDogRelated": "Total des exclusions liées au chien"
+    },
+    "cases": {
+      "card": {
+        "date": "Date",
+        "caseNumber": "N° d'affaire",
+        "checkpoint": "Point de contrôle",
+        "specialty": "Spécialité",
+        "seizureDetails": "Détails de la saisie",
+        "quantity": "Quantité",
+        "assignedDog": "Chien assigné",
+        "notes": "Notes"
+      }
+    },
+    "exclusions": {
+      "empty": "Aucune exclusion enregistrée.",
+      "emptyFilter": "Aucune exclusion ne correspond au filtre sélectionné.",
+      "filter": {
+        "all": "Toutes",
+        "active": "Actives",
+        "ended": "Terminées"
+      },
+      "status": {
+        "active": "Active",
+        "ended": "Terminée"
+      },
+      "card": {
+        "period": "Période",
+        "from": "Du",
+        "to": "Au",
+        "exclusionType": "Type d'exclusion",
+        "reason": "Motif",
+        "createdBy": "Créé par",
+        "notes": "Notes"
+      },
+      "table": {
+        "startDate": "Date de début",
+        "endDate": "Date de fin",
+        "exclusionType": "Type d'exclusion",
+        "reason": "Motif",
+        "status": "Statut",
+        "createdBy": "Créé par",
+        "notes": "Notes"
+      }
+    },
+    "history": {
+      "cases": "Cas opérationnels récents",
+      "emptyCases": "Aucun cas opérationnel enregistré.",
+      "planning": "Planifications récentes",
+      "rotations": "Historique des rotations",
+      "exclusions": "Exclusions",
+      "emptyPlanning": "Aucune planification enregistrée.",
+      "emptyRotations": "Aucune rotation enregistrée.",
+      "emptyExclusions": "Aucune exclusion enregistrée."
+    }
+  },
+  "dogs": {
+    "title": "Chiens",
+    "description": "Profils K9, spécialités et statuts.",
+    "addDog": "Ajouter un chien",
+    "stat": {
+      "total": "Total chiens",
+      "narcotics": "Stupéfiants & Billets de banque",
+      "explosives": "Explosifs"
+    },
+    "gender": {
+      "male": "Mâle",
+      "female": "Femelle",
+      "all": "Tous les sexes"
+    },
+    "search": "Rechercher par nom, race ou puce…",
+    "filter": {
+      "activeAndRetired": "Actifs et retraités",
+      "activeOnly": "Actifs uniquement",
+      "retiredOnly": "Retraités uniquement"
+    },
+    "export": {
+      "pdfLabel": "Exporter la liste PDF",
+      "pdfSuccess": "Liste PDF téléchargée",
+      "pdfError": "Échec de l'export PDF"
+    },
+    "table": {
+      "photo": "Photo",
+      "currentAgent": "Cynotechnicien assigné"
+    },
+    "age": {
+      "days_one": "{{count}} jour",
+      "days_other": "{{count}} jours",
+      "months_one": "{{count}} mois",
+      "months_other": "{{count}} mois",
+      "years_one": "{{count}} an",
+      "years_other": "{{count}} ans",
+      "yearsAndMonths_one": "{{years}} an {{months}} mois",
+      "yearsAndMonths_other": "{{years}} ans {{months}} mois"
+    },
+    "empty": {
+      "noMatch": "Aucun chien ne correspond aux filtres",
+      "noProfiles": "Aucun profil K9 pour l'instant",
+      "registerFirst": "Enregistrez votre première unité K9 pour commencer."
+    },
+    "dialog": {
+      "addTitle": "Ajouter un chien",
+      "editTitle": "Modifier le chien",
+      "addDesc": "Enregistrer une nouvelle unité K9.",
+      "editDesc": "Mettre à jour le profil K9.",
+      "microchipPlaceholder": "Puce électronique à définir",
+      "card": {
+        "personal": "Informations personnelles",
+        "operational": "Informations opérationnelles",
+        "medical": "Informations médicales",
+        "additional": "Informations complémentaires"
+      }
+    },
+    "field": {
+      "dogName": "Nom du chien",
+      "photo": "Photo du chien",
+      "breed": "Race",
+      "microchip": "Puce électronique",
+      "dateOfBirth": "Date de naissance",
+      "age": "Âge",
+      "ageReadOnly": "Calculé automatiquement à partir de la date de naissance",
+      "currentAgent": "Cynotechnicien assigné",
+      "assignmentDate": "Date d'affectation",
+      "trainingLevel": "Niveau de dressage",
+      "veterinaryNotes": "Notes vétérinaires",
+      "vaccinationInfo": "Informations vaccinales",
+      "healthStatus": "État de santé",
+      "observations": "Observations générales"
+    },
+    "photo": {
+      "hint": "JPG, JPEG, PNG ou WEBP — 5 Mo maximum.",
+      "upload": "Choisir une photo",
+      "change": "Changer la photo",
+      "removeShort": "Supprimer",
+      "error": {
+        "invalidType": "Format non pris en charge. Utilisez JPG, JPEG, PNG ou WEBP.",
+        "tooLarge": "La photo ne doit pas dépasser {{maxMb}} Mo."
+      }
+    },
+    "select": {
+      "unassigned": "Non assigné"
+    },
+    "hint": {
+      "agentsWithoutDog": "Seuls les cynotechniciens sans chien actuel sont affichés.",
+      "retiredExcluded": "Les chiens retraités sont exclus de la planification."
+    },
+    "submit": {
+      "createDog": "Créer le chien"
+    },
+    "delete": {
+      "title": "Supprimer le chien ?",
+      "description": "Suppression définitive de « {{name}} ». Le cynotechnicien lié sera désassigné. Irréversible."
+    },
+    "toast": {
+      "updated": "Chien mis à jour",
+      "created": "Chien créé",
+      "deleted": "Chien supprimé"
+    },
+    "error": {
+      "loadFailed": "Impossible de charger le profil du chien."
+    }
+  },
+  "dogDetails": {
+    "title": "Détails du chien",
+    "error": {
+      "loadFailed": "Impossible de charger les détails du chien."
+    },
+    "action": {
+      "edit": "Modifier le chien"
+    },
+    "photo": {
+      "viewFullscreen": "Voir la photo en plein écran"
+    },
+    "section": {
+      "information": "Informations du chien",
+      "operational": "Informations opérationnelles",
+      "medical": "Informations médicales",
+      "casesHistory": "Historique des affaires",
+      "exclusionsHistory": "Historique des exclusions",
+      "notes": "Observations"
+    },
+    "history": {
+      "emptyCases": "Aucun cas opérationnel enregistré pour ce chien."
+    },
+    "exclusions": {
+      "noAgent": "Aucun cynotechnicien assigné — les exclusions sont liées au cynotechnicien."
+    },
+    "cases": {
+      "card": {
+        "date": "Date",
+        "caseNumber": "N° d'affaire",
+        "location": "Lieu",
+        "specialty": "Spécialité",
+        "seizureDetails": "Détails de saisie",
+        "quantity": "Quantité",
+        "assignedAgent": "Cynotechnicien assigné",
+        "notes": "Notes"
+      }
+    }
+  },
+  "dogProfile": {
+    "notFound": "Chien introuvable.",
+    "backToDogs": "Retour aux chiens",
+    "allDogs": "Tous les chiens",
+    "subtitle": "Profil unité K9",
+    "generalInfo": "Informations générales",
+    "currentAssignment": "Affectation actuelle",
+    "handler": "Maître-chien",
+    "profNumber": "Matricule",
+    "unassigned": "Non assigné",
+    "noAgentLinked": "Aucun cynotechnicien actuellement lié.",
+    "historyPlanning": "Historique & planification",
+    "historyPlaceholder": "L'historique des rotations et affectations apparaîtra ici."
+  },
+  "checkpoints": {
+    "title": "Points de contrôle",
+    "description": "Gérer les points de contrôle et leurs exigences opérationnelles.",
+    "new": "Nouveau point de contrôle",
+    "stat": {
+      "total": "Total points de contrôle",
+      "nightOnly": "Nuit uniquement",
+      "requiredTeams": "Équipes K9 requises"
+    },
+    "filter": {
+      "all": "Tous les points",
+      "nightOnly": "Nuit uniquement"
+    },
+    "table": {
+      "nightOnly": "Nuit uniquement",
+      "operationalReqs": "Exigences",
+      "total": "({{count}} au total)",
+      "shifts": "Quartiers"
+    },
+    "config": {
+      "subtitle": "Configuration opérationnelle lue par le moteur Smart Rotation.",
+      "general": "Informations générales",
+      "name": "Nom du point",
+      "operatingDays": "Jours d'activité",
+      "dayShift": "Quartier de jour",
+      "nightShift": "Quartier de nuit",
+      "dayShiftHint": "Équipes requises le matin (09:00–21:00).",
+      "nightShiftHint": "Équipes requises la nuit (21:00–09:00).",
+      "femaleAgents": "Cynotechniciennes femmes",
+      "priority": "Priorité",
+      "priorityHint": "Ordre d'affectation Smart Rotation (1 = critique en premier).",
+      "priorityLevel": {
+        "1": "Critique",
+        "2": "Haute",
+        "3": "Normale",
+        "4": "Basse"
+      },
+      "team": {
+        "explosives": "Explosifs",
+        "narcotics": "Stupéfiants"
+      },
+      "femalePolicy": {
+        "allowed": "Autorisées",
+        "preferred": "Préférées",
+        "not_allowed": "Non autorisées"
+      }
+    },
+    "validation": {
+      "shiftRequired": "Activez au moins un quartier (jour ou nuit) avec des équipes requises."
+    },
+    "badge": {
+      "narcotics": "Stup.",
+      "explosives": "Expl."
+    },
+    "tooltip": {
+      "narcoticsExplosives": "Stupéfiants & Billets de banque / Explosifs"
+    },
+    "empty": {
+      "noMatch": "Aucun point ne correspond aux filtres",
+      "none": "Aucun point de contrôle",
+      "createFirst": "Créez votre premier point de contrôle."
+    },
+    "allowedGender": {
+      "all": "Tout le monde",
+      "maleOnly": "Hommes uniquement",
+      "femaleOnly": "Femmes uniquement"
+    },
+    "dialog": {
+      "newTitle": "Nouveau point de contrôle",
+      "editTitle": "Modifier le point",
+      "newDesc": "Créer un nouveau point de contrôle.",
+      "editDesc": "Mettre à jour les détails."
+    },
+    "field": {
+      "namePlaceholder": "ex. 77, 77 Bis, 78, 753"
+    },
+    "hint": {
+      "nameUnique": "Le nom est l'identifiant et doit être unique.",
+      "nightOnly": "Fonctionne uniquement de nuit.",
+      "inactiveExcluded": "Les points inactifs sont exclus de la planification."
+    },
+    "allowedHandlers": "Maîtres-chiens autorisés",
+    "staffingReqs": "Besoins en effectifs",
+    "staffing": {
+      "narcoticsK9": "K9 stupéfiants & billets de banque",
+      "explosivesK9": "K9 explosifs"
+    },
+    "submit": {
+      "create": "Créer le point"
+    },
+    "posts": {
+      "title": "Exigences opérationnelles",
+      "description": "Une ligne par spécialité. Le moteur de planification utilise ces valeurs.",
+      "add": "Ajouter une exigence",
+      "empty": "Aucune exigence définie. Ajoutez au moins une spécialité.",
+      "requiredHandlers": "Maîtres-chiens requis",
+      "hint": {
+        "inactiveIgnored": "Les exigences inactives sont ignorées."
+      }
+    },
+    "post": {
+      "dialog": {
+        "addTitle": "Ajouter une exigence",
+        "editTitle": "Modifier l'exigence",
+        "desc": "Choisissez une spécialité et le nombre de maîtres-chiens requis."
+      },
+      "submit": {
+        "add": "Ajouter l'exigence"
+      },
+      "delete": {
+        "title": "Supprimer l'exigence ?",
+        "description": "Suppression définitive. Bloqué si historique existant."
+      }
+    },
+    "delete": {
+      "title": "Supprimer le point ?",
+      "description": "Suppression définitive de « {{name}} » et de ses exigences. Bloqué si historique existant."
+    },
+    "toast": {
+      "updated": "Point mis à jour",
+      "created": "Point créé",
+      "deleted": "Point supprimé",
+      "nameUnique": "Le nom doit être unique",
+      "reqUpdated": "Exigence mise à jour",
+      "reqAdded": "Exigence ajoutée",
+      "reqDeleted": "Exigence supprimée"
+    },
+    "error": {
+      "historyExists": "Suppression impossible : historique existant.",
+      "postHistoryExists": "Suppression impossible : historique existant pour ce poste.",
+      "loadFailed": "Impossible de charger les points de contrôle.",
+      "retry": "Réessayer"
+    }
+  },
+  "exclusions": {
+    "title": "Exclusions",
+    "description": "Indisponibilités temporaires excluant les cynotechniciens de la planification.",
+    "new": "Nouvelle exclusion",
+    "stat": {
+      "active": "Exclusions actives",
+      "sickAgents": "Cynotechniciens malades",
+      "dogsInHeat": "Chiennes en chaleur",
+      "sickDogs": "Chiens malades"
+    },
+    "search": "Rechercher par nom ou n° de cynotechnicien…",
+    "filter": {
+      "reason": "Motif",
+      "allReasons": "Tous les motifs",
+      "allAgents": "Tous les cynotechniciens"
+    },
+    "table": {
+      "agent": "Cynotechnicien",
+      "profNumber": "Matricule",
+      "assignedDog": "Chien assigné",
+      "type": "Type",
+      "start": "Début",
+      "end": "Fin",
+      "enabled": "Activé"
+    },
+    "type": {
+      "sickness": "Malade",
+      "annual_leave": "Congé annuel",
+      "administrative_leave": "Congé administratif",
+      "mission": "Mission",
+      "training": "Formation",
+      "dog_sick": "Chien malade",
+      "female_dog_heat": "Chienne en chaleur",
+      "other": "Autre",
+      "absence": "Absence",
+      "special_leave": "Congé spécial"
+    },
+    "empty": {
+      "noMatch": "Aucune exclusion ne correspond",
+      "none": "Aucune exclusion",
+      "recordFirst": "Enregistrez une exclusion pour retirer un cynotechnicien."
+    },
+    "dialog": {
+      "newTitle": "Nouvelle exclusion",
+      "editTitle": "Modifier l'exclusion",
+      "newDesc": "Enregistrer une indisponibilité.",
+      "editDesc": "Mettre à jour les détails."
+    },
+    "field": {
+      "agent": "Cynotechnicien",
+      "exclusionType": "Type d'exclusion",
+      "durationDays": "Durée (jours)",
+      "endDateCalculated": "Date de fin (calculée)"
+    },
+    "selectAgent": "Sélectionner un cynotechnicien",
+    "placeholder": {
+      "notes": "Contexte ou référence facultatif…"
+    },
+    "hint": {
+      "disabledIgnored": "Les exclusions désactivées sont ignorées par le moteur de planification.",
+      "endDateEditable": "Calculée automatiquement à partir de la durée. Vous pouvez la modifier manuellement."
+    },
+    "summary": {
+      "title": "Récapitulatif",
+      "starts": "Début",
+      "ends": "Fin",
+      "durationLabel": "Durée",
+      "duration_one": "{{count}} jour",
+      "duration_other": "{{count}} jours"
+    },
+    "submit": {
+      "create": "Créer l'exclusion"
+    },
+    "delete": {
+      "title": "Supprimer l'exclusion ?",
+      "description": "Suppression définitive. Les exclusions expirées sont normalement conservées."
+    },
+    "aria": {
+      "disable": "Désactiver l'exclusion",
+      "enable": "Activer l'exclusion"
+    },
+    "history": {
+      "empty": "Aucune exclusion enregistrée."
+    },
+    "toast": {
+      "updated": "Exclusion mise à jour",
+      "created": "Exclusion créée",
+      "enabled": "Exclusion activée",
+      "disabled": "Exclusion désactivée",
+      "deleted": "Exclusion supprimée"
+    },
+    "error": {
+      "overlap": "Ce cynotechnicien a déjà une exclusion sur cette période."
+    }
+  },
+  "operationalCases": {
+    "title": "Cas opérationnels",
+    "description": "Module central de gestion des affaires opérationnelles, saisies et pièces jointes.",
+    "new": "Nouveau cas",
+    "newAffair": "Nouvelle affaire",
+    "search": "Rechercher par n° de cas, cynotechnicien, point de contrôle…",
+    "action": {
+      "view": "Voir le cas",
+      "viewShort": "Voir",
+      "print": "Imprimer",
+      "menu": "Actions du cas"
+    },
+    "submit": {
+      "create": "Créer l'affaire"
+    },
+    "stat": {
+      "total": "Total des cas",
+      "thisMonth": "Ce mois",
+      "narcotics": "Cas stupéfiants",
+      "explosives": "Cas explosifs",
+      "currency": "Détection de devises",
+      "totalSeized": "Total saisi",
+      "cannabisKg": "Cannabis saisi (kg)"
+    },
+    "caseStatus": {
+      "closed": "Clôturé",
+      "in_progress": "En cours",
+      "draft": "Brouillon"
+    },
+    "filter": {
+      "specialty": "Spécialité",
+      "seizureType": "Type de saisie",
+      "agent": "Cynotechnicien",
+      "date": "Date",
+      "allSpecialties": "Toutes les spécialités",
+      "allSeizureTypes": "Tous les types",
+      "allAgents": "Tous les cynotechniciens"
+    },
+    "table": {
+      "date": "Date",
+      "caseNumber": "N° de cas",
+      "agent": "Cynotechnicien",
+      "dog": "Chien assigné",
+      "specialty": "Spécialité",
+      "checkpoint": "Point de contrôle",
+      "location": "Lieu",
+      "seizureType": "Saisie / Objet",
+      "quantity": "Quantité",
+      "objectLabel": "Objet",
+      "threatLabel": "Menace",
+      "details": "Détails de la saisie"
+    },
+    "specialty": {
+      "narcotics": "Stupéfiants",
+      "explosives": "Explosifs",
+      "currency": "Billets / Détection de devises"
+    },
+    "drugType": {
+      "exta": "Exta",
+      "hashish": "Haschich",
+      "cocaine": "Cocaïne",
+      "heroin": "Héroïne",
+      "synthetic_drugs": "Drogues de synthèse",
+      "pofa": "Pofa",
+      "other": "Autre",
+      "cannabis": "Cannabis"
+    },
+    "objectType": {
+      "firearm": "Arme à feu",
+      "bladed_weapon": "Arme blanche",
+      "grenade": "Grenade",
+      "homemade_explosive": "Explosif artisanal",
+      "ammunition": "Munition",
+      "detonator": "Détonateur",
+      "explosive_material": "Matière explosive",
+      "other": "Autre"
+    },
+    "threatLevel": {
+      "low": "Faible",
+      "medium": "Moyen",
+      "high": "Élevé"
+    },
+    "currency": {
+      "other": "Autre devise"
+    },
+    "seizureType": {
+      "cannabis": "Cannabis",
+      "cocaine": "Cocaïne",
+      "heroin": "Héroïne",
+      "synthetic_drugs": "Drogues de synthèse",
+      "hashish": "Haschich",
+      "explosives": "Explosifs",
+      "counterfeit_currency": "Billets contrefaits",
+      "other": "Autre"
+    },
+    "unit": {
+      "kg": "kg",
+      "g": "g",
+      "tonne": "tonne",
+      "units": "unités",
+      "pieces": "pièces",
+      "liters": "litres",
+      "banknotes": "billets"
+    },
+    "field": {
+      "date": "Date",
+      "caseNumber": "N° de cas",
+      "caseNumberPlaceholder": "Ex. CO-2026-0142",
+      "caseNumberAuto": "Attribué automatiquement à l'enregistrement",
+      "caseNumberGenerating": "Génération…",
+      "agent": "Cynotechnicien",
+      "agentPlaceholder": "Sélectionner un cynotechnicien",
+      "dog": "Chien assigné",
+      "specialty": "Spécialité",
+      "checkpoint": "Point de contrôle",
+      "checkpointPlaceholder": "Sélectionner un point de contrôle",
+      "location": "Lieu",
+      "locationPlaceholder": "Lieu de l'intervention",
+      "seizureType": "Type de saisie",
+      "drugType": "Type de stupéfiant",
+      "quantity": "Quantité",
+      "unit": "Unité",
+      "objectType": "Type d'objet",
+      "objectCount": "Nombre d'objets",
+      "threatLevel": "Niveau de menace",
+      "threatLevelOptional": "Optionnel",
+      "currency": "Devise",
+      "totalAmount": "Montant total",
+      "banknoteCount": "Nombre de billets",
+      "country": "Pays",
+      "countryPlaceholder": "Ex. Maroc",
+      "observations": "Observations",
+      "attachments": "Pièces jointes"
+    },
+    "attachments": {
+      "none": "Aucune pièce jointe.",
+      "pending": "{{count}} fichier(s) prêt(s) à être enregistré(s)."
+    },
+    "validation": {
+      "caseNumberRequired": "Le numéro de cas est requis.",
+      "checkpointRequired": "Le point de contrôle est requis.",
+      "locationRequired": "Le lieu est requis.",
+      "quantityPositive": "La quantité doit être supérieure à zéro.",
+      "drugTypeRequired": "Le type de stupéfiant est requis.",
+      "unitRequired": "L'unité est requise.",
+      "objectTypeRequired": "Le type d'objet est requis.",
+      "objectCountPositive": "Le nombre d'objets doit être supérieur à zéro.",
+      "currencyRequired": "La devise est requise.",
+      "totalAmountRequired": "Le montant total est requis.",
+      "banknoteCountRequired": "Le nombre de billets est requis.",
+      "countryRequired": "Le pays est requis."
+    },
+    "empty": {
+      "noMatch": "Aucun cas ne correspond aux filtres",
+      "none": "Aucun cas opérationnel",
+      "createFirst": "Enregistrez le premier cas opérationnel pour commencer."
+    },
+    "dialog": {
+      "newTitle": "Nouvelle affaire",
+      "editTitle": "Modifier l'affaire",
+      "newDesc": "Enregistrer une nouvelle affaire opérationnelle.",
+      "editDesc": "Mettre à jour les détails de l'affaire.",
+      "section": {
+        "general": "Informations générales",
+        "seizure": "Informations de la saisie",
+        "additional": "Informations complémentaires"
+      },
+      "sidebar": {
+        "today": "Aujourd'hui"
+      },
+      "dropzone": {
+        "hint": "Glissez-déposez vos fichiers ou cliquez pour parcourir",
+        "upload": "Importer des fichiers"
+      }
+    },
+    "delete": {
+      "title": "Supprimer le cas ?",
+      "description": "Suppression définitive du cas {{number}}."
+    },
+    "toast": {
+      "created": "Cas opérationnel créé",
+      "updated": "Cas opérationnel mis à jour",
+      "deleted": "Cas opérationnel supprimé",
+      "deleteError": "Échec de la suppression",
+      "attachmentDeleted": "Pièce jointe supprimée"
+    }
+  },
+  "dailyPlanning": {
+    "title": "Planification quotidienne",
+    "description": "Générer et enregistrer automatiquement les affectations quotidiennes.",
+    "create": {
+      "title": "Créer la planification quotidienne",
+      "description": "Choisissez date et quart. La section active suit la rotation 12/24. Le bouton génère, enregistre et historise."
+    },
+    "field": {
+      "planningDate": "Date de planification",
+      "shift": "Quart"
+    },
+    "generating": "Génération…",
+    "createButton": "Créer la planification quotidienne",
+    "attendanceSheet": {
+      "generate": "Générer la feuille de présence",
+      "download": "Feuille de présence (PDF)",
+      "success": "Feuille de présence téléchargée",
+      "error": "Échec de la génération du PDF",
+      "noPlanning": "Générez et validez d'abord une planification quotidienne.",
+      "missingCommander": "Renseignez le chef de section dans le module Sections avant de générer la feuille de présence.",
+      "noPlanningAgents": "Aucun agent dans la planification active de cette section.",
+      "noAssignedAgents": "Aucun agent assigné aux postes opérationnels dans cette planification.",
+      "validationFailed": "Données incomplètes pour la feuille de présence"
+    },
+    "export": {
+      "menu": "Exporter la planification",
+      "pdf": "Exporter PDF",
+      "docx": "Exporter Word (.docx)",
+      "both": "Exporter PDF + Word",
+      "success": "Export enregistré",
+      "successBoth": "PDF et Word enregistrés",
+      "canceled": "Export annulé",
+      "error": "Échec de l'export de la planification",
+      "noPlanning": "Générez et validez d'abord une planification quotidienne."
+    },
+    "alert": {
+      "rotationUnavailable": "Rotation indisponible",
+      "needThreeSections": "La rotation 12/24 exige exactement 3 sections actives. Trouvé : {{count}}."
+    },
+    "error": {
+      "title": "Échec de la génération",
+      "message": "Message :",
+      "code": "Code :",
+      "details": "Détails :",
+      "hint": "Indice :"
+    },
+    "warnings": {
+      "title": "Avertissements ({{count}})"
+    },
+    "complete": {
+      "title": "Planification terminée",
+      "description": "Tous les points sont pourvus. Affectations enregistrées."
+    },
+    "stat": {
+      "totalEmployees": "Total cynotechniciens",
+      "assigned": "Affectés (points)",
+      "rest": "Repos",
+      "point653": "Point 653",
+      "fullyStaffed": "Points entièrement pourvus",
+      "understaffed": "Points sous-effectifs",
+      "excluded": "Cynotechniciens exclus"
+    },
+    "rest": {
+      "title": "Repos ({{count}})",
+      "description": "Groupe féminin inactif — pas de section, point, réserve ni nuit. Statut : REPOS.",
+      "badge": "Repos",
+      "noticeTitle": "Repos (rotation féminine)"
+    },
+    "point653": {
+      "name": "Point 653",
+      "title": "Point 653 ({{count}})",
+      "description": "Siège de l'unité cynotechnique — affectation automatique des équipes non déployées sur les points opérationnels.",
+      "badge": "Point 653",
+      "noticeTitle": "Point 653"
+    },
+    "reserve": {
+      "title": "Point 653 ({{count}})",
+      "description": "Siège de l'unité cynotechnique — affectation automatique des équipes non déployées sur les points opérationnels.",
+      "badge": "Point 653",
+      "noticeTitle": "Point 653"
+    },
+    "unassigned": {
+      "title": "Point 653 ({{count}})",
+      "description": "Siège de l'unité cynotechnique — affectation automatique des équipes non deployées sur les points opérationnels."
+    },
+    "excluded": {
+      "title": "Cynotechniciens exclus ({{count}})",
+      "none": "Aucun cynotechnicien exclu."
+    },
+    "assignments": {
+      "title": "Affectations aux points",
+      "description": "Affectations issues des exigences de spécialité.",
+      "noCheckpoints": "Aucun point actif avec exigences pour ce quart."
+    },
+    "badge": {
+      "nightOnly": "Nuit uniquement",
+      "understaffed": "SOUS-EFFECTIF",
+      "fullyStaffed": "Entièrement pourvu"
+    },
+    "posts": {
+      "none": "Aucun poste de spécialité actif configuré."
+    },
+    "table": {
+      "specialty": "Spécialité",
+      "handler": "Maître-chien",
+      "dog": "Chien"
+    },
+    "slot": {
+      "unfilled": "Non pourvu"
+    },
+    "confirm": {
+      "title": "Remplacer la planification existante ?",
+      "description": "Une planification existe déjà. La nouvelle la remplacera et mettra à jour l'historique. Irréversible.",
+      "keep": "Conserver l'existant",
+      "replace": "Remplacer et générer"
+    },
+    "toast": {
+      "savedWithWarnings": "Planification enregistrée avec {{count}} avertissement(s).",
+      "success": "Planification générée et enregistrée avec succès."
+    }
+  },
+  "planning": {
+    "reason": {
+      "inactive": "Inactif",
+      "noAssignedDog": "Aucun chien assigné",
+      "dogInactive": "Chien inactif",
+      "dogSick": "Chien malade",
+      "femaleDogHeat": "Chienne en chaleur",
+      "absent": "Absent",
+      "sick": "Malade",
+      "onLeave": "En congé",
+      "onSpecialLeave": "En congé spécial",
+      "administrativeLeave": "Congé administratif",
+      "onMission": "En mission",
+      "inTraining": "En formation",
+      "excluded": "Exclu",
+      "femaleDayShiftOnly": "Les maîtres-chiens femmes travaillent uniquement de jour.",
+      "dogStatus": "Statut du chien : {{status}}"
+    },
+    "warning": {
+      "understaffed": "Le point {{name}} est SOUS-EFFECTIF ({{staffed}}/{{required}}, {{missing}} poste non pourvu).",
+      "understaffed_plural": "Le point {{name}} est SOUS-EFFECTIF ({{staffed}}/{{required}}, {{missing}} postes non pourvus).",
+      "unassignedEligible": "{{count}} cynotechnicien(s) affecté(s) au Point 653.",
+      "point653Assigned": "{{count}} cynotechnicien(s) affecté(s) au {{point}}.",
+      "femaleRest": "{{count}} cynotechnicienne(s) marquée(s) REPOS (groupe inactif de la rotation féminine)."
+    },
+    "point653": {
+      "reason": {
+        "no_operational_assignment": "Aucune affectation opérationnelle",
+        "no_assigned_dog": "Aucun chien assigné",
+        "dog_sick": "Chien malade",
+        "dog_in_heat": "Chienne en chaleur",
+        "administrative_duty": "Service administratif",
+        "absence": "Absence",
+        "sickness": "Maladie",
+        "annual_leave": "Congé annuel",
+        "special_leave": "Congé spécial",
+        "mission": "Mission",
+        "training": "Formation",
+        "other_exclusion": "Indisponibilité"
+      }
+    }
+  },
+  "sections": {
+    "title": "Sections",
+    "description": "Gérer les sections opérationnelles et leurs affectations.",
+    "new": "Nouvelle section",
+    "filter": {
+      "dayShift": "Quart de jour",
+      "nightShift": "Quart de nuit"
+    },
+    "table": {
+      "shift": "Quart",
+      "assignedAgents": "Cynotechniciens assignés",
+      "created": "Créé le"
+    },
+    "empty": {
+      "noMatch": "Aucune section ne correspond",
+      "none": "Aucune section",
+      "createFirst": "Créez votre première section pour organiser les équipes."
+    },
+    "dialog": {
+      "newTitle": "Nouvelle section",
+      "editTitle": "Modifier la section",
+      "newDesc": "Créer une nouvelle section opérationnelle.",
+      "editDesc": "Mettre à jour les détails."
+    },
+    "field": {
+      "sectionName": "Nom de la section",
+      "shiftType": "Type de quart",
+      "commanderFullName": "Chef de section",
+      "commanderGrade": "Grade",
+      "commanderMle": "Matricule (MLE)"
+    },
+    "commander": {
+      "title": "Chef de section"
+    },
+    "placeholder": {
+      "name": "ex. Section Alpha",
+      "commanderFullName": "ex. ALAMI Hassan",
+      "commanderGrade": "ex. BRIGADIER",
+      "commanderMle": "ex. 12345"
+    },
+    "hint": {
+      "inactiveHidden": "Les sections inactives sont masquées de la planification."
+    },
+    "submit": {
+      "create": "Créer la section"
+    },
+    "delete": {
+      "title": "Supprimer la section ?",
+      "hasAgents": "« {{name}} » a {{count}} cynotechnicien(s) assigné(s). Réassignez-les avant suppression.",
+      "confirm": "Suppression définitive de « {{name}} ». Irréversible."
+    },
+    "toast": {
+      "updated": "Section mise à jour",
+      "created": "Section créée",
+      "deleted": "Section supprimée"
+    },
+    "error": {
+      "hasAgents": "Suppression impossible : des cynotechniciens sont encore assignés."
+    }
+  },
+  "settings": {
+    "title": "Paramètres",
+    "description": "Configurer la console et les préférences.",
+    "appearance": {
+      "title": "Apparence",
+      "description": "Basculer entre mode clair et sombre.",
+      "darkMode": "Mode sombre"
+    },
+    "organization": {
+      "title": "Organisation",
+      "description": "Les détails seront configurables ici.",
+      "placeholder": "D'autres paramètres apparaîtront au fil du projet."
+    }
+  },
+  "statistics": {
+    "title": "Statistiques",
+    "description": "Tableau de bord opérationnel — chiffres clés et activité.",
+    "center": {
+      "yearlyTitle": "Statistiques opérationnelles annuelles",
+      "monthlySummary": {
+        "title": "Synthèse mensuelle"
+      },
+      "checkpoints": {
+        "title": "Statistiques par point de contrôle"
+      },
+      "agents": {
+        "title": "Statistiques cynotechniciens"
+      },
+      "dogs": {
+        "title": "Statistiques chiens"
+      },
+      "sections": {
+        "title": "Statistiques par section"
+      },
+      "yearSummary": {
+        "title": "Synthèse annuelle"
+      },
+      "filters": {
+        "year": "Année",
+        "month": "Mois",
+        "allMonths": "Tous les mois",
+        "checkpoint": "Point de contrôle",
+        "allCheckpoints": "Tous les points de contrôle",
+        "agent": "Cynotechnicien",
+        "allAgents": "Tous les cynotechniciens",
+        "dog": "Chien",
+        "allDogs": "Tous les chiens"
+      },
+      "columns": {
+        "month": "Mois",
+        "generatedPlanning": "Planifications générées",
+        "operationalCases": "Affaires opérationnelles",
+        "drugDetections": "Détections stupéfiants",
+        "explosiveDetections": "Détections explosifs",
+        "currencyDetections": "Détections devises",
+        "exclusions": "Exclusions",
+        "activeTeams": "Équipes actives",
+        "inactiveTeams": "Équipes inactives",
+        "checkpoint": "Point de contrôle",
+        "missionsGenerated": "Missions générées",
+        "assignedTeams": "Équipes affectées",
+        "lastActivity": "Dernière activité",
+        "name": "Nom",
+        "dog": "Chien",
+        "totalMissions": "Total missions",
+        "dayMissions": "Missions jour",
+        "nightMissions": "Missions nuit",
+        "attendanceRate": "Taux de présence",
+        "lastMission": "Dernière mission",
+        "handler": "Maître-chien",
+        "availabilityPct": "Disponibilité %",
+        "daysUnavailable": "Jours indisponibles",
+        "activeAgents": "Agents actifs",
+        "activeDogs": "Chiens actifs",
+        "metric": "Indicateur",
+        "value": "Valeur"
+      }
+    },
+    "intelligence": {
+      "description": "Centre de renseignement opérationnel — rapports analytiques pour superviseurs et commandement.",
+      "reportPeriod": "Période de reporting",
+      "sections": {
+        "annualSummary": "Synthèse opérationnelle annuelle",
+        "monthlyActivity": "Rapport d'activité mensuelle",
+        "topAgents": "Classement cynotechniciens",
+        "topDogs": "Classement chiens",
+        "topCheckpoints": "Classement points de contrôle",
+        "sectionPerformance": "Performance par section",
+        "monthlyDetailed": "Rapports mensuels détaillés",
+        "dailyActivity": "Activité opérationnelle quotidienne",
+        "highlights": "Points saillants de performance",
+        "casesHistory": "Historique des affaires opérationnelles"
+      },
+      "metrics": {
+        "planning": "Planifications générées",
+        "cases": "Affaires opérationnelles",
+        "assignments": "Affectations opérationnelles",
+        "drug": "Détections stupéfiants",
+        "explosive": "Détections explosifs",
+        "currency": "Détections devises",
+        "exclusions": "Exclusions"
+      },
+      "columns": {
+        "metric": "Indicateur",
+        "annualTotal": "Total annuel",
+        "monthlyAverage": "Moyenne mensuelle",
+        "month": "Mois",
+        "planning": "Planification",
+        "assignments": "Affectations",
+        "cases": "Affaires",
+        "drug": "Stupéfiants",
+        "explosive": "Explosifs",
+        "currency": "Devises",
+        "exclusions": "Exclusions",
+        "activeTeams": "Équipes actives",
+        "inactiveTeams": "Équipes inactives",
+        "avgMissionsPerDay": "Moy. missions/jour",
+        "avgCasesPerDay": "Moy. affaires/jour",
+        "rank": "Rang",
+        "name": "Nom",
+        "detail": "Détail",
+        "missions": "Missions",
+        "detections": "Détections",
+        "activityScore": "Score d'activité",
+        "activeAgents": "Agents actifs",
+        "avgMissionsPerMonth": "Moy. missions/mois",
+        "date": "Date"
+      },
+      "highlights": {
+        "mostActiveMonth": "Mois le plus actif",
+        "mostActiveCheckpoint": "Point de contrôle le plus actif",
+        "mostActiveDog": "Chien le plus actif",
+        "mostActiveAgent": "Cynotechnicien le plus actif",
+        "mostActiveSection": "Section la plus active"
+      }
+    },
+    "operational": {
+      "currentYear": "Année en cours — {{year}}",
+      "totalOperationalCases": "Total affaires opérationnelles",
+      "totalPlanningGenerated": "Total planifications générées",
+      "totalControlsPerformed": "Total contrôles effectués",
+      "totalNarcoticsDetections": "Total détections stupéfiants",
+      "totalExplosivesDetections": "Total détections explosifs",
+      "totalCurrencyDetections": "Total détections devises",
+      "monthly": "Statistiques mensuelles",
+      "weekly": "Statistiques hebdomadaires",
+      "weekLabel": "Semaine {{number}}",
+      "today": "Statistiques du jour",
+      "todayPlanning": "Planifications du jour",
+      "todayCases": "Affaires opérationnelles du jour",
+      "todayExclusions": "Exclusions du jour",
+      "todayActiveTeams": "Équipes actives du jour",
+      "topAgents": "Top 10 cynotechniciens",
+      "topCheckpoints": "Top 10 points de contrôle",
+      "topDogs": "Top 10 chiens",
+      "missions": "missions",
+      "controls": "contrôles"
+    },
+    "filter": {
+      "today": "Aujourd'hui",
+      "week": "Cette semaine",
+      "month": "Ce mois",
+      "year": "Cette année",
+      "custom": "Période personnalisée",
+      "range": "Période : {{from}} → {{to}}",
+      "updating": "Mise à jour…"
+    },
+    "summary": {
+      "total": "Total",
+      "percentage": "Répartition en pourcentage",
+      "details": "Détail par période et par catégorie",
+      "lastUpdated": "Dernière mise à jour : {{date}}",
+      "empty": "Aucune donnée sur la période sélectionnée",
+      "affairs": "affaires",
+      "casesTotal": "Total des affaires",
+      "ofTotal": "du total"
+    },
+    "export": {
+      "excel": "Exporter Excel",
+      "pdf": "Exporter PDF",
+      "excelSuccess": "Export Excel téléchargé",
+      "pdfSuccess": "Export PDF téléchargé",
+      "error": "Échec de l'export"
+    },
+    "kpi": {
+      "totalAgents": "Total cynotechniciens",
+      "activeAgents": "Cynotechniciens actifs",
+      "inactiveAgents": "Cynotechniciens inactifs",
+      "totalDogs": "Total chiens",
+      "availableDogs": "Chiens disponibles",
+      "excludedDogs": "Chiens indisponibles",
+      "totalCases": "Cas opérationnels",
+      "totalExclusions": "Total exclusions",
+      "totalPlanning": "Planifications générées",
+      "totalCheckpoints": "Total points de contrôle",
+      "totalSections": "Total sections"
+    },
+    "section": {
+      "operationalCases": "Cas opérationnels",
+      "operationalCasesDesc": "Activité, spécialités et saisies",
+      "casesHistory": "Historique complet des affaires",
+      "casesHistoryDesc": "Tableau exhaustif avec filtres, recherche et export",
+      "planning": "Planification",
+      "planningDesc": "Planifications générées par période et section",
+      "exclusions": "Exclusions",
+      "exclusionsDesc": "Indisponibilités cynotechniciens et chiens",
+      "leave": "Congés",
+      "leaveDesc": "Congés et absences enregistrés",
+      "dogs": "Chiens",
+      "dogsDesc": "Répartition des unités K9",
+      "agents": "Cynotechniciens",
+      "agentsDesc": "Répartition des cynotechniciens",
+      "rankings": "Classements",
+      "rankingsDesc": "Top 10 de l'activité"
+    },
+    "seizures": {
+      "cannabis": "Cannabis saisi",
+      "hashish": "Haschisch saisi",
+      "cocaine": "Cocaïne saisie",
+      "heroin": "Héroïne saisie",
+      "synthetic": "Drogues de synthèse saisies"
+    },
+    "planning": {
+      "thisMonth": "Planifications ce mois"
+    },
+    "exclusions": {
+      "total": "Total exclusions",
+      "active": "Exclusions actives",
+      "finished": "Exclusions terminées",
+      "reason": {
+        "sickDog": "Chien malade",
+        "sickAgent": "Cynotechnicien malade",
+        "leave": "Congé / absence",
+        "training": "Formation",
+        "vacation": "Vacances",
+        "other": "Autre"
+      }
+    },
+    "leave": {
+      "total": "Total congés"
+    },
+    "dogs": {
+      "assigned": "Chiens assignés",
+      "unassigned": "Chiens non assignés",
+      "age": {
+        "under1": "Moins d'1 an",
+        "1to3": "1 à 3 ans",
+        "3to5": "3 à 5 ans",
+        "5plus": "Plus de 5 ans",
+        "unknown": "Inconnu"
+      }
+    },
+    "agents": {
+      "withDog": "Cynotechniciens avec chien",
+      "withoutDog": "Cynotechniciens sans chien"
+    },
+    "rankings": {
+      "topAgents": "Top 10 cynotechniciens (cas opérationnels)",
+      "topDogs": "Top 10 chiens (cas opérationnels)",
+      "topCheckpoints": "Top 10 points de contrôle",
+      "topExclusionReasons": "Top 10 motifs d'exclusion"
+    },
+    "chart": {
+      "casesByMonth": "Cas par mois",
+      "casesBySpecialty": "Cas par spécialité",
+      "casesByCheckpoint": "Cas par point de contrôle",
+      "casesByDog": "Cas par chien",
+      "casesByAgent": "Cas par cynotechnicien",
+      "planningByMonth": "Planifications par mois",
+      "planningBySection": "Planifications par section",
+      "planningByCheckpoint": "Planifications par point de contrôle",
+      "exclusionsByMonth": "Exclusions par mois",
+      "exclusionsByReason": "Exclusions par motif",
+      "exclusionsByType": "Exclusions par type",
+      "leaveByMonth": "Congés par mois",
+      "leaveBySection": "Congés par section",
+      "dogsBySpecialty": "Chiens par spécialité",
+      "dogsByStatus": "Chiens par statut",
+      "dogsByBreed": "Chiens par race",
+      "dogsByAge": "Chiens par âge",
+      "agentsBySection": "Cynotechniciens par section",
+      "agentsByGrade": "Cynotechniciens par grade",
+      "agentsByGender": "Cynotechniciens par genre",
+      "agentsBySpecialty": "Cynotechniciens par spécialité"
+    },
+    "casesHistory": {
+      "title": "Historique complet des affaires",
+      "description": "Registre exhaustif des affaires opérationnelles avec filtres, recherche et export.",
+      "search": "Rechercher par n° de cas, cynotechnicien, chien, lieu, point de contrôle…",
+      "results": "{{count}} affaire(s) affichée(s) sur {{total}} au total",
+      "summary": {
+        "total": "Total affaires opérationnelles",
+        "thisMonth": "Affaires ce mois",
+        "thisYear": "Affaires cette année",
+        "narcotics": "Affaires stupéfiants",
+        "explosives": "Affaires explosifs",
+        "currency": "Affaires détection de devises"
+      },
+      "filter": {
+        "dateFrom": "Du",
+        "dateTo": "Au",
+        "year": "Année",
+        "month": "Mois",
+        "allYears": "Toutes les années",
+        "allMonths": "Tous les mois",
+        "allDogs": "Tous les chiens",
+        "allCheckpoints": "Tous les points de contrôle"
+      },
+      "months": {
+        "10": "Octobre",
+        "11": "Novembre",
+        "12": "Décembre",
+        "01": "Janvier",
+        "02": "Février",
+        "03": "Mars",
+        "04": "Avril",
+        "05": "Mai",
+        "06": "Juin",
+        "07": "Juillet",
+        "08": "Août",
+        "09": "Septembre"
+      },
+      "table": {
+        "seizureObject": "Saisie / Type d'objet"
+      },
+      "pagination": "Affichage {{from}}–{{to}} sur {{total}}",
+      "empty": {
+        "none": "Aucune affaire enregistrée",
+        "noMatch": "Aucune affaire ne correspond aux filtres"
+      },
+      "export": {
+        "count": "Nombre d'affaires",
+        "more": "affaires supplémentaires"
+      }
+    },
+    "checkpointStats": {
+      "title": "Statistiques par point de contrôle",
+      "description": "Activité opérationnelle, saisies et planification par point de contrôle.",
+      "table": {
+        "name": "Point de contrôle",
+        "cases": "Affaires",
+        "planning": "Planifications",
+        "agents": "Cynotechniciens assignés",
+        "dogs": "Chiens assignés",
+        "narcoticsKg": "Stupéfiants (kg)"
+      },
+      "seizures": {
+        "narcotics": "Stupéfiants",
+        "explosives": "Explosifs",
+        "currency": "Devises",
+        "khat": "Khat",
+        "firearms": "Armes à feu",
+        "bladedWeapons": "Armes blanches",
+        "grenades": "Grenades",
+        "detonators": "Détonateurs",
+        "explosiveMaterials": "Matières explosives",
+        "ammunition": "Munitions",
+        "totalAmount": "Montant total saisi",
+        "banknotes": "Billets saisis",
+        "currencyTypes": "Types de devises"
+      },
+      "analytics": {
+        "casesThisMonth": "Affaires ce mois",
+        "casesThisYear": "Affaires cette année",
+        "mostActiveSpecialty": "Spécialité la plus active",
+        "mostCommonSeizure": "Saisie la plus fréquente",
+        "mostActiveAgent": "Cynotechnicien le plus actif",
+        "mostActiveDog": "Chien le plus actif"
+      },
+      "rankings": {
+        "byCases": "Top points de contrôle (affaires)",
+        "byNarcotics": "Top points de contrôle (stupéfiants kg)",
+        "byExplosives": "Top points de contrôle (affaires explosifs)",
+        "byCurrency": "Top points de contrôle (affaires devises)"
+      },
+      "chart": {
+        "casesByCheckpoint": "Affaires par point de contrôle",
+        "seizureTypesByCheckpoint": "Types de saisie par point de contrôle",
+        "specialtyDistribution": "Répartition des spécialités"
+      },
+      "detail": {
+        "description": "Tableau de bord détaillé du point de contrôle",
+        "monthlyEvolution": "Évolution mensuelle des affaires",
+        "assignedAgents": "Cynotechniciens assignés",
+        "assignedDogs": "Chiens assignés",
+        "allCases": "Historique complet ({{count}} affaires)"
+      },
+      "empty": {
+        "none": "Aucun point de contrôle avec activité pour ces filtres",
+        "cases": "Aucune affaire pour ce point de contrôle",
+        "chart": "Aucune donnée de saisie à afficher"
+      }
+    }
+  },
+  "history": {
+    "title": "Historique",
+    "description": "Archives des planifications et déploiements passés.",
+    "open": "Ouvrir",
+    "loadError": "Impossible de charger cette planification.",
+    "stat": {
+      "total": "Planifications archivées"
+    },
+    "table": {
+      "count": "{{count}} planification(s) archivée(s)",
+      "date": "Date",
+      "section": "Section",
+      "shift": "Quart",
+      "agentsLabel": "Cynotechniciens",
+      "dogsLabel": "Chiens",
+      "agents": "{{count}} cynotechnicien(s)",
+      "dogs": "{{count}} chien(s)"
+    },
+    "detail": {
+      "title": "Détail de la planification"
+    },
+    "export": {
+      "menu": "Exporter la planification",
+      "pdf": "Exporter PDF",
+      "docx": "Exporter Word (.docx)",
+      "both": "Exporter PDF + Word",
+      "success": "Export enregistré",
+      "successBoth": "PDF et Word enregistrés",
+      "pdfSuccess": "PDF téléchargé",
+      "canceled": "Export annulé",
+      "error": "Échec de l'export de la planification"
+    },
+    "delete": {
+      "action": "Supprimer",
+      "title": "Supprimer cette planification ?",
+      "description": "Cette action est irréversible. Les affectations enregistrées pour cette date seront supprimées.",
+      "confirm": "Supprimer",
+      "deleting": "Suppression…",
+      "success": "Planification supprimée",
+      "error": "Échec de la suppression"
+    },
+    "error": {
+      "title": "Impossible de charger l'historique",
+      "description": "Une erreur est survenue lors du chargement des planifications archivées."
+    },
+    "empty": {
+      "title": "Aucun historique",
+      "description": "Les déploiements et planifications passés apparaîtront ici."
+    }
+  },
+  "validation": {
+    "firstNameRequired": "Le prénom est requis",
+    "lastNameRequired": "Le nom est requis",
+    "profNumberRequired": "Le matricule est requis",
+    "gradeRequired": "Le grade est requis",
+    "profNumberUsed": "Ce matricule est déjà utilisé",
+    "dogAlreadyAssigned": "Ce chien est déjà assigné",
+    "nameRequired": "Le nom est requis",
+    "commanderFullNameRequired": "Le nom complet du chef de section est requis",
+    "heatFemaleOnly": "Le statut chaleur s'applique aux femelles uniquement",
+    "minZero": "Doit être ≥ 0",
+    "atLeastOne": "Au moins 1",
+    "agentRequired": "Le cynotechnicien est requis",
+    "startDateRequired": "La date de début est requise",
+    "dateRequired": "La date est requise",
+    "endDateRequired": "La date de fin est requise",
+    "endBeforeStart": "La date de fin ne peut précéder le début",
+    "durationMin": "La durée doit être d'au moins 1 jour",
+    "nameMinLength": "Le nom doit comporter au moins 2 caractères",
+    "observationsMax": "500 caractères maximum"
+  },
+  "language": {
+    "french": "Français",
+    "english": "English",
+    "arabic": "العربية"
+  }
+}

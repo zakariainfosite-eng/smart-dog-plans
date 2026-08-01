@@ -1,0 +1,78 @@
+{
+  "tables": [
+    {
+      "table": "sections",
+      "supabaseRows": 3,
+      "sqliteRows": 3,
+      "status": "OK"
+    },
+    {
+      "table": "dogs",
+      "supabaseRows": 33,
+      "sqliteRows": 33,
+      "status": "OK"
+    },
+    {
+      "table": "agents",
+      "supabaseRows": 34,
+      "sqliteRows": 34,
+      "status": "OK"
+    },
+    {
+      "table": "checkpoints",
+      "supabaseRows": 11,
+      "sqliteRows": 11,
+      "status": "OK"
+    },
+    {
+      "table": "checkpoint_posts",
+      "supabaseRows": 33,
+      "sqliteRows": 33,
+      "status": "OK"
+    },
+    {
+      "table": "agent_exclusions",
+      "supabaseRows": 2,
+      "sqliteRows": 2,
+      "status": "OK"
+    },
+    {
+      "table": "planning",
+      "supabaseRows": 22,
+      "sqliteRows": 22,
+      "status": "OK"
+    },
+    {
+      "table": "planning_assignments",
+      "supabaseRows": 310,
+      "sqliteRows": 310,
+      "status": "OK"
+    },
+    {
+      "table": "rotation_history",
+      "supabaseRows": 314,
+      "sqliteRows": 314,
+      "status": "OK"
+    },
+    {
+      "table": "operational_cases",
+      "supabaseRows": 1,
+      "sqliteRows": 1,
+      "status": "OK"
+    },
+    {
+      "table": "operational_case_attachments",
+      "supabaseRows": 0,
+      "sqliteRows": 0,
+      "status": "OK"
+    },
+    {
+      "table": "application_settings",
+      "supabaseRows": 0,
+      "sqliteRows": 0,
+      "status": "OK"
+    }
+  ],
+  "ok": true,
+  "reportText": "table                            |   supabase |     sqlite |   status\n---------------------------------------------------------------------\nsections                         |          3 |          3 |       OK\ndogs                             |         33 |         33 |       OK\nagents                           |         34 |         34 |       OK\ncheckpoints                      |         11 |         11 |       OK\ncheckpoint_posts                 |         33 |         33 |       OK\nagent_exclusions                 |          2 |          2 |       OK\nplanning                         |         22 |         22 |       OK\nplanning_assignments             |        310 |        310 |       OK\nrotation_history                 |        314 |        314 |       OK\noperational_cases                |          1 |          1 |       OK\noperational_case_attachments     |          0 |          0 |       OK\napplication_settings             |          0 |          0 |       OK\n---------------------------------------------------------------------\nRESULT: OK — no data lost"
+}

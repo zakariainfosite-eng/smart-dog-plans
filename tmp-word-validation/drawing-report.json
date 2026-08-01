@@ -1,0 +1,23 @@
+{
+  "docxPath": "/Users/mac/Desktop/smart-dog-plans-main/tmp-word-validation/feuille-presence-word-validation.docx",
+  "bytes": 594140,
+  "docPrIds": [
+    "1",
+    "2"
+  ],
+  "uniqueDocPrIds": true,
+  "embeds": [
+    "rId7",
+    "rId7"
+  ],
+  "imageRels": [
+    {
+      "id": "rId7",
+      "target": "media/ce96c6bb0bbab2b0263e902efa7056dd08f329be.png"
+    }
+  ],
+  "inlineCount": 1,
+  "anchorCount": 1,
+  "behindDocAnchorCount": 1,
+  "hasNaN": false
+}

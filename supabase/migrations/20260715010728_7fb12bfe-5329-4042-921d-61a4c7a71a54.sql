@@ -1,0 +1,2 @@
+ALTER TABLE public.rotation_history ADD COLUMN IF NOT EXISTS is_off_duty boolean NOT NULL DEFAULT false;
+ALTER TABLE public.planning_assignments ADD COLUMN IF NOT EXISTS is_off_duty boolean NOT NULL DEFAULT false;
