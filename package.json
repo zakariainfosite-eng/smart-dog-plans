@@ -15,8 +15,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "dist": "npm run electron:build:all",
-    "electron:icons:mac": "node scripts/generate-app-icons.mjs",
+    "dist": "npm run electron:build:win",
     "electron:icons:win": "node scripts/generate-app-icons.mjs",
     "electron:icons": "node scripts/generate-app-icons.mjs",
     "electron:build:main": "node scripts/build-electron.mjs",
@@ -25,10 +24,8 @@
     "electron:verify-migrations": "env -u ELECTRON_RUN_AS_NODE electron scripts/verify-sqlite-migrations.cjs",
     "electron:migrate-supabase": "npm run electron:build:main && env -u ELECTRON_RUN_AS_NODE electron scripts/run-supabase-to-sqlite-migration.cjs",
     "electron:dev": "npm run electron:build:main && concurrently -k -n vite,electron -c cyan,magenta \"vite dev\" \"wait-on http://127.0.0.1:8080 && env -u ELECTRON_RUN_AS_NODE cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:8080 electron .\"",
-    "electron:build": "npm run electron:icons:mac && npm run electron:rebuild-native && npm run electron:build:main && vite build --config vite.desktop.config.ts && electron-builder --mac dmg --config electron-builder.yml",
-    "electron:build:mac": "npm run electron:build",
-    "electron:build:win": "npm run electron:icons:win && npm run electron:rebuild-native && npm run electron:build:main && vite build --config vite.desktop.config.ts && electron-builder --win nsis --config electron-builder.yml",
-    "electron:build:all": "npm run electron:icons && npm run electron:rebuild-native && npm run electron:build:main && vite build --config vite.desktop.config.ts && electron-builder --mac dmg --win nsis --config electron-builder.yml"
+    "electron:build": "npm run electron:build:win",
+    "electron:build:win": "npm run electron:icons:win && npm run electron:rebuild-native && npm run electron:build:main && vite build --config vite.desktop.config.ts && electron-builder --win nsis --config electron-builder.yml"
   },
   "dependencies": {
     "@capacitor/cli": "^8.4.2",

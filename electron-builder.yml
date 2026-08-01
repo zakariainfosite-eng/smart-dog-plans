@@ -2,7 +2,7 @@ appId: com.cynoplanning.desktop
 productName: CynoPlanning
 copyright: Copyright © 2026 CynoPlanning
 # CynoPlanning is fully offline — no online auto-update.
-# Distribute new versions as CynoPlanning-{version}-Setup.exe (Windows) or DMG (macOS).
+# Distribute new versions as CynoPlanning-{version}-Setup.exe (Windows NSIS).
 # The installer replaces application files only. User data (SQLite database, media,
 # auth session) lives under Electron userData and is never bundled or overwritten.
 artifactName: ${productName}-${version}-${arch}.${ext}
@@ -37,36 +37,9 @@ extraResources:
   - from: .env
     to: .env
 
-mac:
-  category: public.app-category.business
-  target:
-    - dmg
-  icon: build/icon.icns
-  hardenedRuntime: true
-  gatekeeperAssess: false
-  entitlements: build/entitlements.mac.plist
-  entitlementsInherit: build/entitlements.mac.plist
-
-dmg:
-  title: ${productName} ${version}
-  icon: build/icon.icns
-  window:
-    width: 540
-    height: 380
-  contents:
-    - x: 140
-      y: 180
-      type: file
-    - x: 400
-      y: 180
-      type: link
-      path: /Applications
-
 win:
   target:
-    - target: nsis
-      arch:
-        - x64
+    - nsis
   icon: build/icon.ico
   executableName: CynoPlanning
 

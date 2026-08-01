@@ -21,11 +21,12 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build EXE
-        run: npm run dist
+      - name: Build Windows NSIS EXE
+        run: npm run electron:build:win
 
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
           name: CynoPlanning-Windows
-          path: release/**
+          path: release/**/*.exe
+          if-no-files-found: error
