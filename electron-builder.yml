@@ -5,6 +5,8 @@ copyright: Copyright © 2026 CynoPlanning
 # Distribute new versions as CynoPlanning-{version}-Setup.exe (Windows NSIS).
 # The installer replaces application files only. User data (SQLite database, media,
 # auth session) lives under Electron userData and is never bundled or overwritten.
+# Never create GitHub Releases / auto-update feeds from CI or local builds.
+publish: null
 artifactName: ${productName}-${version}-${arch}.${ext}
 
 directories:
