@@ -33,6 +33,7 @@ export type {
   DogStatus,
   DogWriteInput,
   Gender,
+  MaritalStatus,
   Section,
   SectionWithAgentCount,
   ShiftType,

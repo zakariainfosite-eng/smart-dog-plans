@@ -11,6 +11,8 @@ import type {
   FeuillePresenceData,
   FeuillePresenceTableRow,
 } from "@/lib/documents/feuille-presence-types";
+import { buildCynotechniciennesTableRows } from "@/lib/documents/build-cynotechniciennes-presence-data";
+import { sortAttendanceRowsByMatricule } from "@/lib/documents/sort-attendance-by-matricule";
 
 export type FeuillePresenceAgentMeta = {
   id: string;
@@ -39,6 +41,11 @@ export type BuildFeuillePresenceInput = {
   sectionCommander: SectionCommanderInfo;
   /** Grade/MLE/dog metadata — only for agents referenced by the current planning. */
   agents: FeuillePresenceAgentMeta[];
+  /**
+   * Active female agents (never planned) — inserted after male rows
+   * inside each existing specialty table (Affectation empty).
+   */
+  femaleAgents?: FeuillePresenceAgentMeta[];
   /** Active agent-level exclusion types from the database, keyed by agent id. */
   exclusionTypesByAgent?: Record<string, string>;
   engineResult: PlanningEngineResult;
@@ -383,19 +390,34 @@ export function buildFeuillePresenceData(input: BuildFeuillePresenceInput): Feui
     excludedDraft.push(buildExcludedRowBestEffort(agent, exclusion, exclusionTypesByAgent));
   }
 
+  const femaleRows = buildCynotechniciennesTableRows(input.femaleAgents ?? []);
+
+  // PRESERVE — Men first (matricule), then women of the same specialty (matricule).
+  // Females: personnel info only, empty Affectation; never operationally assigned.
+  // Rotation Engine updates must not remove this append.
   const narcoticsRows = [
-    ...operationalDraft.filter((r) => r.specialty === "narcotics"),
-    ...point653Draft.filter((r) => r.specialty === "narcotics"),
-    ...restDraft.filter((r) => r.specialty === "narcotics"),
-    ...excludedDraft.filter((r) => r.specialty === "narcotics"),
-  ].map(stripDraft);
+    ...sortAttendanceRowsByMatricule(
+      [
+        ...operationalDraft.filter((r) => r.specialty === "narcotics"),
+        ...point653Draft.filter((r) => r.specialty === "narcotics"),
+        ...restDraft.filter((r) => r.specialty === "narcotics"),
+        ...excludedDraft.filter((r) => r.specialty === "narcotics"),
+      ].map(stripDraft),
+    ),
+    ...femaleRows.narcoticsRows,
+  ];
 
   const explosivesRows = [
-    ...operationalDraft.filter((r) => r.specialty === "explosives"),
-    ...point653Draft.filter((r) => r.specialty === "explosives"),
-    ...restDraft.filter((r) => r.specialty === "explosives"),
-    ...excludedDraft.filter((r) => r.specialty === "explosives"),
-  ].map(stripDraft);
+    ...sortAttendanceRowsByMatricule(
+      [
+        ...operationalDraft.filter((r) => r.specialty === "explosives"),
+        ...point653Draft.filter((r) => r.specialty === "explosives"),
+        ...restDraft.filter((r) => r.specialty === "explosives"),
+        ...excludedDraft.filter((r) => r.specialty === "explosives"),
+      ].map(stripDraft),
+    ),
+    ...femaleRows.explosivesRows,
+  ];
 
   const data: FeuillePresenceData = {
     dateLine: formatFeuillePresenceDateLine(input.planningDate, input.shift),

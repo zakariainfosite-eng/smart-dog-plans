@@ -1,13 +1,17 @@
 import { format } from "date-fns";
-import { Buffer } from "buffer";
 import {
   generateFeuillePresencePdfWithLogo,
   loadFeuillePresenceLogo,
 } from "@/lib/documents/feuille-presence-pdf";
 import { generateFeuillePresenceDocx } from "@/lib/documents/feuille-presence-docx";
 import { FP_OFFICIAL_LOGO_URL } from "@/lib/documents/feuille-presence-layout";
+import {
+  assertDocxZipMagic,
+  uint8ArrayToBase64,
+} from "@/lib/documents/docx-binary";
 import { wrapExportError } from "@/lib/documents/export-error";
 import type { FeuillePresenceData } from "@/lib/documents/feuille-presence-types";
+import { sortFeuillePresenceDataByMatricule } from "@/lib/documents/sort-attendance-by-matricule";
 import type {
   PlanningExportFile,
   PlanningExportFormat,
@@ -20,10 +24,6 @@ export type FeuillePresenceExportInput = {
   /** Basename without extension, e.g. Planning_2026-07-27 */
   basename?: string;
 };
-
-function bytesToBase64(bytes: Uint8Array): string {
-  return Buffer.from(bytes).toString("base64");
-}
 
 function downloadBrowserFile(file: PlanningExportFile): void {
   try {
@@ -57,11 +57,18 @@ async function saveViaElectron(files: PlanningExportFile[]): Promise<PlanningExp
   try {
     return await bridge.saveExportFiles({
       defaultBasename: files[0]?.filename.replace(/\.(pdf|docx)$/i, "") ?? "Planning",
-      files: files.map((file) => ({
-        filename: file.filename,
-        // Base64 avoids Electron IPC failures with huge number[] payloads after DOCX packing.
-        dataBase64: bytesToBase64(file.bytes),
-      })),
+      files: files.map((file) => {
+        // Chunked btoa — avoid Buffer polyfill corruption on Windows packaged builds.
+        const dataBase64 = uint8ArrayToBase64(file.bytes);
+        if (file.filename.toLowerCase().endsWith(".docx")) {
+          assertDocxZipMagic(file.bytes, `IPC encode ${file.filename}`);
+        }
+        return {
+          filename: file.filename,
+          dataBase64,
+          byteLength: file.bytes.byteLength,
+        };
+      }),
     });
   } catch (error) {
     throw wrapExportError("ipc-save", error);
@@ -84,12 +91,14 @@ export async function generateFeuillePresenceExportFiles(
   const year = input.planningDate.getFullYear();
   const logoBytes = await loadFeuillePresenceLogo(FP_OFFICIAL_LOGO_URL);
   const files: PlanningExportFile[] = [];
+  // Sort once before any export — order is independent of planning assignment order.
+  const data = sortFeuillePresenceDataByMatricule(input.data);
 
   if (format === "pdf" || format === "both") {
     try {
       const doc = await generateFeuillePresencePdfWithLogo({
         year,
-        data: input.data,
+        data,
         logoDataUrl: logoBytes,
       });
       files.push({
@@ -104,7 +113,11 @@ export async function generateFeuillePresenceExportFiles(
 
   if (format === "docx" || format === "both") {
     try {
-      const bytes = await generateFeuillePresenceDocx(input.data, FP_OFFICIAL_LOGO_URL);
+      const bytes = await generateFeuillePresenceDocx(data, {
+        logoUrl: FP_OFFICIAL_LOGO_URL,
+        logoBytes,
+      });
+      assertDocxZipMagic(bytes, "docx-generate");
       files.push({
         filename: `${basename}.docx`,
         mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",

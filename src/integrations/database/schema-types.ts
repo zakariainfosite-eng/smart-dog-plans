@@ -16,8 +16,9 @@ export type Database = {
       agent_exclusions: {
         Row: {
           active: boolean
-          agent_id: string
+          agent_id: string | null
           created_at: string
+          dog_id: string | null
           end_date: string
           exclusion_type: Database["public"]["Enums"]["exclusion_type"]
           id: string
@@ -27,8 +28,9 @@ export type Database = {
         }
         Insert: {
           active?: boolean
-          agent_id: string
+          agent_id?: string | null
           created_at?: string
+          dog_id?: string | null
           end_date: string
           exclusion_type: Database["public"]["Enums"]["exclusion_type"]
           id?: string
@@ -38,8 +40,9 @@ export type Database = {
         }
         Update: {
           active?: boolean
-          agent_id?: string
+          agent_id?: string | null
           created_at?: string
+          dog_id?: string | null
           end_date?: string
           exclusion_type?: Database["public"]["Enums"]["exclusion_type"]
           id?: string
@@ -53,6 +56,13 @@ export type Database = {
             columns: ["agent_id"]
             isOneToOne: false
             referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_exclusions_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
             referencedColumns: ["id"]
           },
         ]
@@ -199,11 +209,13 @@ export type Database = {
           created_at: string
           dog_id: string | null
           first_name: string
+          fonction: Database["public"]["Enums"]["personnel_fonction"]
           gender: Database["public"]["Enums"]["gender_type"]
           grade: string
           id: string
           is_section_chief: boolean
           last_name: string
+          marital_status: Database["public"]["Enums"]["marital_status"] | null
           observations: string | null
           phone: string | null
           photo_url: string | null
@@ -217,11 +229,13 @@ export type Database = {
           created_at?: string
           dog_id?: string | null
           first_name: string
+          fonction?: Database["public"]["Enums"]["personnel_fonction"]
           gender: Database["public"]["Enums"]["gender_type"]
           grade: string
           id?: string
           is_section_chief?: boolean
           last_name: string
+          marital_status?: Database["public"]["Enums"]["marital_status"] | null
           observations?: string | null
           phone?: string | null
           photo_url?: string | null
@@ -235,11 +249,13 @@ export type Database = {
           created_at?: string
           dog_id?: string | null
           first_name?: string
+          fonction?: Database["public"]["Enums"]["personnel_fonction"]
           gender?: Database["public"]["Enums"]["gender_type"]
           grade?: string
           id?: string
           is_section_chief?: boolean
           last_name?: string
+          marital_status?: Database["public"]["Enums"]["marital_status"] | null
           observations?: string | null
           phone?: string | null
           photo_url?: string | null
@@ -359,6 +375,11 @@ export type Database = {
           operating_days: number[]
           /** Planning assignment priority: 1=Critical, 2=High, 3=Normal, 4=Low */
           priority: number
+          /**
+           * Independent of priority. true = Mandatory (must cover);
+           * false = Optional (may remain empty without breaking Smart Rotation).
+           */
+          mandatory: boolean
           /** Phase 1: official staffing — narcotics (drugs + banknotes) K9 count */
           required_drugs: number
           /** Phase 1: official staffing — explosives K9 count */
@@ -383,6 +404,7 @@ export type Database = {
           night_shift_enabled?: boolean
           operating_days?: number[]
           priority?: number
+          mandatory?: boolean
           required_drugs?: number
           required_explosives?: number
           updated_at?: string
@@ -403,6 +425,7 @@ export type Database = {
           night_shift_enabled?: boolean
           operating_days?: number[]
           priority?: number
+          mandatory?: boolean
           required_drugs?: number
           required_explosives?: number
           updated_at?: string
@@ -683,6 +706,12 @@ export type Database = {
         | "mission"
         | "training"
         | "other"
+        | "suspension"
+        | "dog_injured"
+        | "dog_temporary_retirement"
+        | "dog_vet_visit"
+        | "dog_training"
+        | "dog_other"
       explosive_object_type:
         | "firearm"
         | "bladed_weapon"
@@ -693,6 +722,18 @@ export type Database = {
         | "explosive_material"
         | "other"
       gender_type: "male" | "female"
+      marital_status: "single" | "married" | "divorced" | "widowed"
+      personnel_fonction:
+        | "chef_brigadier"
+        | "chef_brigadier_pi"
+        | "chef_secretariat"
+        | "secretaire"
+        | "assistant_technique"
+        | "chef_de_section"
+        | "chef_de_section_pi"
+        | "chef_materiel"
+        | "aide_soignant_veterinaire"
+        | "cynotechnicien"
       operational_case_specialty: "narcotics" | "explosives" | "currency"
       planning_priority: "high" | "medium" | "low"
       seizure_type:
@@ -851,6 +892,12 @@ export const Constants = {
         "mission",
         "training",
         "other",
+        "suspension",
+        "dog_injured",
+        "dog_temporary_retirement",
+        "dog_vet_visit",
+        "dog_training",
+        "dog_other",
       ],
       explosive_object_type: [
         "firearm",
@@ -863,6 +910,7 @@ export const Constants = {
         "other",
       ],
       gender_type: ["male", "female"],
+      marital_status: ["single", "married", "divorced", "widowed"],
       operational_case_specialty: ["narcotics", "explosives", "currency"],
       planning_priority: ["high", "medium", "low"],
       seizure_type: [

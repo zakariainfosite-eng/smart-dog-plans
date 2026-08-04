@@ -1,27 +1,44 @@
 /**
- * Versioned SQLite migrations for offline CynoPlanning updates.
+ * Production SQLite migration runner for offline CynoPlanning updates.
  *
- * User data lives in Electron userData (cynoplanning.db). Installers replace
- * application files only — migrations run automatically on the next launch.
+ * Safety contract (long-term upgrades V1→Vn):
+ * - Installers replace application binaries only. cynoplanning.db in Electron
+ *   userData is never deleted, recreated, or replaced by the installer.
+ * - On every startup: detect applied versions, run ONLY missing migrations.
+ * - Before any pending batch: timestamped WAL-safe backup under userData.
+ * - On failure: stop, restore backup, surface a clear error — never leave a
+ *   partially migrated database.
+ * - Migrations must be additive/idempotent (new columns/tables/indexes/CHECKs).
+ *   Table rebuilds (SQLite CHECK limits) copy every row before DROP.
  *
  * To add a migration in a future release:
- * 1. Append a new entry to SQLITE_MIGRATIONS (never reorder existing ids).
- * 2. Keep the `up` function idempotent when practical (PRAGMA table_info checks).
- * 3. Ship the new Setup.exe — pending migrations run once at startup.
+ * 1. Append a new entry to SQLITE_MIGRATIONS (never reorder/rename released ids).
+ * 2. Keep `up` idempotent (PRAGMA table_info / probe inserts).
+ * 3. Ship the new installer — pending migrations run once at next launch.
  */
 import type Database from "better-sqlite3";
 import { copyFileSync, existsSync, readdirSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 
 export const SCHEMA_MIGRATIONS_TABLE = "schema_migrations";
-const BACKUP_PREFIX = "cynoplanning.db.pre-migration.";
+
+/** Current backup file pattern: backup_YYYY-MM-DD_HH-MM-SS.db */
+export const MIGRATION_BACKUP_PREFIX = "backup_";
+/** Legacy backups from older builds — still pruned/restorable. */
+const LEGACY_BACKUP_PREFIX = "cynoplanning.db.pre-migration.";
 const MAX_BACKUP_FILES = 5;
 
 export type SqliteMigration = {
-  /** Stable unique id — never change after release. */
+  /** Stable unique version id — never change after release. */
   id: string;
+  /** Human-readable name stored in schema_migrations.name */
   description: string;
   up: (database: Database.Database) => void;
+  /**
+   * When true, run outside a SQLite transaction.
+   * Required for table rebuilds that toggle PRAGMA foreign_keys (no-op inside a txn).
+   */
+  noTransaction?: boolean;
 };
 
 export type RunMigrationsOptions = {
@@ -30,6 +47,52 @@ export type RunMigrationsOptions = {
   dbPath: string;
   log?: (message: string) => void;
 };
+
+/** Thrown after automatic backup restore when a migration fails. */
+export class SqliteMigrationError extends Error {
+  readonly migrationId: string | null;
+  readonly backupPath: string | null;
+  readonly restored: boolean;
+
+  constructor(
+    message: string,
+    options: {
+      migrationId?: string | null;
+      backupPath?: string | null;
+      restored?: boolean;
+      cause?: unknown;
+    } = {},
+  ) {
+    super(message, options.cause !== undefined ? { cause: options.cause } : undefined);
+    this.name = "SqliteMigrationError";
+    this.migrationId = options.migrationId ?? null;
+    this.backupPath = options.backupPath ?? null;
+    this.restored = options.restored ?? false;
+  }
+}
+
+export function isSqliteMigrationError(error: unknown): error is SqliteMigrationError {
+  return error instanceof SqliteMigrationError;
+}
+
+/** User-facing detail for dialogs / startup logs. */
+export function formatMigrationFailureDetail(error: unknown): string {
+  if (error instanceof SqliteMigrationError) {
+    const lines = [error.message];
+    if (error.migrationId) {
+      lines.push(`Migration: ${error.migrationId}`);
+    }
+    if (error.restored && error.backupPath) {
+      lines.push(`Database restored from: ${error.backupPath}`);
+    }
+    lines.push(
+      "Your operational data was not left in a partially migrated state.",
+      "Quit the app, restore a backup if needed, then retry or contact support.",
+    );
+    return lines.join("\n");
+  }
+  return error instanceof Error ? error.message : String(error);
+}
 
 function tableColumnNames(database: Database.Database, table: string): Set<string> {
   const columns = database.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
@@ -63,6 +126,16 @@ function migrateCheckpointsPriorityColumn(database: Database.Database): void {
   }
 }
 
+/** Mandatory vs optional for planning — independent of priority. Default YES (true). */
+function migrateCheckpointsMandatoryColumn(database: Database.Database): void {
+  const names = tableColumnNames(database, "checkpoints");
+  if (!names.has("mandatory")) {
+    database.exec(
+      `ALTER TABLE checkpoints ADD COLUMN mandatory INTEGER NOT NULL DEFAULT 1`,
+    );
+  }
+}
+
 /** Females are independent of Sections A/B/C — clear any legacy section membership. */
 function migrateFemaleAgentsClearSection(database: Database.Database): void {
   database
@@ -71,6 +144,563 @@ function migrateFemaleAgentsClearSection(database: Database.Database): void {
        WHERE lower(gender) = 'female' AND section_id IS NOT NULL`,
     )
     .run();
+}
+
+/**
+ * Personnel roles — existing rows become Cynotechnicien for compatibility.
+ * Non-cynotechnicien roles never keep section / dog assignment.
+ */
+function migrateAgentsFonctionColumn(database: Database.Database): void {
+  const names = tableColumnNames(database, "agents");
+  if (!names.has("fonction")) {
+    database.exec(
+      `ALTER TABLE agents ADD COLUMN fonction TEXT NOT NULL DEFAULT 'cynotechnicien'`,
+    );
+  }
+  database
+    .prepare(
+      `UPDATE agents SET fonction = 'cynotechnicien'
+       WHERE fonction IS NULL OR trim(fonction) = ''`,
+    )
+    .run();
+}
+
+/**
+ * Support roles never keep dog assignment.
+ * Chef de section may keep section_id (linked commander); other non-cynos clear section.
+ */
+function migrateNonCynoClearAssignment(database: Database.Database): void {
+  const names = tableColumnNames(database, "agents");
+  if (!names.has("fonction")) return;
+  database
+    .prepare(
+      `UPDATE agents SET dog_id = NULL, updated_at = datetime('now')
+       WHERE fonction IS NOT NULL
+         AND fonction != 'cynotechnicien'
+         AND dog_id IS NOT NULL`,
+    )
+    .run();
+  database
+    .prepare(
+      `UPDATE agents SET section_id = NULL, updated_at = datetime('now')
+       WHERE fonction IS NOT NULL
+         AND fonction NOT IN ('cynotechnicien', 'chef_de_section')
+         AND section_id IS NOT NULL`,
+    )
+    .run();
+}
+
+/**
+ * Allow fonction = chef_materiel.
+ *
+ * - If the column was added via ALTER (no CHECK), all values are already allowed.
+ * - If an older CREATE TABLE CHECK blocks chef_materiel, rebuild the table.
+ *   Rebuild must run with noTransaction (PRAGMA foreign_keys is ignored inside a txn).
+ */
+function migrateAgentsFonctionChefMateriel(database: Database.Database): void {
+  const names = tableColumnNames(database, "agents");
+  if (!names.has("fonction")) return;
+
+  const probeId = "__migrate_007_chef_materiel_probe__";
+  try {
+    database
+      .prepare(
+        `INSERT INTO agents (
+          id, first_name, last_name, professional_number, grade, gender, fonction, active
+        ) VALUES (?, '_', '_', ?, '_', 'male', 'chef_materiel', 0)`,
+      )
+      .run(probeId, probeId);
+    database.prepare(`DELETE FROM agents WHERE id = ?`).run(probeId);
+    return;
+  } catch {
+    try {
+      database.prepare(`DELETE FROM agents WHERE id = ?`).run(probeId);
+    } catch {
+      // probe row may not exist
+    }
+  }
+
+  database.exec(`PRAGMA foreign_keys = OFF`);
+  try {
+    database.exec(`
+      CREATE TABLE agents__fonction_v2 (
+        id TEXT PRIMARY KEY NOT NULL,
+        first_name TEXT NOT NULL,
+        last_name TEXT NOT NULL,
+        professional_number TEXT NOT NULL UNIQUE,
+        grade TEXT NOT NULL,
+        gender TEXT NOT NULL CHECK (gender IN ('male', 'female')),
+        fonction TEXT NOT NULL DEFAULT 'cynotechnicien' CHECK (fonction IN (
+          'cynotechnicien',
+          'assistant_technique',
+          'aide_soignant_veterinaire',
+          'chef_de_section',
+          'chef_materiel'
+        )),
+        section_id TEXT REFERENCES sections(id) ON DELETE SET NULL,
+        dog_id TEXT UNIQUE REFERENCES dogs(id) ON DELETE SET NULL,
+        is_section_chief INTEGER NOT NULL DEFAULT 0 CHECK (is_section_chief IN (0, 1)),
+        active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+        phone TEXT,
+        address TEXT,
+        observations TEXT CHECK (observations IS NULL OR length(observations) <= 500),
+        photo_url TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      INSERT INTO agents__fonction_v2 (
+        id, first_name, last_name, professional_number, grade, gender, fonction,
+        section_id, dog_id, is_section_chief, active, phone, address, observations,
+        photo_url, created_at, updated_at
+      )
+      SELECT
+        id, first_name, last_name, professional_number, grade, gender,
+        COALESCE(NULLIF(trim(fonction), ''), 'cynotechnicien'),
+        section_id, dog_id, is_section_chief, active, phone, address, observations,
+        photo_url, created_at, updated_at
+      FROM agents;
+
+      DROP TABLE agents;
+      ALTER TABLE agents__fonction_v2 RENAME TO agents;
+
+      CREATE INDEX IF NOT EXISTS idx_agents_section ON agents(section_id);
+      CREATE INDEX IF NOT EXISTS idx_agents_active ON agents(active);
+    `);
+  } finally {
+    database.exec(`PRAGMA foreign_keys = ON`);
+  }
+}
+
+/**
+ * Expand agents.fonction CHECK to the full personnel hierarchy.
+ * Required so new roles (Chef Brigade, Secrétaire, Chef de section PI, …) can be stored.
+ * Existing values are preserved; unknown empty → cynotechnicien.
+ */
+function migrateAgentsFonctionHierarchyV2(database: Database.Database): void {
+  const names = tableColumnNames(database, "agents");
+  if (!names.has("fonction")) return;
+
+  const probeId = "__migrate_011_fonction_hierarchy_probe__";
+  try {
+    database
+      .prepare(
+        `INSERT INTO agents (
+          id, first_name, last_name, professional_number, grade, gender, fonction, active
+        ) VALUES (?, '_', '_', ?, '_', 'male', 'chef_brigade', 0)`,
+      )
+      .run(probeId, probeId);
+    database.prepare(`DELETE FROM agents WHERE id = ?`).run(probeId);
+    // Also confirm chef_de_section_pi is accepted when CHECK already rebuilt.
+    database
+      .prepare(
+        `INSERT INTO agents (
+          id, first_name, last_name, professional_number, grade, gender, fonction, active
+        ) VALUES (?, '_', '_', ?, '_', 'male', 'chef_de_section_pi', 0)`,
+      )
+      .run(`${probeId}_pi`, `${probeId}_pi`);
+    database.prepare(`DELETE FROM agents WHERE id = ?`).run(`${probeId}_pi`);
+    return;
+  } catch {
+    try {
+      database.prepare(`DELETE FROM agents WHERE id = ?`).run(probeId);
+    } catch {
+      // probe row may not exist
+    }
+    try {
+      database.prepare(`DELETE FROM agents WHERE id = ?`).run(`${probeId}_pi`);
+    } catch {
+      // probe row may not exist
+    }
+  }
+
+  const hasMarital = names.has("marital_status");
+
+  database.exec(`PRAGMA foreign_keys = OFF`);
+  try {
+    database.exec(`
+      CREATE TABLE agents__fonction_v3 (
+        id TEXT PRIMARY KEY NOT NULL,
+        first_name TEXT NOT NULL,
+        last_name TEXT NOT NULL,
+        professional_number TEXT NOT NULL UNIQUE,
+        grade TEXT NOT NULL,
+        gender TEXT NOT NULL CHECK (gender IN ('male', 'female')),
+        fonction TEXT NOT NULL DEFAULT 'cynotechnicien' CHECK (fonction IN (
+          'chef_brigade',
+          'chef_brigade_pi',
+          'chef_secretariat',
+          'secretaire',
+          'assistant_technique',
+          'chef_de_section',
+          'chef_de_section_pi',
+          'chef_materiel',
+          'aide_soignant_veterinaire',
+          'cynotechnicien'
+        )),
+        marital_status TEXT DEFAULT NULL CHECK (
+          marital_status IS NULL OR marital_status IN ('single', 'married', 'divorced', 'widowed')
+        ),
+        section_id TEXT REFERENCES sections(id) ON DELETE SET NULL,
+        dog_id TEXT UNIQUE REFERENCES dogs(id) ON DELETE SET NULL,
+        is_section_chief INTEGER NOT NULL DEFAULT 0 CHECK (is_section_chief IN (0, 1)),
+        active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+        phone TEXT,
+        address TEXT,
+        observations TEXT CHECK (observations IS NULL OR length(observations) <= 500),
+        photo_url TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
+
+    if (hasMarital) {
+      database.exec(`
+        INSERT INTO agents__fonction_v3 (
+          id, first_name, last_name, professional_number, grade, gender, fonction,
+          marital_status, section_id, dog_id, is_section_chief, active, phone, address,
+          observations, photo_url, created_at, updated_at
+        )
+        SELECT
+          id, first_name, last_name, professional_number, grade, gender,
+          COALESCE(NULLIF(trim(fonction), ''), 'cynotechnicien'),
+          marital_status, section_id, dog_id, is_section_chief, active, phone, address,
+          observations, photo_url, created_at, updated_at
+        FROM agents;
+      `);
+    } else {
+      database.exec(`
+        INSERT INTO agents__fonction_v3 (
+          id, first_name, last_name, professional_number, grade, gender, fonction,
+          section_id, dog_id, is_section_chief, active, phone, address,
+          observations, photo_url, created_at, updated_at
+        )
+        SELECT
+          id, first_name, last_name, professional_number, grade, gender,
+          COALESCE(NULLIF(trim(fonction), ''), 'cynotechnicien'),
+          section_id, dog_id, is_section_chief, active, phone, address,
+          observations, photo_url, created_at, updated_at
+        FROM agents;
+      `);
+    }
+
+    database.exec(`
+      DROP TABLE agents;
+      ALTER TABLE agents__fonction_v3 RENAME TO agents;
+
+      CREATE INDEX IF NOT EXISTS idx_agents_section ON agents(section_id);
+      CREATE INDEX IF NOT EXISTS idx_agents_active ON agents(active);
+    `);
+  } finally {
+    database.exec(`PRAGMA foreign_keys = ON`);
+  }
+}
+
+/**
+ * Canonical rename chef_brigade → chef_brigadier (+ PI) and ensure CHECK accepts
+ * the full hierarchy used by UI / Electron validation.
+ *
+ * Strictly required: SQLite CHECK cannot be ALTERed in place.
+ */
+function migrateAgentsFonctionBrigadierCanonical(database: Database.Database): void {
+  const names = tableColumnNames(database, "agents");
+  if (!names.has("fonction")) return;
+
+  const probeId = "__migrate_012_fonction_brigadier_probe__";
+  let acceptsBrigadier = false;
+  try {
+    database
+      .prepare(
+        `INSERT INTO agents (
+          id, first_name, last_name, professional_number, grade, gender, fonction, active
+        ) VALUES (?, '_', '_', ?, '_', 'male', 'chef_brigadier', 0)`,
+      )
+      .run(probeId, probeId);
+    database.prepare(`DELETE FROM agents WHERE id = ?`).run(probeId);
+    acceptsBrigadier = true;
+  } catch {
+    try {
+      database.prepare(`DELETE FROM agents WHERE id = ?`).run(probeId);
+    } catch {
+      // probe row may not exist
+    }
+  }
+
+  const remapSql = `
+    CASE trim(fonction)
+      WHEN 'chef_brigade' THEN 'chef_brigadier'
+      WHEN 'chef_brigade_pi' THEN 'chef_brigadier_pi'
+      ELSE COALESCE(NULLIF(trim(fonction), ''), 'cynotechnicien')
+    END
+  `;
+
+  if (acceptsBrigadier) {
+    database
+      .prepare(
+        `UPDATE agents SET fonction = 'chef_brigadier' WHERE fonction = 'chef_brigade'`,
+      )
+      .run();
+    database
+      .prepare(
+        `UPDATE agents SET fonction = 'chef_brigadier_pi' WHERE fonction = 'chef_brigade_pi'`,
+      )
+      .run();
+    return;
+  }
+
+  const hasMarital = names.has("marital_status");
+
+  database.exec(`PRAGMA foreign_keys = OFF`);
+  try {
+    database.exec(`
+      CREATE TABLE agents__fonction_v4 (
+        id TEXT PRIMARY KEY NOT NULL,
+        first_name TEXT NOT NULL,
+        last_name TEXT NOT NULL,
+        professional_number TEXT NOT NULL UNIQUE,
+        grade TEXT NOT NULL,
+        gender TEXT NOT NULL CHECK (gender IN ('male', 'female')),
+        fonction TEXT NOT NULL DEFAULT 'cynotechnicien' CHECK (fonction IN (
+          'chef_brigadier',
+          'chef_brigadier_pi',
+          'chef_secretariat',
+          'secretaire',
+          'assistant_technique',
+          'chef_de_section',
+          'chef_de_section_pi',
+          'chef_materiel',
+          'aide_soignant_veterinaire',
+          'cynotechnicien'
+        )),
+        marital_status TEXT DEFAULT NULL CHECK (
+          marital_status IS NULL OR marital_status IN ('single', 'married', 'divorced', 'widowed')
+        ),
+        section_id TEXT REFERENCES sections(id) ON DELETE SET NULL,
+        dog_id TEXT UNIQUE REFERENCES dogs(id) ON DELETE SET NULL,
+        is_section_chief INTEGER NOT NULL DEFAULT 0 CHECK (is_section_chief IN (0, 1)),
+        active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+        phone TEXT,
+        address TEXT,
+        observations TEXT CHECK (observations IS NULL OR length(observations) <= 500),
+        photo_url TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
+
+    if (hasMarital) {
+      database.exec(`
+        INSERT INTO agents__fonction_v4 (
+          id, first_name, last_name, professional_number, grade, gender, fonction,
+          marital_status, section_id, dog_id, is_section_chief, active, phone, address,
+          observations, photo_url, created_at, updated_at
+        )
+        SELECT
+          id, first_name, last_name, professional_number, grade, gender,
+          ${remapSql},
+          marital_status, section_id, dog_id, is_section_chief, active, phone, address,
+          observations, photo_url, created_at, updated_at
+        FROM agents;
+      `);
+    } else {
+      database.exec(`
+        INSERT INTO agents__fonction_v4 (
+          id, first_name, last_name, professional_number, grade, gender, fonction,
+          section_id, dog_id, is_section_chief, active, phone, address,
+          observations, photo_url, created_at, updated_at
+        )
+        SELECT
+          id, first_name, last_name, professional_number, grade, gender,
+          ${remapSql},
+          section_id, dog_id, is_section_chief, active, phone, address,
+          observations, photo_url, created_at, updated_at
+        FROM agents;
+      `);
+    }
+
+    database.exec(`
+      DROP TABLE agents;
+      ALTER TABLE agents__fonction_v4 RENAME TO agents;
+
+      CREATE INDEX IF NOT EXISTS idx_agents_section ON agents(section_id);
+      CREATE INDEX IF NOT EXISTS idx_agents_active ON agents(active);
+    `);
+  } finally {
+    database.exec(`PRAGMA foreign_keys = ON`);
+  }
+}
+
+/**
+ * Exclusions may target a cynotechnicien (agent_id) and/or a dog (dog_id).
+ * Expands exclusion_type CHECK with suspension + dog-specific reasons.
+ * Backfills dog_id for legacy dog-level rows from the assigned handler's dog.
+ */
+function migrateAgentExclusionsDogTarget(database: Database.Database): void {
+  const names = tableColumnNames(database, "agent_exclusions");
+  const hasDogId = names.has("dog_id");
+  const probeId = "__migrate_008_exclusion_probe__";
+
+  let schemaReady = false;
+  if (hasDogId) {
+    const agentRow = database.prepare(`SELECT id FROM agents LIMIT 1`).get() as
+      | { id: string }
+      | undefined;
+    if (agentRow) {
+      try {
+        database
+          .prepare(
+            `INSERT INTO agent_exclusions (
+              id, agent_id, dog_id, exclusion_type, start_date, end_date, active, is_deleted
+            ) VALUES (?, ?, NULL, 'suspension', '2099-01-01', '2099-01-01', 0, 0)`,
+          )
+          .run(probeId, agentRow.id);
+        database.prepare(`DELETE FROM agent_exclusions WHERE id = ?`).run(probeId);
+        schemaReady = true;
+      } catch {
+        try {
+          database.prepare(`DELETE FROM agent_exclusions WHERE id = ?`).run(probeId);
+        } catch {
+          // probe row may not exist
+        }
+        schemaReady = false;
+      }
+    } else {
+      // No agents to probe — assume dog_id column presence is enough for empty DBs
+      schemaReady = true;
+    }
+  }
+
+  if (schemaReady) {
+    database.exec(`
+      UPDATE agent_exclusions
+      SET dog_id = (
+        SELECT agents.dog_id FROM agents WHERE agents.id = agent_exclusions.agent_id
+      )
+      WHERE dog_id IS NULL
+        AND exclusion_type IN (
+          'dog_sick', 'female_dog_heat', 'dog_injured', 'dog_temporary_retirement',
+          'dog_vet_visit', 'dog_training', 'dog_other'
+        )
+        AND agent_id IS NOT NULL
+        AND EXISTS (
+          SELECT 1 FROM agents
+          WHERE agents.id = agent_exclusions.agent_id AND agents.dog_id IS NOT NULL
+        )
+    `);
+    database.exec(
+      `CREATE INDEX IF NOT EXISTS idx_agent_exclusions_dog ON agent_exclusions(dog_id)`,
+    );
+    return;
+  }
+
+  database.exec(`PRAGMA foreign_keys = OFF`);
+  try {
+    database.exec(`
+      CREATE TABLE agent_exclusions__v2 (
+        id TEXT PRIMARY KEY NOT NULL,
+        agent_id TEXT REFERENCES agents(id) ON DELETE CASCADE,
+        dog_id TEXT REFERENCES dogs(id) ON DELETE CASCADE,
+        exclusion_type TEXT NOT NULL CHECK (exclusion_type IN (
+          'absence', 'sickness', 'administrative_leave', 'special_leave',
+          'dog_sick', 'female_dog_heat', 'annual_leave', 'mission', 'training', 'other',
+          'suspension',
+          'dog_injured', 'dog_temporary_retirement', 'dog_vet_visit', 'dog_training', 'dog_other'
+        )),
+        start_date TEXT NOT NULL,
+        end_date TEXT NOT NULL,
+        notes TEXT,
+        active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+        is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        CHECK (end_date >= start_date),
+        CHECK (agent_id IS NOT NULL OR dog_id IS NOT NULL)
+      );
+    `);
+
+    if (hasDogId) {
+      database.exec(`
+        INSERT INTO agent_exclusions__v2 (
+          id, agent_id, dog_id, exclusion_type, start_date, end_date, notes,
+          active, is_deleted, created_at, updated_at
+        )
+        SELECT
+          e.id,
+          e.agent_id,
+          COALESCE(
+            e.dog_id,
+            CASE
+              WHEN e.exclusion_type IN (
+                'dog_sick', 'female_dog_heat', 'dog_injured', 'dog_temporary_retirement',
+                'dog_vet_visit', 'dog_training', 'dog_other'
+              )
+              THEN (SELECT a.dog_id FROM agents a WHERE a.id = e.agent_id)
+              ELSE NULL
+            END
+          ),
+          e.exclusion_type,
+          e.start_date,
+          e.end_date,
+          e.notes,
+          e.active,
+          e.is_deleted,
+          e.created_at,
+          e.updated_at
+        FROM agent_exclusions e
+      `);
+    } else {
+      database.exec(`
+        INSERT INTO agent_exclusions__v2 (
+          id, agent_id, dog_id, exclusion_type, start_date, end_date, notes,
+          active, is_deleted, created_at, updated_at
+        )
+        SELECT
+          e.id,
+          e.agent_id,
+          CASE
+            WHEN e.exclusion_type IN (
+              'dog_sick', 'female_dog_heat', 'dog_injured', 'dog_temporary_retirement',
+              'dog_vet_visit', 'dog_training', 'dog_other'
+            )
+            THEN (SELECT a.dog_id FROM agents a WHERE a.id = e.agent_id)
+            ELSE NULL
+          END,
+          e.exclusion_type,
+          e.start_date,
+          e.end_date,
+          e.notes,
+          e.active,
+          e.is_deleted,
+          e.created_at,
+          e.updated_at
+        FROM agent_exclusions e
+      `);
+    }
+
+    database.exec(`
+      DROP TABLE agent_exclusions;
+      ALTER TABLE agent_exclusions__v2 RENAME TO agent_exclusions;
+
+      CREATE INDEX IF NOT EXISTS idx_agent_exclusions_agent ON agent_exclusions(agent_id);
+      CREATE INDEX IF NOT EXISTS idx_agent_exclusions_dog ON agent_exclusions(dog_id);
+      CREATE INDEX IF NOT EXISTS idx_agent_exclusions_dates ON agent_exclusions(start_date, end_date);
+      CREATE INDEX IF NOT EXISTS idx_agent_exclusions_active ON agent_exclusions(active);
+      CREATE INDEX IF NOT EXISTS idx_agent_exclusions_is_deleted ON agent_exclusions(is_deleted);
+    `);
+  } finally {
+    database.exec(`PRAGMA foreign_keys = ON`);
+  }
+}
+
+/**
+ * Situation familiale — nullable so existing personnel stay intact (UI: Non renseignée).
+ * New/edited personnel must set a value via the form.
+ */
+function migrateAgentsMaritalStatusColumn(database: Database.Database): void {
+  const names = tableColumnNames(database, "agents");
+  if (!names.has("marital_status")) {
+    database.exec(`ALTER TABLE agents ADD COLUMN marital_status TEXT DEFAULT NULL`);
+  }
 }
 
 /** Ordered migration history — append only; never reorder or rename released ids. */
@@ -95,32 +725,133 @@ export const SQLITE_MIGRATIONS: readonly SqliteMigration[] = [
     description: "Clear section assignment for female agents",
     up: migrateFemaleAgentsClearSection,
   },
+  {
+    id: "005_agents_fonction_column",
+    description: "Add personnel fonction role column (default cynotechnicien)",
+    up: migrateAgentsFonctionColumn,
+  },
+  {
+    id: "006_non_cyno_clear_assignment",
+    description: "Clear section/dog for non-cynotechnicien support roles",
+    up: migrateNonCynoClearAssignment,
+  },
+  {
+    id: "007_agents_fonction_chef_materiel",
+    description: "Allow chef_materiel personnel fonction value",
+    up: migrateAgentsFonctionChefMateriel,
+    noTransaction: true,
+  },
+  {
+    id: "008_agent_exclusions_dog_target",
+    description: "Support dog-targeted exclusions and expanded exclusion types",
+    up: migrateAgentExclusionsDogTarget,
+    noTransaction: true,
+  },
+  {
+    id: "009_agents_marital_status_column",
+    description: "Add marital_status (situation familiale) to agents — nullable for existing rows",
+    up: migrateAgentsMaritalStatusColumn,
+  },
+  {
+    id: "010_checkpoints_mandatory_column",
+    description: "Add mandatory boolean to checkpoints (default true / YES)",
+    up: migrateCheckpointsMandatoryColumn,
+  },
+  {
+    id: "011_agents_fonction_hierarchy_v2",
+    description:
+      "Expand agents.fonction CHECK for full personnel hierarchy (Chef Brigade, PI, Secrétariat, …)",
+    up: migrateAgentsFonctionHierarchyV2,
+    noTransaction: true,
+  },
+  {
+    id: "012_agents_fonction_brigadier_canonical",
+    description:
+      "Rename chef_brigade → chef_brigadier (+ PI) and expand fonction CHECK to canonical hierarchy",
+    up: migrateAgentsFonctionBrigadierCanonical,
+    noTransaction: true,
+  },
 ];
 
+function schemaMigrationColumnNames(database: Database.Database): Set<string> {
+  return tableColumnNames(database, SCHEMA_MIGRATIONS_TABLE);
+}
+
+/**
+ * Ensures schema_migrations exists with version/name/date/success columns.
+ * Safe on older DBs that only had (id, applied_at).
+ */
 export function ensureSchemaMigrationsTable(database: Database.Database): void {
   database.exec(`
     CREATE TABLE IF NOT EXISTS ${SCHEMA_MIGRATIONS_TABLE} (
       id TEXT PRIMARY KEY NOT NULL,
-      applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+      name TEXT NOT NULL DEFAULT '',
+      applied_at TEXT NOT NULL DEFAULT (datetime('now')),
+      success INTEGER NOT NULL DEFAULT 1 CHECK (success IN (0, 1))
     )
   `);
+
+  const names = schemaMigrationColumnNames(database);
+  if (!names.has("name")) {
+    database.exec(
+      `ALTER TABLE ${SCHEMA_MIGRATIONS_TABLE} ADD COLUMN name TEXT NOT NULL DEFAULT ''`,
+    );
+  }
+  if (!names.has("applied_at")) {
+    database.exec(
+      `ALTER TABLE ${SCHEMA_MIGRATIONS_TABLE} ADD COLUMN applied_at TEXT NOT NULL DEFAULT (datetime('now'))`,
+    );
+  }
+  if (!names.has("success")) {
+    database.exec(
+      `ALTER TABLE ${SCHEMA_MIGRATIONS_TABLE} ADD COLUMN success INTEGER NOT NULL DEFAULT 1`,
+    );
+  }
+
+  // Backfill human-readable names for rows recorded by older runners.
+  database
+    .prepare(
+      `UPDATE ${SCHEMA_MIGRATIONS_TABLE}
+       SET name = id
+       WHERE name IS NULL OR trim(name) = ''`,
+    )
+    .run();
 }
 
+/** Successfully applied migration version ids (failed rows are not skipped). */
 export function getAppliedMigrationIds(database: Database.Database): Set<string> {
   ensureSchemaMigrationsTable(database);
   const rows = database
-    .prepare(`SELECT id FROM ${SCHEMA_MIGRATIONS_TABLE}`)
+    .prepare(
+      `SELECT id FROM ${SCHEMA_MIGRATIONS_TABLE}
+       WHERE COALESCE(success, 1) = 1`,
+    )
     .all() as Array<{ id: string }>;
   return new Set(rows.map((row) => row.id));
 }
 
-function backupTimestamp(): string {
-  return new Date().toISOString().replace(/[:.]/g, "-");
+function pad2(value: number): string {
+  return String(value).padStart(2, "0");
+}
+
+/** Local timestamp for backup_YYYY-MM-DD_HH-MM-SS.db */
+export function migrationBackupTimestamp(date: Date = new Date()): string {
+  return (
+    `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}` +
+    `_${pad2(date.getHours())}-${pad2(date.getMinutes())}-${pad2(date.getSeconds())}`
+  );
+}
+
+export function isMigrationBackupFileName(name: string): boolean {
+  if (/^backup_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.db$/.test(name)) {
+    return true;
+  }
+  return name.startsWith(LEGACY_BACKUP_PREFIX) && name.endsWith(".bak");
 }
 
 /**
- * WAL-safe timestamped backup — required before any migration or data reset.
- * Writes `cynoplanning.db.pre-migration.<ISO>.bak` under userData.
+ * WAL-safe timestamped backup — required before any migration batch.
+ * Writes `backup_YYYY-MM-DD_HH-MM-SS.db` under userData.
  */
 export function createPreMigrationBackup(
   database: Database.Database,
@@ -131,7 +862,10 @@ export function createPreMigrationBackup(
     throw new Error(`Cannot backup missing database: ${dbPath}`);
   }
   database.pragma("wal_checkpoint(FULL)");
-  const backupPath = join(userDataPath, `${BACKUP_PREFIX}${backupTimestamp()}.bak`);
+  const backupPath = join(
+    userDataPath,
+    `${MIGRATION_BACKUP_PREFIX}${migrationBackupTimestamp()}.db`,
+  );
   copyFileSync(dbPath, backupPath);
   pruneOldBackups(userDataPath);
   return backupPath;
@@ -139,7 +873,7 @@ export function createPreMigrationBackup(
 
 function pruneOldBackups(userDataPath: string): void {
   const backups = readdirSync(userDataPath)
-    .filter((name) => name.startsWith(BACKUP_PREFIX) && name.endsWith(".bak"))
+    .filter((name) => isMigrationBackupFileName(name))
     .sort()
     .reverse();
 
@@ -158,7 +892,14 @@ export function restoreDatabaseFromBackup(
   dbPath: string,
   backupPath: string,
 ): void {
-  database.close();
+  if (!existsSync(backupPath)) {
+    throw new Error(`Cannot restore — backup missing: ${backupPath}`);
+  }
+  try {
+    database.close();
+  } catch {
+    // connection may already be closed
+  }
   for (const suffix of ["-wal", "-shm"]) {
     const sidecar = `${dbPath}${suffix}`;
     if (existsSync(sidecar)) {
@@ -166,6 +907,67 @@ export function restoreDatabaseFromBackup(
     }
   }
   copyFileSync(backupPath, dbPath);
+}
+
+function recordSuccessfulMigration(
+  database: Database.Database,
+  migration: SqliteMigration,
+): void {
+  database
+    .prepare(
+      `INSERT INTO ${SCHEMA_MIGRATIONS_TABLE} (id, name, applied_at, success)
+       VALUES (?, ?, datetime('now'), 1)`,
+    )
+    .run(migration.id, migration.description);
+}
+
+/** Fail loudly if a required migrated column is missing (avoids silent UI defaults). */
+export function assertAgentsFonctionSchema(database: Database.Database): void {
+  const names = tableColumnNames(database, "agents");
+  if (!names.has("fonction")) {
+    throw new Error(
+      "SQLite schema error: agents.fonction column is missing. " +
+        "Pending migration 005_agents_fonction_column was not applied. " +
+        "Restart the app after rebuilding the Electron main process (npm run electron:build:main).",
+    );
+  }
+
+  // Ensure CHECK accepts the canonical hierarchy (migration 012).
+  const probeId = "__assert_fonction_brigadier__";
+  try {
+    database
+      .prepare(
+        `INSERT INTO agents (
+          id, first_name, last_name, professional_number, grade, gender, fonction, active
+        ) VALUES (?, '_', '_', ?, '_', 'male', 'chef_brigadier', 0)`,
+      )
+      .run(probeId, probeId);
+    database.prepare(`DELETE FROM agents WHERE id = ?`).run(probeId);
+  } catch (error) {
+    try {
+      database.prepare(`DELETE FROM agents WHERE id = ?`).run(probeId);
+    } catch {
+      // probe may not exist
+    }
+    throw new Error(
+      "SQLite schema error: agents.fonction CHECK rejects chef_brigadier. " +
+        "Pending migration 012_agents_fonction_brigadier_canonical was not applied. " +
+        "Quit the app, then run: npm run electron:build:main && npm run electron:apply-migrations. " +
+        `(${error instanceof Error ? error.message : String(error)})`,
+    );
+  }
+}
+
+/** Fail loudly if checkpoints.mandatory is missing (planning SELECT requires it). */
+export function assertCheckpointsMandatorySchema(database: Database.Database): void {
+  const names = tableColumnNames(database, "checkpoints");
+  if (!names.has("mandatory")) {
+    throw new Error(
+      "SQLite schema error: checkpoints.mandatory column is missing. " +
+        "Pending migration 010_checkpoints_mandatory_column was not applied. " +
+        "Quit the app, then run: npm run electron:build:main && npm run electron:apply-migrations",
+    );
+  }
 }
 
 /**
@@ -179,33 +981,70 @@ export function runPendingMigrations(options: RunMigrationsOptions): void {
   const applied = getAppliedMigrationIds(database);
   const pending = SQLITE_MIGRATIONS.filter((migration) => !applied.has(migration.id));
   if (pending.length === 0) {
-    log?.("runPendingMigrations: no pending migrations");
-    return;
-  }
-
-  log?.(`runPendingMigrations: ${pending.length} pending — creating backup`);
-  const backupPath = createPreMigrationBackup(database, userDataPath, dbPath);
-  log?.(`runPendingMigrations: backup saved to ${backupPath}`);
-
-  const insertMigration = database.prepare(
-    `INSERT INTO ${SCHEMA_MIGRATIONS_TABLE} (id) VALUES (?)`,
-  );
-
-  try {
-    for (const migration of pending) {
-      log?.(`runPendingMigrations: applying ${migration.id}`);
-      const apply = database.transaction(() => {
-        migration.up(database);
-        insertMigration.run(migration.id);
-      });
-      apply();
-      log?.(`runPendingMigrations: applied ${migration.id}`);
-    }
-  } catch (error) {
     log?.(
-      `runPendingMigrations: failed — restoring backup (${error instanceof Error ? error.message : String(error)})`,
+      `runPendingMigrations: no pending migrations (${applied.size}/${SQLITE_MIGRATIONS.length} recorded)`,
     );
-    restoreDatabaseFromBackup(database, dbPath, backupPath);
-    throw error;
+  } else {
+    log?.(`runPendingMigrations: ${pending.length} pending — creating backup`);
+    const backupPath = createPreMigrationBackup(database, userDataPath, dbPath);
+    log?.(`runPendingMigrations: backup saved to ${backupPath}`);
+
+    let currentId: string | null = null;
+    try {
+      for (const migration of pending) {
+        currentId = migration.id;
+        log?.(`runPendingMigrations: applying ${migration.id} (${migration.description})`);
+        if (migration.noTransaction) {
+          migration.up(database);
+          recordSuccessfulMigration(database, migration);
+        } else {
+          const apply = database.transaction(() => {
+            migration.up(database);
+            recordSuccessfulMigration(database, migration);
+          });
+          apply();
+        }
+        log?.(`runPendingMigrations: applied ${migration.id}`);
+      }
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      log?.(`runPendingMigrations: failed at ${currentId ?? "unknown"} — restoring backup (${reason})`);
+      let restored = false;
+      try {
+        restoreDatabaseFromBackup(database, dbPath, backupPath);
+        restored = true;
+        log?.(`runPendingMigrations: restored database from ${backupPath}`);
+      } catch (restoreError) {
+        log?.(
+          `runPendingMigrations: CRITICAL — restore failed (${
+            restoreError instanceof Error ? restoreError.message : String(restoreError)
+          })`,
+        );
+        throw new SqliteMigrationError(
+          `Database migration failed and automatic restore also failed. ` +
+            `Manual restore required from: ${backupPath}. Original error: ${reason}`,
+          {
+            migrationId: currentId,
+            backupPath,
+            restored: false,
+            cause: error,
+          },
+        );
+      }
+      throw new SqliteMigrationError(
+        `Database migration failed. The previous database was restored automatically. (${reason})`,
+        {
+          migrationId: currentId,
+          backupPath,
+          restored,
+          cause: error,
+        },
+      );
+    }
   }
+
+  assertAgentsFonctionSchema(database);
+  log?.("runPendingMigrations: agents.fonction schema OK");
+  assertCheckpointsMandatorySchema(database);
+  log?.("runPendingMigrations: checkpoints.mandatory schema OK");
 }

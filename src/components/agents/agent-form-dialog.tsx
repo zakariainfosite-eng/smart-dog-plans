@@ -33,6 +33,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useI18n } from "@/hooks/use-i18n";
+import {
+  isChefDeSectionFonction,
+  isCynotechnicienFonction,
+  PERSONNEL_FONCTIONS,
+  type PersonnelFonction,
+} from "@/lib/personnel-fonction";
+import { MARITAL_STATUSES, type MaritalStatus } from "@/lib/marital-status";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/database/schema-types";
 
@@ -44,6 +51,8 @@ export type AgentFormValues = {
   professional_number: string;
   grade: string;
   gender: Gender;
+  fonction: PersonnelFonction;
+  marital_status: MaritalStatus | "";
   section_id: string | null;
   dog_id: string | null;
   phone: string;
@@ -71,7 +80,9 @@ type AgentFormDialogProps = {
   onOpenChange: (open: boolean) => void;
   editing: { photo_url?: string | null } | null;
   form: AgentFormValues;
-  setForm: (values: AgentFormValues) => void;
+  setForm: (
+    values: AgentFormValues | ((prev: AgentFormValues) => AgentFormValues),
+  ) => void;
   errors: Partial<Record<keyof AgentFormValues, string>>;
   sections: SectionOption[] | undefined;
   dogs: DogOption[] | undefined;
@@ -122,9 +133,12 @@ export function AgentFormDialog({
   );
 
   const specialty = selectedDog?.specialty ?? null;
+  const isCynotechnicien = isCynotechnicienFonction(form.fonction);
+  const isChefDeSection = isChefDeSectionFonction(form.fonction);
+  const showSectionField = isCynotechnicien || isChefDeSection;
 
   const patchForm = (patch: Partial<AgentFormValues>) => {
-    setForm({ ...form, ...patch });
+    setForm((prev) => ({ ...prev, ...patch }));
   };
 
   return (
@@ -161,22 +175,21 @@ export function AgentFormDialog({
               </div>
 
               <div className="flex flex-wrap gap-2">
+                <StatusBadge tone="primary">
+                  {t(`personnelFonction.${form.fonction}`)}
+                </StatusBadge>
                 <StatusBadge tone={form.active ? "success" : "neutral"}>
                   {form.active ? t("common.active") : t("common.inactive")}
                 </StatusBadge>
-                {specialty ? (
+                {isCynotechnicien && specialty ? (
                   <StatusBadge tone="primary">{t(`specialty.${specialty}`)}</StatusBadge>
-                ) : (
-                  <StatusBadge tone="neutral">{t("employees.dialog.noSpecialty")}</StatusBadge>
-                )}
-                {selectedSection ? (
+                ) : null}
+                {showSectionField && selectedSection ? (
                   <StatusBadge tone="info">
                     <Layers className="h-3 w-3 shrink-0" />
                     {selectedSection.name}
                   </StatusBadge>
-                ) : (
-                  <StatusBadge tone="neutral">{t("employees.dialog.noSection")}</StatusBadge>
-                )}
+                ) : null}
               </div>
             </div>
           </div>
@@ -187,6 +200,35 @@ export function AgentFormDialog({
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-muted/15 px-6 py-6 sm:px-8">
           <div className="grid gap-5 lg:grid-cols-2">
             <FormCard title={t("employees.dialog.card.personal")} icon={User}>
+              <FormField label={t("employees.field.fonction")} error={errors.fonction}>
+                <Select
+                  value={form.fonction}
+                  onValueChange={(value) => {
+                    const fonction = value as PersonnelFonction;
+                    if (isCynotechnicienFonction(fonction)) {
+                      patchForm({ fonction });
+                      return;
+                    }
+                    if (isChefDeSectionFonction(fonction)) {
+                      patchForm({ fonction, dog_id: null });
+                      return;
+                    }
+                    patchForm({ fonction, section_id: null, dog_id: null });
+                  }}
+                >
+                  <SelectTrigger className="transition-shadow hover:shadow-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PERSONNEL_FONCTIONS.map((fonction) => (
+                      <SelectItem key={fonction} value={fonction}>
+                        {t(`personnelFonction.${fonction}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <FormField label={t("employees.field.firstName")} error={errors.first_name}>
                   <Input
@@ -255,37 +297,92 @@ export function AgentFormDialog({
                     </SelectContent>
                   </Select>
                 </FormField>
-                {form.gender !== "female" ? (
-                  <FormField label={t("field.section")} error={errors.section_id}>
-                    <Select
-                      value={form.section_id ?? "none"}
-                      onValueChange={(value) =>
-                        patchForm({ section_id: value === "none" ? null : value })
-                      }
+                <FormField
+                  label={`${t("employees.field.maritalStatus")} *`}
+                  error={errors.marital_status}
+                >
+                  <Select
+                    value={form.marital_status || undefined}
+                    onValueChange={(value) =>
+                      patchForm({ marital_status: value as MaritalStatus })
+                    }
+                  >
+                    <SelectTrigger className="transition-shadow hover:shadow-sm">
+                      <SelectValue
+                        placeholder={t("employees.placeholder.maritalStatus")}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MARITAL_STATUSES.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {t(`employees.maritalStatus.${status}`)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormField>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {showSectionField ? (
+                  isChefDeSection ? (
+                    <FormField
+                      label={t("employees.field.sectionResponsible")}
+                      error={errors.section_id}
                     >
-                      <SelectTrigger className="transition-shadow hover:shadow-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">{t("common.none")}</SelectItem>
-                        {sections?.map((section) => (
-                          <SelectItem key={section.id} value={section.id}>
-                            {section.name} ({t(`shift.${section.shift_type}`)})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormField>
-                ) : (
-                  <FormField label={t("field.section")}>
-                    <div className="flex h-10 items-center rounded-md border border-dashed border-border px-3 text-sm text-muted-foreground">
-                      {t("employees.hint.femaleNoSection")}
-                    </div>
-                  </FormField>
-                )}
+                      <Select
+                        value={form.section_id ?? undefined}
+                        onValueChange={(value) =>
+                          patchForm({ section_id: value || null })
+                        }
+                      >
+                        <SelectTrigger className="transition-shadow hover:shadow-sm">
+                          <SelectValue
+                            placeholder={t("employees.placeholder.sectionResponsible")}
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sections?.map((section) => (
+                            <SelectItem key={section.id} value={section.id}>
+                              {section.name} ({t(`shift.${section.shift_type}`)})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormField>
+                  ) : form.gender !== "female" ? (
+                    <FormField label={t("field.section")} error={errors.section_id}>
+                      <Select
+                        value={form.section_id ?? "none"}
+                        onValueChange={(value) =>
+                          patchForm({ section_id: value === "none" ? null : value })
+                        }
+                      >
+                        <SelectTrigger className="transition-shadow hover:shadow-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">{t("common.none")}</SelectItem>
+                          {sections?.map((section) => (
+                            <SelectItem key={section.id} value={section.id}>
+                              {section.name} ({t(`shift.${section.shift_type}`)})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormField>
+                  ) : (
+                    <FormField label={t("field.section")}>
+                      <div className="flex h-10 items-center rounded-md border border-dashed border-border px-3 text-sm text-muted-foreground">
+                        {t("employees.hint.femaleNoSection")}
+                      </div>
+                    </FormField>
+                  )
+                ) : null}
               </div>
             </FormCard>
 
+            {isCynotechnicien ? (
             <FormCard title={t("employees.dialog.card.dog")} icon={DogIcon}>
               <FormField label={t("employees.field.assignedDog")} error={errors.dog_id}>
                 <Select
@@ -326,6 +423,7 @@ export function AgentFormDialog({
                 />
               </div>
             </FormCard>
+            ) : null}
 
             <FormCard title={t("employees.dialog.card.contact")} icon={Phone}>
               <FormField label={t("employees.field.phone")} error={errors.phone}>

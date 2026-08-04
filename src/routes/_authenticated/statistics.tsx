@@ -5,18 +5,18 @@ import { BarChart3 } from "lucide-react";
 
 import { PageTitle } from "@/components/layout/PageTitle";
 import { PageContentShell, pageHeroLastUpdatedMeta } from "@/components/enterprise/page-layout";
-import { OperationalIntelligencePanel } from "@/components/statistics/operational-intelligence-panel";
+import { CasesStatisticsDashboard } from "@/components/statistics/cases-statistics-dashboard";
 import { db } from "@/integrations/database/client";
 import {
-  aggregateOperationalIntelligence,
-  buildStatisticsCenterFilterOptions,
-  fetchStatisticsCenterRaw,
-  STATISTICS_CENTER_QUERY_KEY,
-} from "@/lib/statistics/fetch-statistics-center";
+  DEFAULT_CASES_STATISTICS_FILTERS,
+  type CasesStatisticsFilters,
+} from "@/lib/statistics/cases-statistics-types";
 import {
-  DEFAULT_STATISTICS_CENTER_FILTERS,
-  type StatisticsCenterFilters,
-} from "@/lib/statistics/statistics-center-types";
+  aggregateCasesStatistics,
+  buildCasesStatisticsFilterOptions,
+  CASES_STATISTICS_QUERY_KEY,
+  fetchCasesStatisticsRaw,
+} from "@/lib/statistics/fetch-cases-statistics";
 import { formatPageLastUpdated } from "@/lib/page-ui";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useI18n } from "@/hooks/use-i18n";
@@ -30,67 +30,97 @@ function StatisticsPage() {
   const { t, locale } = useI18n();
   useDocumentTitle("meta.statistics.title");
 
-  const [filters, setFilters] = useState<StatisticsCenterFilters>(
-    DEFAULT_STATISTICS_CENTER_FILTERS,
+  const [filters, setFilters] = useState<CasesStatisticsFilters>(
+    DEFAULT_CASES_STATISTICS_FILTERS,
   );
 
-  const year = parseInt(filters.year, 10) || new Date().getFullYear();
-
   const { data: raw, isLoading, dataUpdatedAt } = useQuery({
-    queryKey: [STATISTICS_CENTER_QUERY_KEY, year],
-    queryFn: () => fetchStatisticsCenterRaw(db, year),
+    queryKey: [CASES_STATISTICS_QUERY_KEY],
+    queryFn: () => fetchCasesStatisticsRaw(db),
   });
 
   const filterOptions = useMemo(
     () =>
       raw
-        ? buildStatisticsCenterFilterOptions(raw)
-        : { years: [String(year)], checkpoints: [], sections: [], agents: [], dogs: [] },
-    [raw, year],
+        ? buildCasesStatisticsFilterOptions(raw, (key) => {
+            if (key === "other") return t("statistics.casesDashboard.specialty.other");
+            if (key === "narcotics" || key === "explosives" || key === "currency") {
+              return t(`operationalCases.specialty.${key}`);
+            }
+            return key;
+          })
+        : {
+            years: [String(new Date().getFullYear())],
+            specialties: [],
+            sections: [],
+            checkpoints: [],
+            agents: [],
+            dogs: [],
+          },
+    [raw, t],
   );
 
   const data = useMemo(() => {
     if (!raw) return undefined;
-    return aggregateOperationalIntelligence(
+    return aggregateCasesStatistics(
       raw,
       filters,
-      (monthIndex) => {
-        const date = new Date(year, monthIndex, 1);
-        return date.toLocaleDateString(locale, { month: "long" });
+      (monthKey) => {
+        const [year, month] = monthKey.split("-");
+        const date = new Date(Number(year), Number(month) - 1, 1);
+        return date.toLocaleDateString(locale, { month: "short", year: "numeric" });
       },
       {
         unknown: t("common.none"),
-        specialty: (value) => {
-          if (value === "narcotics") return t("specialty.narcotics");
-          if (value === "explosives") return t("specialty.explosives");
-          return value;
+        specialty: (key) => {
+          if (key === "other") return t("statistics.casesDashboard.specialty.other");
+          if (key === "narcotics" || key === "explosives" || key === "currency") {
+            return t(`operationalCases.specialty.${key}`);
+          }
+          return key;
         },
+        seizureType: (key) => {
+          const path = `operationalCases.drugType.${key}`;
+          const labeled = t(path);
+          return labeled === path ? t(`operationalCases.seizureType.${key}`, { defaultValue: key }) : labeled;
+        },
+        objectType: (key) => t(`operationalCases.objectType.${key}`, { defaultValue: key }),
+        team: (agentName, dogName) =>
+          dogName
+            ? t("statistics.casesDashboard.teamLabel", { agent: agentName, dog: dogName })
+            : agentName,
       },
     );
-  }, [raw, filters, year, locale, t]);
+  }, [raw, filters, locale, t]);
+
+  const hasNoSourceData = !!raw && raw.cases.length === 0;
 
   return (
     <div className="space-y-6 pb-8">
       <PageTitle
         icon={BarChart3}
         title={t("statistics.title")}
-        description={t("statistics.intelligence.description")}
+        description={t("statistics.casesDashboard.description")}
         loading={isLoading}
         meta={[
           pageHeroLastUpdatedMeta(
             t("common.page.lastUpdated"),
             formatPageLastUpdated(dataUpdatedAt, locale),
           ),
+          ...(data
+            ? [{ label: t("statistics.casesDashboard.totalCases"), value: data.totalCases }]
+            : []),
         ]}
       />
 
       <PageContentShell className="bg-white px-6 py-6 sm:px-8">
-        <OperationalIntelligencePanel
+        <CasesStatisticsDashboard
           data={data}
           filterOptions={filterOptions}
           isLoading={isLoading}
           filters={filters}
           onFiltersChange={setFilters}
+          hasNoSourceData={hasNoSourceData}
         />
       </PageContentShell>
     </div>

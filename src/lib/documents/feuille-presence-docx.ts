@@ -19,6 +19,10 @@ import {
   convertMillimetersToTwip,
 } from "docx";
 import {
+  assertDocxZipMagic,
+  toZipSafeUint8Array,
+} from "@/lib/documents/docx-binary";
+import {
   FP_CONTENT_W,
   FP_LAYOUT,
   FP_MARGIN,
@@ -34,6 +38,7 @@ import {
 } from "@/lib/documents/feuille-presence-layout";
 import { computeWatermarkBoxSize, fitLogoInSquareBox } from "@/lib/documents/feuille-presence-logo";
 import type { FeuillePresenceData, FeuillePresenceTableRow } from "@/lib/documents/feuille-presence-types";
+import { sortFeuillePresenceDataByMatricule } from "@/lib/documents/sort-attendance-by-matricule";
 
 /**
  * Electron renderer runs with nodeIntegration:false / sandbox:true — no Node Buffer.
@@ -64,10 +69,21 @@ async function loadLogoBytes(url: string): Promise<Uint8Array | undefined> {
   try {
     const response = await fetch(url);
     if (!response.ok) return undefined;
-    return new Uint8Array(await response.arrayBuffer());
+    // Same-realm copy — required for JSZip instanceof checks inside `docx`.
+    return toZipSafeUint8Array(await response.arrayBuffer());
   } catch {
     return undefined;
   }
+}
+
+function isPngBytes(bytes: Uint8Array): boolean {
+  return (
+    bytes.byteLength >= 8
+    && bytes[0] === 0x89
+    && bytes[1] === 0x50
+    && bytes[2] === 0x4e
+    && bytes[3] === 0x47
+  );
 }
 
 /** Match PDF table-region watermark scale (mm → px at 96 dpi). */
@@ -139,7 +155,7 @@ async function buildDocxWatermarkAsset(
   const mix = DOCX_WATERMARK_INK;
 
   try {
-    const blob = new Blob([logoBytes as BlobPart], { type: "image/png" });
+    const blob = new Blob([toZipSafeUint8Array(logoBytes)], { type: "image/png" });
     const bitmap = await createImageBitmap(blob);
     const canvas = document.createElement("canvas");
     canvas.width = bitmap.width;
@@ -172,7 +188,7 @@ async function buildDocxWatermarkAsset(
     if (!outBlob) return undefined;
 
     return {
-      bytes: new Uint8Array(await outBlob.arrayBuffer()),
+      bytes: toZipSafeUint8Array(await outBlob.arrayBuffer()),
       nativeWidth: canvas.width,
       nativeHeight: canvas.height,
     };
@@ -196,7 +212,7 @@ function tableWatermarkAnchorParagraph(
     children: [
       new ImageRun({
         type: "png",
-        data: watermarkBytes,
+        data: toZipSafeUint8Array(watermarkBytes),
         transformation: { width: w, height: h },
         altText: {
           id: "2",
@@ -400,15 +416,38 @@ function sectionTitle(title: string): Paragraph {
   return para([textRun(title, { bold: true, size: 16 })], { spacingAfter: 80 });
 }
 
+export type GenerateFeuillePresenceDocxOptions = {
+  logoUrl?: string;
+  /** Prefer preloaded PNG bytes (same as PDF) — avoids a second fetch in packaged Electron. */
+  logoBytes?: Uint8Array;
+};
+
 /**
  * Word export of the approved Feuille de présence — same structure as the PDF template.
  * Only dynamic planning fields differ (date, section, chef, table rows).
  */
 export async function generateFeuillePresenceDocx(
   data: FeuillePresenceData,
-  logoUrl: string = FP_OFFICIAL_LOGO_URL,
+  logoUrlOrOptions: string | GenerateFeuillePresenceDocxOptions = FP_OFFICIAL_LOGO_URL,
 ): Promise<Uint8Array> {
-  const logoBytes = await loadLogoBytes(logoUrl);
+  // Presentation-only: always export rows in matricule order.
+  data = sortFeuillePresenceDataByMatricule(data);
+
+  const options: GenerateFeuillePresenceDocxOptions =
+    typeof logoUrlOrOptions === "string"
+      ? { logoUrl: logoUrlOrOptions }
+      : logoUrlOrOptions;
+
+  let logoBytes =
+    options.logoBytes != null
+      ? toZipSafeUint8Array(options.logoBytes)
+      : await loadLogoBytes(options.logoUrl ?? FP_OFFICIAL_LOGO_URL);
+  // Refuse non-PNG payloads (e.g. HTML error pages) that would corrupt the OOXML package.
+  if (logoBytes && !isPngBytes(logoBytes)) {
+    console.warn("[docx] logo bytes are not a PNG — omitting seal from Word export");
+    logoBytes = undefined;
+  }
+
   const watermarkAsset = logoBytes ? await buildDocxWatermarkAsset(logoBytes) : undefined;
   let watermarkAnchorParagraph: Paragraph | null = null;
   if (watermarkAsset) {
@@ -573,7 +612,7 @@ export async function generateFeuillePresenceDocx(
     ],
   });
 
-  // Prefer ArrayBuffer (browser-safe output). Buffer polyfill still required by JSZip.
+  // Buffer polyfill still required by JSZip internals inside `docx`.
   ensureDocxBuffer();
   if (typeof (globalThis as typeof globalThis & { Buffer?: typeof Buffer }).Buffer?.isBuffer !== "function") {
     throw new Error(
@@ -581,11 +620,20 @@ export async function generateFeuillePresenceDocx(
     );
   }
   try {
-    const arrayBuffer = await Packer.toArrayBuffer(doc);
-    return new Uint8Array(arrayBuffer);
+    // Prefer Blob packing in Chromium/Electron — more reliable than ArrayBuffer/nodebuffer
+    // on Windows production builds where Buffer polyfills interact with JSZip.
+    let packed: Uint8Array;
+    if (typeof Blob !== "undefined") {
+      const blob = await Packer.toBlob(doc);
+      packed = toZipSafeUint8Array(await blob.arrayBuffer());
+    } else {
+      packed = toZipSafeUint8Array(await Packer.toArrayBuffer(doc));
+    }
+    assertDocxZipMagic(packed, "DOCX Packer output");
+    return packed;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const wrapped = new Error(`DOCX Packer.toArrayBuffer failed: ${message}`);
+    const wrapped = new Error(`DOCX Packer failed: ${message}`);
     if (error instanceof Error && error.stack) {
       wrapped.stack = `${wrapped.message}\n${error.stack}`;
     }

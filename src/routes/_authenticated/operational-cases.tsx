@@ -180,6 +180,9 @@ function OperationalCasesPage() {
     mutationFn: (id: string) => deleteOperationalCase(db, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["operational-cases"] });
+      queryClient.invalidateQueries({ queryKey: ["cases-statistics"] });
+      queryClient.invalidateQueries({ queryKey: ["statistics-center"] });
+      queryClient.invalidateQueries({ queryKey: ["statistics-operational-cases-history"] });
       toast.success(t("operationalCases.toast.deleted"));
       setDeleteTarget(null);
     },

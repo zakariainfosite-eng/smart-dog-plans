@@ -235,6 +235,10 @@ export function OperationalCaseDialog({
       onOpenChange(false);
       queryClient.invalidateQueries({ queryKey: ["operational-cases"] });
       queryClient.invalidateQueries({ queryKey: ["agent-details"] });
+      queryClient.invalidateQueries({ queryKey: ["cases-statistics"] });
+      queryClient.invalidateQueries({ queryKey: ["statistics-center"] });
+      queryClient.invalidateQueries({ queryKey: ["statistics-operational-cases-history"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -249,6 +253,10 @@ export function OperationalCaseDialog({
       onOpenChange(false);
       queryClient.invalidateQueries({ queryKey: ["operational-cases"] });
       queryClient.invalidateQueries({ queryKey: ["agent-details"] });
+      queryClient.invalidateQueries({ queryKey: ["cases-statistics"] });
+      queryClient.invalidateQueries({ queryKey: ["statistics-center"] });
+      queryClient.invalidateQueries({ queryKey: ["statistics-operational-cases-history"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -261,6 +269,10 @@ export function OperationalCaseDialog({
       toast.success(t("operationalCases.toast.attachmentDeleted"));
       queryClient.invalidateQueries({ queryKey: ["operational-cases"] });
       queryClient.invalidateQueries({ queryKey: ["agent-details"] });
+      queryClient.invalidateQueries({ queryKey: ["cases-statistics"] });
+      queryClient.invalidateQueries({ queryKey: ["statistics-center"] });
+      queryClient.invalidateQueries({ queryKey: ["statistics-operational-cases-history"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });

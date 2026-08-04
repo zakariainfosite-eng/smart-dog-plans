@@ -3,15 +3,19 @@ import { format, isAfter, isBefore, parseISO, startOfDay } from "date-fns";
 import type { Database } from "@/integrations/database/schema-types";
 import { isMissingSoftDeleteColumn } from "@/lib/soft-delete";
 
+export type ExclusionType = Database["public"]["Enums"]["exclusion_type"];
+
 export type AgentExclusionRecord = Pick<
   Database["public"]["Tables"]["agent_exclusions"]["Row"],
-  "agent_id" | "exclusion_type" | "start_date" | "end_date" | "active"
+  "agent_id" | "dog_id" | "exclusion_type" | "start_date" | "end_date" | "active"
 >;
 
 export type ExclusionCalendarStatus = "active" | "upcoming" | "expired";
 
+export type ExclusionApplyTarget = "agent" | "dog";
+
 /** Agent unavailability — removed from planning entirely (not Point 653). */
-export const AGENT_LEVEL_EXCLUSION_TYPES = new Set([
+export const AGENT_LEVEL_EXCLUSION_TYPES = new Set<string>([
   "absence",
   "sickness",
   "annual_leave",
@@ -19,11 +23,61 @@ export const AGENT_LEVEL_EXCLUSION_TYPES = new Set([
   "administrative_leave",
   "mission",
   "training",
+  "suspension",
   "other",
 ]);
 
-/** Dog unavailability — on duty at Point 653, not operational checkpoints. */
-export const DOG_LEVEL_EXCLUSION_TYPES = new Set(["dog_sick", "female_dog_heat"]);
+/** Dog unavailability — handler stays available for Point 653 only. */
+export const DOG_LEVEL_EXCLUSION_TYPES = new Set<string>([
+  "dog_sick",
+  "female_dog_heat",
+  "dog_injured",
+  "dog_temporary_retirement",
+  "dog_vet_visit",
+  "dog_training",
+  "dog_other",
+]);
+
+/** Types offered when creating a personnel exclusion. */
+export const PERSONNEL_EXCLUSION_FORM_TYPES: ExclusionType[] = [
+  "sickness",
+  "annual_leave",
+  "mission",
+  "training",
+  "suspension",
+  "other",
+];
+
+/** Types offered when creating a dog exclusion. */
+export const DOG_EXCLUSION_FORM_TYPES: ExclusionType[] = [
+  "female_dog_heat",
+  "dog_sick",
+  "dog_injured",
+  "dog_temporary_retirement",
+  "dog_vet_visit",
+  "dog_training",
+  "dog_other",
+];
+
+/** All known types for filters / history (includes legacy leave variants). */
+export const ALL_EXCLUSION_TYPES: ExclusionType[] = [
+  "sickness",
+  "annual_leave",
+  "administrative_leave",
+  "special_leave",
+  "absence",
+  "mission",
+  "training",
+  "suspension",
+  "dog_sick",
+  "female_dog_heat",
+  "dog_injured",
+  "dog_temporary_retirement",
+  "dog_vet_visit",
+  "dog_training",
+  "dog_other",
+  "other",
+];
 
 export function isAgentLevelExclusionType(type: string): boolean {
   return AGENT_LEVEL_EXCLUSION_TYPES.has(type);
@@ -31,6 +85,11 @@ export function isAgentLevelExclusionType(type: string): boolean {
 
 export function isDogLevelExclusionType(type: string): boolean {
   return DOG_LEVEL_EXCLUSION_TYPES.has(type);
+}
+
+export function exclusionApplyTarget(type: string, dogId?: string | null): ExclusionApplyTarget {
+  if (dogId || isDogLevelExclusionType(type)) return "dog";
+  return "agent";
 }
 
 export function planningDayISO(reference: Date | string): string {
@@ -95,7 +154,11 @@ export function buildActiveExclusionAgentIds(
   exclusions: AgentExclusionRecord[],
   reference: Date | string = new Date(),
 ): Set<string> {
-  return new Set(filterActiveExclusions(exclusions, reference).map((e) => e.agent_id));
+  return new Set(
+    filterActiveExclusions(exclusions, reference)
+      .map((e) => e.agent_id)
+      .filter((id): id is string => Boolean(id)),
+  );
 }
 
 export function getActiveExclusionsForAgent(
@@ -111,7 +174,9 @@ export function isAgentExcludedOnDate(
   exclusions: AgentExclusionRecord[],
   reference: Date | string = new Date(),
 ): boolean {
-  return getActiveExclusionsForAgent(exclusions, agentId, reference).length > 0;
+  return getActiveExclusionsForAgent(exclusions, agentId, reference).some((e) =>
+    isAgentLevelExclusionType(e.exclusion_type),
+  );
 }
 
 /** Shared database select for planning / dashboard / agents operational status. */
@@ -123,7 +188,7 @@ export async function fetchActiveExclusionsForDate(
   const run = async (withSoftDelete: boolean) => {
     let query = db
       .from("agent_exclusions")
-      .select("agent_id, exclusion_type, start_date, end_date, active")
+      .select("agent_id, dog_id, exclusion_type, start_date, end_date, active")
       .eq("active", true)
       .lte("start_date", dateISO)
       .gte("end_date", dateISO);
@@ -150,12 +215,14 @@ export async function fetchActiveExclusionsForDate(
 }
 
 export type PlanningExclusionInput = {
-  agent_id: string;
+  agent_id: string | null;
+  dog_id: string | null;
   exclusion_type: string;
 };
 
 export type PlanningExclusionDebugEntry = {
-  agent_id: string;
+  agent_id: string | null;
+  dog_id: string | null;
   exclusion_type: string;
   status:
     | "applied_agent"
@@ -184,6 +251,7 @@ export function toPlanningExclusionInputs(
 ): PlanningExclusionInput[] {
   return filterActiveExclusions(exclusions, dateISO).map((e) => ({
     agent_id: e.agent_id,
+    dog_id: e.dog_id ?? null,
     exclusion_type: e.exclusion_type,
   }));
 }
@@ -196,6 +264,8 @@ export function buildPlanningExclusionReport(
   records: AgentExclusionRecord[],
   planningDateISO: string,
   sectionAgentIds: Set<string>,
+  sectionDogIds: Set<string> = new Set(),
+  dogToAgentId: Map<string, string> = new Map(),
 ): PlanningExclusionDebugReport {
   const agentExclusions: PlanningExclusionDebugEntry[] = [];
   const dogExclusions: PlanningExclusionDebugEntry[] = [];
@@ -203,7 +273,11 @@ export function buildPlanningExclusionReport(
   const inputs: PlanningExclusionInput[] = [];
 
   for (const record of records) {
-    const entry = { agent_id: record.agent_id, exclusion_type: record.exclusion_type };
+    const entry = {
+      agent_id: record.agent_id,
+      dog_id: record.dog_id ?? null,
+      exclusion_type: record.exclusion_type,
+    };
 
     if (!record.active) {
       ignored.push({
@@ -223,20 +297,34 @@ export function buildPlanningExclusionReport(
       continue;
     }
 
-    if (!sectionAgentIds.has(record.agent_id)) {
+    const resolvedAgentId =
+      record.agent_id ??
+      (record.dog_id ? dogToAgentId.get(record.dog_id) ?? null : null);
+
+    const inSection =
+      (resolvedAgentId != null && sectionAgentIds.has(resolvedAgentId)) ||
+      (record.dog_id != null && sectionDogIds.has(record.dog_id));
+
+    if (!inSection) {
       ignored.push({
         ...entry,
         status: "ignored_agent_not_in_section",
-        reason: "agent not in selected planning section",
+        reason: "target not in selected planning section",
       });
       continue;
     }
 
-    inputs.push(entry);
+    const input: PlanningExclusionInput = {
+      agent_id: resolvedAgentId,
+      dog_id: record.dog_id ?? null,
+      exclusion_type: record.exclusion_type,
+    };
+    inputs.push(input);
 
     if (isAgentLevelExclusionType(record.exclusion_type)) {
       agentExclusions.push({
         ...entry,
+        agent_id: resolvedAgentId,
         status: "applied_agent",
         reason: "removed from planning — Excluded Personnel",
       });
@@ -246,8 +334,9 @@ export function buildPlanningExclusionReport(
     if (isDogLevelExclusionType(record.exclusion_type)) {
       dogExclusions.push({
         ...entry,
+        agent_id: resolvedAgentId,
         status: "applied_dog",
-        reason: "on duty at Point 653 — not counted as excluded",
+        reason: "dog unavailable — handler not assigned that dog operationally (Point 653)",
       });
       continue;
     }

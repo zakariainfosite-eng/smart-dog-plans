@@ -107,8 +107,11 @@ describe("unfilledCheckpointPosts warning generation", () => {
 
     expect(result.summary.understaffedCheckpoints).toBe(1);
     expect(result.summary.warnings.some((w) => w.includes("UNDERSTAFFED"))).toBe(true);
+    expect(result.structuredWarnings.some((w) => w.code === "NO_ELIGIBLE_AGENT")).toBe(
+      true,
+    );
     expect(
-      result.summary.warnings.some((w) => w.includes("position left unfilled")),
+      result.summary.warnings.some((w) => w.includes("[NO_ELIGIBLE_AGENT]")),
     ).toBe(true);
   });
 });

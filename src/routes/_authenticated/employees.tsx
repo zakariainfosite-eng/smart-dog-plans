@@ -15,10 +15,10 @@ import {
   Mars,
   Pill,
   Bomb,
-  UserCheck,
-  UserX,
   Check,
   X,
+  UserCheck,
+  UserX,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,7 +31,13 @@ import {
   updateAgent,
   type AgentRow,
   type Gender,
+  type MaritalStatus,
 } from "@/integrations/database";
+import {
+  formatMaritalStatusLabel,
+  MARITAL_STATUSES,
+  normalizeMaritalStatus,
+} from "@/lib/marital-status";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { AgentsPageHero, AgentsFilterToolbar, AgentsTableShell } from "@/components/agents/agents-page-hero";
 import { AgentsStatCard } from "@/components/agents/agents-stat-card";
@@ -58,7 +64,7 @@ import { EnterpriseDataTable } from "@/components/enterprise/data-table";
 import { CellTooltip, TableTooltipProvider } from "@/components/enterprise/cell-tooltip";
 import { StatusBadge } from "@/components/enterprise/status-badge";
 import { AgentDetailsDrawer } from "@/components/agents/agent-details-drawer";
-import { AgentFormDialog } from "@/components/agents/agent-form-dialog";
+import { AgentFormDialog, type AgentFormValues } from "@/components/agents/agent-form-dialog";
 import { AgentAvatar } from "@/components/agents/agent-avatar";
 import {
   deleteAgentPhotoByUrl,
@@ -67,9 +73,10 @@ import {
 } from "@/lib/agent-photo-api";
 import {
   agentSpecialty,
+  availabilityBadgeTone,
+  deriveAgentAvailability,
   deriveAgentOperationalStatus,
   isNightEligible,
-  type AgentOperationalStatus,
 } from "@/lib/agent-ui";
 import {
   ACTIVE_EXCLUSIONS_TODAY_QUERY_KEY,
@@ -82,32 +89,69 @@ import {
   cynotechniciansListFilename,
 } from "@/lib/documents/build-cynotechnicians-list-pdf-data";
 import { downloadCynotechniciansListPdfWithLogo } from "@/lib/documents/feuille-presence-pdf";
+import {
+  DEFAULT_PERSONNEL_FONCTION,
+  isChefDeSectionFonction,
+  isCynotechnicienFonction,
+  normalizePersonnelFonction,
+  PERSONNEL_FONCTIONS,
+  usesOperationalPersonnelColumns,
+} from "@/lib/personnel-fonction";
+import {
+  comparePersonnelRows,
+  DEFAULT_PERSONNEL_SORT,
+  hasPersonnelSeniorityData,
+  personnelMatchesSearch,
+  personnelMatchesStatusFilter,
+  PERSONNEL_STATUS_FILTER_TYPES,
+  uniquePersonnelGrades,
+  type PersonnelSortKey,
+  type PersonnelStatusFilter,
+} from "@/lib/personnel-table-controls";
+import { splitPersonnelIntoTwoTables } from "@/lib/documents/personnel-two-tables";
 import { useI18n } from "@/hooks/use-i18n";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 
 export const Route = createFileRoute("/_authenticated/employees")({
-  head: () => ({ meta: [{ title: "Cynotechniciens — Smart K9 Planning" }] }),
+  head: () => ({ meta: [{ title: "Personnel — Smart K9 Planning" }] }),
   component: EmployeesPage,
 });
 
 function createAgentSchema(t: (key: string) => string) {
-  return z.object({
-    first_name: z.string().trim().min(2, t("validation.firstNameRequired")).max(60),
-    last_name: z.string().trim().min(2, t("validation.lastNameRequired")).max(60),
-    professional_number: z
-      .string()
-      .trim()
-      .min(1, t("validation.profNumberRequired"))
-      .max(30),
-    grade: z.string().trim().min(1, t("validation.gradeRequired")).max(60),
-    gender: z.enum(["male", "female"]),
-    section_id: z.string().uuid().nullable(),
-    dog_id: z.string().uuid().nullable(),
-    phone: z.string().trim().max(30),
-    address: z.string().trim().max(200),
-    observations: z.string().trim().max(500, t("validation.observationsMax")),
-    active: z.boolean(),
-  });
+  return z
+    .object({
+      first_name: z.string().trim().min(2, t("validation.firstNameRequired")).max(60),
+      last_name: z.string().trim().min(2, t("validation.lastNameRequired")).max(60),
+      professional_number: z
+        .string()
+        .trim()
+        .min(1, t("validation.profNumberRequired"))
+        .max(30),
+      grade: z.string().trim().min(1, t("validation.gradeRequired")).max(60),
+      gender: z.enum(["male", "female"]),
+      fonction: z.enum(PERSONNEL_FONCTIONS, {
+        required_error: t("validation.fonctionRequired"),
+      }),
+      marital_status: z.enum(MARITAL_STATUSES, {
+        required_error: t("validation.maritalStatusRequired"),
+        invalid_type_error: t("validation.maritalStatusRequired"),
+      }),
+      section_id: z.string().uuid().nullable(),
+      dog_id: z.string().uuid().nullable(),
+      phone: z.string().trim().max(30),
+      address: z.string().trim().max(200),
+      observations: z.string().trim().max(500, t("validation.observationsMax")),
+      active: z.boolean(),
+    })
+    .superRefine((values, ctx) => {
+      if (isChefDeSectionFonction(values.fonction) && !values.section_id) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: t("validation.sectionResponsibleRequired"),
+          path: ["section_id"],
+        });
+      }
+    });
 }
 type AgentForm = z.infer<ReturnType<typeof createAgentSchema>>;
 
@@ -118,9 +162,20 @@ type AgentSavePayload = Omit<AgentForm, "phone" | "address" | "observations"> & 
 };
 
 function normalizeAgentForm(values: AgentForm): AgentSavePayload {
+  const fonction = normalizePersonnelFonction(values.fonction);
+  const isCyno = isCynotechnicienFonction(fonction);
+  const isChef = isChefDeSectionFonction(fonction);
   return {
     ...values,
-    section_id: values.gender === "female" ? null : values.section_id,
+    fonction,
+    section_id: isCyno
+      ? values.gender !== "female"
+        ? values.section_id
+        : null
+      : isChef
+        ? values.section_id
+        : null,
+    dog_id: isCyno ? values.dog_id : null,
     phone: values.phone.trim() || null,
     address: values.address.trim() || null,
     observations: values.observations.trim() || null,
@@ -130,14 +185,16 @@ function normalizeAgentForm(values: AgentForm): AgentSavePayload {
 type ActiveFilter = "all" | "active" | "inactive";
 type GenderFilter = "all" | Gender;
 type SpecialtyFilter = "all" | "narcotics" | "explosives" | "none";
-type OperationalFilter = "all" | AgentOperationalStatus;
+type MaritalFilter = "all" | MaritalStatus;
 
-const emptyForm: AgentForm = {
+const emptyForm: AgentFormValues = {
   first_name: "",
   last_name: "",
   professional_number: "",
   grade: "",
   gender: "male",
+  fonction: DEFAULT_PERSONNEL_FONCTION,
+  marital_status: "",
   section_id: null,
   dog_id: null,
   phone: "",
@@ -146,12 +203,10 @@ const emptyForm: AgentForm = {
   active: true,
 };
 
-const OPERATIONAL_TONE: Record<AgentOperationalStatus, "success" | "danger"> = {
-  available: "success",
-  excluded: "danger",
-};
-
 const PAGE_SIZE = 15;
+
+/** Toast once if Electron main predates marital_status IPC support. */
+let staleMaritalMainToastShown = false;
 
 function pct(value: number, total: number): string {
   if (total <= 0) return "0%";
@@ -163,20 +218,24 @@ function exportAgentsCsv(rows: AgentRow[], filename: string, t: (key: string) =>
   const header = [
     t("employees.table.name"),
     t("employees.field.professionalNumber"),
+    t("employees.field.fonction"),
     t("field.grade"),
     t("field.section"),
     t("employees.field.assignedDog"),
     t("field.gender"),
+    t("employees.field.maritalStatus"),
     t("field.active"),
   ];
   const lines = rows.map((row) =>
     [
       `${row.first_name} ${row.last_name}`,
       row.professional_number,
+      t(`personnelFonction.${normalizePersonnelFonction(row.fonction)}`),
       row.grade,
       row.sections?.name ?? "",
       row.dogs?.name ?? "",
       t(`gender.${row.gender}`),
+      formatMaritalStatusLabel(row.marital_status, t),
       row.active ? t("common.yes") : t("common.no"),
     ]
       .map((cell) => escape(String(cell)))
@@ -191,12 +250,14 @@ function exportAgentsCsv(rows: AgentRow[], filename: string, t: (key: string) =>
   URL.revokeObjectURL(url);
 }
 
-function operationalStatusLabel(status: AgentOperationalStatus, t: (key: string) => string) {
-  const keys: Record<AgentOperationalStatus, string> = {
-    available: "employees.operationalStatus.available",
-    excluded: "employees.operationalStatus.excluded",
-  };
-  return t(keys[status]);
+function availabilityLabel(
+  availability: ReturnType<typeof deriveAgentAvailability>,
+  t: (key: string) => string,
+): string {
+  if (availability.status === "available") {
+    return t("employees.operationalStatus.available");
+  }
+  return t(`exclusions.type.${availability.exclusionType}`);
 }
 
 function EmployeesPage() {
@@ -206,17 +267,21 @@ function EmployeesPage() {
 
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<PersonnelSortKey>(DEFAULT_PERSONNEL_SORT);
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
   const [sectionFilter, setSectionFilter] = useState<string>("all");
+  const [gradeFilter, setGradeFilter] = useState<string>("all");
   const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
   const [specialtyFilter, setSpecialtyFilter] = useState<SpecialtyFilter>("all");
-  const [operationalFilter, setOperationalFilter] = useState<OperationalFilter>("all");
+  const [fonctionFilter, setFonctionFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<PersonnelStatusFilter>("all");
+  const [maritalFilter, setMaritalFilter] = useState<MaritalFilter>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<AgentRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AgentRow | null>(null);
   const [detailsAgentId, setDetailsAgentId] = useState<string | null>(null);
-  const [form, setForm] = useState<AgentForm>(emptyForm);
-  const [errors, setErrors] = useState<Partial<Record<keyof AgentForm, string>>>({});
+  const [form, setForm] = useState<AgentFormValues>(emptyForm);
+  const [errors, setErrors] = useState<Partial<Record<keyof AgentFormValues, string>>>({});
   const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
   const [removePhoto, setRemovePhoto] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -225,7 +290,23 @@ function EmployeesPage() {
 
   const { data: agents, isLoading, dataUpdatedAt } = useQuery({
     queryKey: ["agents-full"],
-    queryFn: getAgents,
+    queryFn: async () => {
+      const rows = await getAgents();
+      // Stale Electron main (started before marital_status existed) omits the key entirely.
+      // Null is valid (« Non renseignée »); missing key means the IPC store must be restarted.
+      if (
+        rows.length > 0 &&
+        !Object.prototype.hasOwnProperty.call(rows[0], "marital_status") &&
+        !staleMaritalMainToastShown
+      ) {
+        staleMaritalMainToastShown = true;
+        console.error(
+          "[employees] getAgents() response is missing marital_status — Electron main is stale. Quit and restart npm run electron:dev.",
+        );
+        toast.error(t("employees.error.staleMainMaritalStatus"));
+      }
+      return rows;
+    },
   });
 
   const { data: sections } = useQuery({
@@ -300,8 +381,19 @@ function EmployeesPage() {
     };
   }, [agents, todayExclusions]);
 
+  const gradeOptions = useMemo(
+    () => uniquePersonnelGrades(agents ?? []),
+    [agents],
+  );
+
+  const showSenioritySort = useMemo(
+    () => hasPersonnelSeniorityData(agents ?? []),
+    [agents],
+  );
+
   const filtered = useMemo(() => {
     let list = agents ?? [];
+    const exclusions = todayExclusions as AgentExclusionRecord[];
 
     if (activeFilter !== "all") {
       const active = activeFilter === "active";
@@ -309,6 +401,14 @@ function EmployeesPage() {
     }
     if (sectionFilter !== "all") {
       list = list.filter((a) => a.section_id === sectionFilter);
+    }
+    if (gradeFilter !== "all") {
+      list = list.filter((a) => (a.grade?.trim() ?? "") === gradeFilter);
+    }
+    if (fonctionFilter !== "all") {
+      list = list.filter(
+        (a) => normalizePersonnelFonction(a.fonction) === fonctionFilter,
+      );
     }
     if (genderFilter !== "all") {
       list = list.filter((a) => a.gender === genderFilter);
@@ -320,45 +420,87 @@ function EmployeesPage() {
         return spec === specialtyFilter;
       });
     }
-    if (operationalFilter !== "all") {
-      const exclusions = todayExclusions as AgentExclusionRecord[];
-      list = list.filter((a) => deriveAgentOperationalStatus(a, exclusions) === operationalFilter);
-    }
-
-    const q = search.trim().toLowerCase();
-    if (q) {
-      list = list.filter(
-        (a) =>
-          a.first_name.toLowerCase().includes(q) ||
-          a.last_name.toLowerCase().includes(q) ||
-          a.professional_number.toLowerCase().includes(q) ||
-          a.grade.toLowerCase().includes(q),
+    if (statusFilter !== "all") {
+      list = list.filter((a) =>
+        personnelMatchesStatusFilter(a.id, exclusions, statusFilter),
       );
     }
-    return list;
-  }, [agents, activeFilter, sectionFilter, genderFilter, specialtyFilter, operationalFilter, search, todayExclusions]);
+    if (maritalFilter !== "all") {
+      list = list.filter((a) => normalizeMaritalStatus(a.marital_status) === maritalFilter);
+    }
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    list = list.filter((a) =>
+      personnelMatchesSearch(a, search, (fonction) => t(`personnelFonction.${fonction}`)),
+    );
+
+    const sorted = [...list];
+    sorted.sort((a, b) => comparePersonnelRows(a, b, sortBy, exclusions));
+    return sorted;
+  }, [
+    agents,
+    activeFilter,
+    sectionFilter,
+    gradeFilter,
+    fonctionFilter,
+    genderFilter,
+    specialtyFilter,
+    statusFilter,
+    maritalFilter,
+    sortBy,
+    search,
+    todayExclusions,
+    t,
+  ]);
+
+  /** Two-table layout: admin/command first (hierarchy), then Cynotechniciens. */
+  const { administrative: adminRows, operational: operationalRows } = useMemo(
+    () => splitPersonnelIntoTwoTables(filtered),
+    [filtered],
+  );
+
+  const displayList = useMemo(
+    () => [...adminRows, ...operationalRows],
+    [adminRows, operationalRows],
+  );
+
+  const totalPages = Math.max(1, Math.ceil(displayList.length / PAGE_SIZE));
   const paginated = useMemo(() => {
     const start = (page - 1) * PAGE_SIZE;
-    return filtered.slice(start, start + PAGE_SIZE);
-  }, [filtered, page]);
+    return displayList.slice(start, start + PAGE_SIZE);
+  }, [displayList, page]);
+
+  const pageAdminRows = useMemo(
+    () => paginated.filter((agent) => !usesOperationalPersonnelColumns(agent.fonction)),
+    [paginated],
+  );
+  const pageOperationalRows = useMemo(
+    () => paginated.filter((agent) => usesOperationalPersonnelColumns(agent.fonction)),
+    [paginated],
+  );
 
   const hasActiveFilters =
     search.trim() !== "" ||
     activeFilter !== "all" ||
     sectionFilter !== "all" ||
+    gradeFilter !== "all" ||
+    fonctionFilter !== "all" ||
     genderFilter !== "all" ||
     specialtyFilter !== "all" ||
-    operationalFilter !== "all";
+    statusFilter !== "all" ||
+    maritalFilter !== "all" ||
+    sortBy !== DEFAULT_PERSONNEL_SORT;
 
   const resetFilters = () => {
     setSearch("");
+    setSortBy(DEFAULT_PERSONNEL_SORT);
     setActiveFilter("all");
     setSectionFilter("all");
+    setGradeFilter("all");
+    setFonctionFilter("all");
     setGenderFilter("all");
     setSpecialtyFilter("all");
-    setOperationalFilter("all");
+    setStatusFilter("all");
+    setMaritalFilter("all");
     setPage(1);
   };
 
@@ -395,7 +537,27 @@ function EmployeesPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, activeFilter, sectionFilter, genderFilter, specialtyFilter, operationalFilter]);
+  }, [
+    search,
+    sortBy,
+    activeFilter,
+    sectionFilter,
+    gradeFilter,
+    fonctionFilter,
+    genderFilter,
+    specialtyFilter,
+    statusFilter,
+    maritalFilter,
+  ]);
+
+  useEffect(() => {
+    if (
+      !showSenioritySort &&
+      (sortBy === "seniority_asc" || sortBy === "seniority_desc")
+    ) {
+      setSortBy(DEFAULT_PERSONNEL_SORT);
+    }
+  }, [showSenioritySort, sortBy]);
 
   const resetPhotoState = () => {
     setPendingPhotoFile(null);
@@ -419,6 +581,8 @@ function EmployeesPage() {
       professional_number: a.professional_number,
       grade: a.grade,
       gender: a.gender as Gender,
+      fonction: normalizePersonnelFonction(a.fonction),
+      marital_status: normalizeMaritalStatus(a.marital_status) ?? "",
       section_id: a.section_id,
       dog_id: a.dog_id,
       phone: a.phone ?? "",
@@ -432,8 +596,13 @@ function EmployeesPage() {
   };
 
   const saveMutation = useMutation({
-    mutationFn: async (values: AgentForm) => {
+    mutationFn: async (values: AgentForm): Promise<AgentRow> => {
       const payload = normalizeAgentForm(values);
+      const maritalStatus = normalizeMaritalStatus(payload.marital_status);
+      if (!maritalStatus) {
+        throw new Error(t("validation.maritalStatusRequired"));
+      }
+      const writePayload = { ...payload, marital_status: maritalStatus };
 
       if (pendingPhotoFile) {
         const validationKey = validateAgentPhotoFile(pendingPhotoFile);
@@ -457,24 +626,42 @@ function EmployeesPage() {
           photoUrl = await uploadAgentPhoto(db, editing.id, pendingPhotoFile);
         }
 
-        await updateAgent(editing.id, { ...payload, photo_url: photoUrl });
-        return;
+        return (await updateAgent(editing.id, {
+          ...writePayload,
+          photo_url: photoUrl,
+        })) as AgentRow;
       }
 
-      const created = await createAgent(payload);
+      const created = await createAgent(writePayload);
 
       if (pendingPhotoFile) {
         const photoUrl = await uploadAgentPhoto(db, created.id, pendingPhotoFile);
-        await updateAgent(created.id, { ...payload, photo_url: photoUrl });
+        return (await updateAgent(created.id, {
+          ...writePayload,
+          photo_url: photoUrl,
+        })) as AgentRow;
       }
+
+      return created as AgentRow;
     },
-    onSuccess: () => {
+    onSuccess: async (saved) => {
       toast.success(editing ? t("employees.toast.updated") : t("employees.toast.created"));
-      queryClient.invalidateQueries({ queryKey: ["agents-full"] });
-      if (editing) {
-        queryClient.invalidateQueries({ queryKey: ["agent", editing.id] });
-        queryClient.invalidateQueries({ queryKey: ["agent-details", editing.id] });
-      }
+      // Immediate table update (Situation familiale) before network refetch completes.
+      queryClient.setQueryData<AgentRow[]>(["agents-full"], (prev) => {
+        if (!prev) return [saved];
+        const index = prev.findIndex((row) => row.id === saved.id);
+        if (index === -1) return [saved, ...prev];
+        const next = [...prev];
+        next[index] = { ...next[index], ...saved };
+        return next;
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["agents-full"] }),
+        queryClient.invalidateQueries({ queryKey: ["sections-with-counts"] }),
+        queryClient.invalidateQueries({ queryKey: ["sections"] }),
+        queryClient.invalidateQueries({ queryKey: ["agent", saved.id] }),
+        queryClient.invalidateQueries({ queryKey: ["agent-details", saved.id] }),
+      ]);
       setDialogOpen(false);
       resetPhotoState();
     },
@@ -502,6 +689,8 @@ function EmployeesPage() {
     onSuccess: () => {
       toast.success(t("employees.toast.deleted"));
       queryClient.invalidateQueries({ queryKey: ["agents-full"] });
+      queryClient.invalidateQueries({ queryKey: ["sections-with-counts"] });
+      queryClient.invalidateQueries({ queryKey: ["sections"] });
       setDeleteTarget(null);
     },
     onError: (err: { message?: string }) => {
@@ -525,96 +714,47 @@ function EmployeesPage() {
     saveMutation.mutate(parsed.data);
   };
 
-  const columns = useMemo<ColumnDef<AgentRow>[]>(
+  const agentIdentityColumn = useMemo<ColumnDef<AgentRow>>(
+    () => ({
+      id: "agent",
+      header: t("employees.table.name"),
+      meta: { width: "24%" },
+      cell: ({ row }) => {
+        const a = row.original;
+        const fullName = `${a.first_name} ${a.last_name}`;
+        return (
+          <div className="flex min-w-0 items-center gap-2">
+            <AgentAvatar
+              firstName={a.first_name}
+              lastName={a.last_name}
+              photoUrl={a.photo_url}
+              className="h-8 w-8 shrink-0"
+            />
+            <CellTooltip label={`${fullName} · #${a.professional_number}`} className="flex-1">
+              <button
+                type="button"
+                onClick={() => setDetailsAgentId(a.id)}
+                className="block min-w-0 rounded-md text-left transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <p className="truncate text-sm font-semibold leading-tight">{fullName}</p>
+                <p className="truncate font-mono text-[10px] text-muted-foreground">
+                  #{a.professional_number}
+                </p>
+              </button>
+            </CellTooltip>
+          </div>
+        );
+      },
+    }),
+    [t],
+  );
+
+  const sharedTrailingColumns = useMemo<ColumnDef<AgentRow>[]>(
     () => [
-      {
-        id: "agent",
-        header: t("employees.table.name"),
-        meta: { width: "26%" },
-        cell: ({ row }) => {
-          const a = row.original;
-          const fullName = `${a.first_name} ${a.last_name}`;
-          return (
-            <div className="flex min-w-0 items-center gap-2">
-              <AgentAvatar
-                firstName={a.first_name}
-                lastName={a.last_name}
-                photoUrl={a.photo_url}
-                className="h-8 w-8 shrink-0"
-              />
-              <CellTooltip label={`${fullName} · #${a.professional_number}`} className="flex-1">
-                <button
-                  type="button"
-                  onClick={() => setDetailsAgentId(a.id)}
-                  className="block min-w-0 rounded-md text-left transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <p className="truncate text-sm font-semibold leading-tight">{fullName}</p>
-                  <p className="truncate font-mono text-[10px] text-muted-foreground">
-                    #{a.professional_number}
-                  </p>
-                </button>
-              </CellTooltip>
-            </div>
-          );
-        },
-      },
-      {
-        id: "dog",
-        header: t("employees.table.assignedDog"),
-        meta: { width: "17%" },
-        cell: ({ row }) => {
-          const dog = row.original.dogs;
-          if (!dog) return <span className="text-[10px] text-muted-foreground">—</span>;
-          return (
-            <CellTooltip label={dog.name} className="flex min-w-0 items-center gap-1.5">
-              <DogIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              <span className="truncate text-sm font-medium">{dog.name}</span>
-            </CellTooltip>
-          );
-        },
-      },
-      {
-        id: "specialty",
-        header: t("field.specialty"),
-        meta: { width: "11%", align: "center" },
-        cell: ({ row }) => {
-          const spec = agentSpecialty(row.original);
-          if (!spec) return <span className="text-[10px] text-muted-foreground">—</span>;
-          const isNarcotics = spec === "narcotics";
-          const short = isNarcotics
-            ? t("checkpoints.badge.narcotics")
-            : t("checkpoints.badge.explosives");
-          const full = t(`specialty.${spec}`);
-          return (
-            <CellTooltip label={full}>
-              <StatusBadge tone={isNarcotics ? "success" : "danger"} className="max-w-full gap-0.5 px-1.5 py-0 text-[10px]">
-                {isNarcotics ? <Pill className="h-2.5 w-2.5 shrink-0" /> : <Bomb className="h-2.5 w-2.5 shrink-0" />}
-                <span className="truncate">{short}</span>
-              </StatusBadge>
-            </CellTooltip>
-          );
-        },
-      },
-      {
-        id: "section",
-        header: t("field.section"),
-        meta: { width: "11%" },
-        cell: ({ row }) => {
-          const name = row.original.sections?.name;
-          if (!name) return <span className="text-[10px] text-muted-foreground">—</span>;
-          return (
-            <CellTooltip label={name}>
-              <StatusBadge tone="neutral" className="max-w-full truncate px-1.5 py-0 text-[10px]">
-                {name}
-              </StatusBadge>
-            </CellTooltip>
-          );
-        },
-      },
       {
         id: "grade",
         header: t("field.grade"),
-        meta: { width: "8%", align: "center" },
+        meta: { width: "10%", align: "center" },
         cell: ({ row }) => {
           const grade = row.original.grade;
           return (
@@ -629,9 +769,7 @@ function EmployeesPage() {
       },
       {
         id: "gender",
-        header: () => (
-          <span className="sr-only">{t("field.gender")}</span>
-        ),
+        header: () => <span className="sr-only">{t("field.gender")}</span>,
         meta: { width: "4%", align: "center" },
         cell: ({ row }) => {
           const g = row.original.gender;
@@ -646,20 +784,38 @@ function EmployeesPage() {
         },
       },
       {
-        id: "operational",
-        header: () => (
-          <span className="sr-only">{t("employees.filter.operationalStatus")}</span>
-        ),
-        meta: { width: "7%", align: "center" },
+        id: "marital_status",
+        header: t("employees.field.maritalStatus"),
+        meta: { width: "12%" },
+        cell: ({ row }) => {
+          const label = formatMaritalStatusLabel(row.original.marital_status, t);
+          const hasValue = !!normalizeMaritalStatus(row.original.marital_status);
+          return (
+            <CellTooltip label={label}>
+              <span
+                className={`truncate text-xs ${hasValue ? "text-foreground" : "text-muted-foreground"}`}
+              >
+                {label}
+              </span>
+            </CellTooltip>
+          );
+        },
+      },
+      {
+        id: "disponibilite",
+        header: t("employees.table.disponibilite"),
+        meta: { width: "11%", align: "center" },
         cell: ({ row }) => {
           const exclusions = todayExclusions as AgentExclusionRecord[];
-          const status = deriveAgentOperationalStatus(row.original, exclusions);
-          const label = operationalStatusLabel(status, t);
-          const Icon = status === "available" ? UserCheck : UserX;
+          const availability = deriveAgentAvailability(row.original.id, exclusions);
+          const label = availabilityLabel(availability, t);
           return (
             <CellTooltip label={label} className="flex justify-center">
-              <StatusBadge tone={OPERATIONAL_TONE[status]} className="px-1.5 py-0">
-                <Icon className="h-3 w-3" />
+              <StatusBadge
+                tone={availabilityBadgeTone(availability)}
+                className="max-w-full px-1.5 py-0 text-[10px]"
+              >
+                <span className="truncate">{label}</span>
               </StatusBadge>
             </CellTooltip>
           );
@@ -684,7 +840,7 @@ function EmployeesPage() {
       {
         id: "actions",
         header: () => <span className="sr-only">{t("common.actions")}</span>,
-        meta: { width: "11%", sticky: "right", align: "right" },
+        meta: { width: "10%", sticky: "right", align: "right" },
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-0 opacity-90 transition-opacity group-hover:opacity-100">
             <Button
@@ -710,6 +866,100 @@ function EmployeesPage() {
       },
     ],
     [t, todayExclusions],
+  );
+
+  /** Administrative / command — Fonction column; no dog / specialty / section. */
+  const adminColumns = useMemo<ColumnDef<AgentRow>[]>(
+    () => [
+      { ...agentIdentityColumn, meta: { width: "26%" } },
+      {
+        id: "fonction",
+        header: t("employees.table.fonction"),
+        meta: { width: "18%" },
+        cell: ({ row }) => {
+          const fonction = normalizePersonnelFonction(row.original.fonction);
+          const label = t(`personnelFonction.${fonction}`);
+          return (
+            <CellTooltip label={label}>
+              <span className="block truncate text-sm font-medium leading-tight text-foreground">
+                {label}
+              </span>
+            </CellTooltip>
+          );
+        },
+      },
+      ...sharedTrailingColumns,
+    ],
+    [agentIdentityColumn, sharedTrailingColumns, t],
+  );
+
+  /** Cynotechniciens — full operational columns. */
+  const operationalColumns = useMemo<ColumnDef<AgentRow>[]>(
+    () => [
+      { ...agentIdentityColumn, meta: { width: "22%" } },
+      {
+        id: "dog",
+        header: t("employees.table.assignedDog"),
+        meta: { width: "13%" },
+        cell: ({ row }) => {
+          const dog = row.original.dogs;
+          if (!dog) return <span className="text-[10px] text-muted-foreground">—</span>;
+          return (
+            <CellTooltip label={dog.name} className="flex min-w-0 items-center gap-1.5">
+              <DogIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <span className="truncate text-sm font-medium">{dog.name}</span>
+            </CellTooltip>
+          );
+        },
+      },
+      {
+        id: "specialty",
+        header: t("field.specialty"),
+        meta: { width: "10%", align: "center" },
+        cell: ({ row }) => {
+          const spec = agentSpecialty(row.original);
+          if (!spec) return <span className="text-[10px] text-muted-foreground">—</span>;
+          const isNarcotics = spec === "narcotics";
+          const short = isNarcotics
+            ? t("checkpoints.badge.narcotics")
+            : t("checkpoints.badge.explosives");
+          const full = t(`specialty.${spec}`);
+          return (
+            <CellTooltip label={full}>
+              <StatusBadge
+                tone={isNarcotics ? "success" : "danger"}
+                className="max-w-full gap-0.5 px-1.5 py-0 text-[10px]"
+              >
+                {isNarcotics ? (
+                  <Pill className="h-2.5 w-2.5 shrink-0" />
+                ) : (
+                  <Bomb className="h-2.5 w-2.5 shrink-0" />
+                )}
+                <span className="truncate">{short}</span>
+              </StatusBadge>
+            </CellTooltip>
+          );
+        },
+      },
+      {
+        id: "section",
+        header: t("field.section"),
+        meta: { width: "10%" },
+        cell: ({ row }) => {
+          const name = row.original.sections?.name;
+          if (!name) return <span className="text-[10px] text-muted-foreground">—</span>;
+          return (
+            <CellTooltip label={name}>
+              <StatusBadge tone="neutral" className="max-w-full truncate px-1.5 py-0 text-[10px]">
+                {name}
+              </StatusBadge>
+            </CellTooltip>
+          );
+        },
+      },
+      ...sharedTrailingColumns,
+    ],
+    [agentIdentityColumn, sharedTrailingColumns, t],
   );
 
   return (
@@ -807,6 +1057,41 @@ function EmployeesPage() {
           value={search}
           onChange={setSearch}
         />
+        <div className="flex min-w-0 items-center gap-2 sm:min-w-[16rem]">
+          <span className="hidden shrink-0 text-xs font-medium text-muted-foreground sm:inline">
+            {t("employees.sort.label")}
+          </span>
+          <Select
+            value={sortBy}
+            onValueChange={(v) => setSortBy(v as PersonnelSortKey)}
+          >
+            <FilterSelectTrigger
+              className="min-w-[11rem] sm:min-w-[14rem]"
+              aria-label={t("employees.sort.label")}
+            >
+              <SelectValue placeholder={t("employees.sort.label")} />
+            </FilterSelectTrigger>
+            <SelectContent>
+              <SelectItem value="matricule_asc">{t("employees.sort.matriculeAsc")}</SelectItem>
+              <SelectItem value="matricule_desc">{t("employees.sort.matriculeDesc")}</SelectItem>
+              <SelectItem value="name_asc">{t("employees.sort.nameAsc")}</SelectItem>
+              <SelectItem value="name_desc">{t("employees.sort.nameDesc")}</SelectItem>
+              <SelectItem value="grade_asc">{t("employees.sort.grade")}</SelectItem>
+              <SelectItem value="fonction_asc">{t("employees.sort.fonction")}</SelectItem>
+              <SelectItem value="section_asc">{t("employees.sort.section")}</SelectItem>
+              <SelectItem value="specialty_asc">{t("employees.sort.specialty")}</SelectItem>
+              <SelectItem value="availability_asc">{t("employees.sort.availability")}</SelectItem>
+              <SelectItem value="marital_asc">{t("employees.sort.marital")}</SelectItem>
+              <SelectItem value="gender_asc">{t("employees.sort.gender")}</SelectItem>
+              {showSenioritySort ? (
+                <>
+                  <SelectItem value="seniority_asc">{t("employees.sort.seniorityAsc")}</SelectItem>
+                  <SelectItem value="seniority_desc">{t("employees.sort.seniorityDesc")}</SelectItem>
+                </>
+              ) : null}
+            </SelectContent>
+          </Select>
+        </div>
         <Select value={sectionFilter} onValueChange={setSectionFilter}>
           <FilterSelectTrigger>
             <SelectValue placeholder={t("field.section")} />
@@ -831,6 +1116,49 @@ function EmployeesPage() {
             <SelectItem value="none">{t("common.none")}</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={gradeFilter} onValueChange={setGradeFilter}>
+          <FilterSelectTrigger>
+            <SelectValue placeholder={t("employees.filter.grade")} />
+          </FilterSelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("employees.filter.allGrades")}</SelectItem>
+            {gradeOptions.map((grade) => (
+              <SelectItem key={grade} value={grade}>
+                {grade}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={statusFilter}
+          onValueChange={(v) => setStatusFilter(v as PersonnelStatusFilter)}
+        >
+          <FilterSelectTrigger>
+            <SelectValue placeholder={t("employees.filter.operationalStatus")} />
+          </FilterSelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("employees.filter.allStatuses")}</SelectItem>
+            <SelectItem value="available">{t("employees.operationalStatus.available")}</SelectItem>
+            {PERSONNEL_STATUS_FILTER_TYPES.map((status) => (
+              <SelectItem key={status} value={status}>
+                {t(`exclusions.type.${status}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={fonctionFilter} onValueChange={setFonctionFilter}>
+          <FilterSelectTrigger>
+            <SelectValue placeholder={t("employees.filter.fonction")} />
+          </FilterSelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("employees.filter.allFonctions")}</SelectItem>
+            {PERSONNEL_FONCTIONS.map((fonction) => (
+              <SelectItem key={fonction} value={fonction}>
+                {t(`personnelFonction.${fonction}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={genderFilter} onValueChange={(v) => setGenderFilter(v as GenderFilter)}>
           <FilterSelectTrigger>
             <SelectValue placeholder={t("field.gender")} />
@@ -841,14 +1169,20 @@ function EmployeesPage() {
             <SelectItem value="female">{t("gender.female")}</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={operationalFilter} onValueChange={(v) => setOperationalFilter(v as OperationalFilter)}>
+        <Select
+          value={maritalFilter}
+          onValueChange={(v) => setMaritalFilter(v as MaritalFilter)}
+        >
           <FilterSelectTrigger>
-            <SelectValue placeholder={t("employees.filter.operationalStatus")} />
+            <SelectValue placeholder={t("employees.field.maritalStatus")} />
           </FilterSelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{t("employees.filter.allStatuses")}</SelectItem>
-            <SelectItem value="available">{t("employees.operationalStatus.available")}</SelectItem>
-            <SelectItem value="excluded">{t("employees.operationalStatus.excluded")}</SelectItem>
+            <SelectItem value="all">{t("employees.maritalStatus.filterAll")}</SelectItem>
+            {MARITAL_STATUSES.map((status) => (
+              <SelectItem key={status} value={status}>
+                {t(`employees.maritalStatus.${status}`)}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Select value={activeFilter} onValueChange={(v) => setActiveFilter(v as ActiveFilter)}>
@@ -867,19 +1201,19 @@ function EmployeesPage() {
         header={
           <p className="text-sm text-muted-foreground">
             {t("employees.table.showing", {
-              displayed: filtered.length,
+              displayed: displayList.length,
               total: agents?.length ?? 0,
             })}
           </p>
         }
         footer={
-          filtered.length > 0 ? (
+          displayList.length > 0 ? (
             <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
               <p className="text-xs text-muted-foreground">
                 {t("employees.table.pagination", {
                   from: (page - 1) * PAGE_SIZE + 1,
-                  to: Math.min(page * PAGE_SIZE, filtered.length),
-                  total: filtered.length,
+                  to: Math.min(page * PAGE_SIZE, displayList.length),
+                  total: displayList.length,
                 })}
               </p>
               <Pagination>
@@ -935,21 +1269,46 @@ function EmployeesPage() {
       >
         <TableTooltipProvider>
           <DataTableShell isLoading={isLoading}>
-            <EnterpriseDataTable
-              data={paginated}
-              columns={columns}
-              getRowId={(row) => row.id}
-              layout="fixed"
-              density="compact"
-              responsiveScroll
-              emptyState={
-                <EmptyState
-                  icon={Users}
-                  title={t("employees.empty.title")}
-                  description={t("employees.empty.description")}
-                />
-              }
-            />
+            {displayList.length === 0 ? (
+              <EmptyState
+                icon={Users}
+                title={t("employees.empty.title")}
+                description={t("employees.empty.description")}
+              />
+            ) : (
+              <div className="space-y-6">
+                {pageAdminRows.length > 0 ? (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold tracking-tight text-foreground">
+                      {t("employees.table.adminTitle")}
+                    </h3>
+                    <EnterpriseDataTable
+                      data={pageAdminRows}
+                      columns={adminColumns}
+                      getRowId={(row) => row.id}
+                      layout="fixed"
+                      density="compact"
+                      responsiveScroll
+                    />
+                  </div>
+                ) : null}
+                {pageOperationalRows.length > 0 ? (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold tracking-tight text-foreground">
+                      {t("employees.table.operationalTitle")}
+                    </h3>
+                    <EnterpriseDataTable
+                      data={pageOperationalRows}
+                      columns={operationalColumns}
+                      getRowId={(row) => row.id}
+                      layout="fixed"
+                      density="compact"
+                      responsiveScroll
+                    />
+                  </div>
+                ) : null}
+              </div>
+            )}
           </DataTableShell>
         </TableTooltipProvider>
       </AgentsTableShell>

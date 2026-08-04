@@ -5,7 +5,14 @@ import { z } from "zod";
 import { Layers, Plus } from "lucide-react";
 import { toast } from "sonner";
 
-import { createSection, deleteSection, getSections, updateSection } from "@/integrations/database";
+import { db } from "@/integrations/database/client";
+import {
+  createSection,
+  deleteSection,
+  getAgents,
+  getSections,
+  updateSection,
+} from "@/integrations/database";
 import type { Section, SectionWithAgentCount, ShiftType } from "@/integrations/database";
 import { PageTitle } from "@/components/layout/PageTitle";
 import { EmptyState } from "@/components/layout/EmptyState";
@@ -22,6 +29,9 @@ import { FilterBar, FilterPills } from "@/components/enterprise/filter-bar";
 import { SearchField } from "@/components/enterprise/search-field";
 import { FilterSelectTrigger } from "@/components/enterprise/filter-select";
 import { SectionManagementCard } from "@/components/enterprise/section-management-card";
+import { SectionDetailSheet } from "@/components/sections/section-detail-sheet";
+import { SectionAssignmentsDialog } from "@/components/sections/section-assignments-dialog";
+import { SectionExclusionsSheet } from "@/components/sections/section-exclusions-sheet";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -33,6 +43,13 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  ACTIVE_EXCLUSIONS_TODAY_QUERY_KEY,
+  fetchActiveExclusionsForDate,
+  todayISODate,
+  type AgentExclusionRecord,
+} from "@/lib/agent-exclusions";
+import { computeSectionOperationalStats } from "@/lib/section-operational-stats";
 import { useI18n } from "@/hooks/use-i18n";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 
@@ -46,9 +63,10 @@ function createSectionSchema(t: (key: string) => string) {
     name: z.string().trim().min(2, t("validation.nameMinLength")).max(80),
     shift_type: z.enum(["day", "night"]),
     active: z.boolean(),
-    commander_full_name: z.string().trim().min(1, t("validation.commanderFullNameRequired")).max(120),
-    commander_grade: z.string().trim().min(1, t("validation.gradeRequired")).max(60),
-    commander_mle: z.string().trim().min(1, t("validation.profNumberRequired")).max(40),
+    // Commander identity is owned by Personnel (Chef de section) — never edited here.
+    commander_full_name: z.string().trim().max(120).optional().default(""),
+    commander_grade: z.string().trim().max(60).optional().default(""),
+    commander_mle: z.string().trim().max(40).optional().default(""),
   });
 }
 type SectionForm = z.infer<ReturnType<typeof createSectionSchema>>;
@@ -67,11 +85,53 @@ function SectionsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Section | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SectionWithCount | null>(null);
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [assignmentsOpen, setAssignmentsOpen] = useState(false);
+  const [exclusionsSectionId, setExclusionsSectionId] = useState<string | null>(null);
+
+  const statusReferenceISO = todayISODate();
 
   const { data, isLoading, dataUpdatedAt } = useQuery({
     queryKey: ["sections-with-counts"],
     queryFn: getSections,
   });
+
+  const { data: agents = [] } = useQuery({
+    queryKey: ["agents-full"],
+    queryFn: getAgents,
+  });
+
+  const { data: todayExclusions = [] } = useQuery({
+    queryKey: [...ACTIVE_EXCLUSIONS_TODAY_QUERY_KEY, statusReferenceISO],
+    queryFn: () => fetchActiveExclusionsForDate(db, statusReferenceISO),
+    refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
+    staleTime: 0,
+  });
+
+  const exclusions = todayExclusions as AgentExclusionRecord[];
+
+  const statsBySectionId = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof computeSectionOperationalStats>>();
+    for (const section of data ?? []) {
+      map.set(
+        section.id,
+        computeSectionOperationalStats(section.id, agents, exclusions, statusReferenceISO),
+      );
+    }
+    return map;
+  }, [data, agents, exclusions, statusReferenceISO]);
+
+  const selectedSection = useMemo(() => {
+    if (!selectedSectionId) return null;
+    return (data ?? []).find((s) => s.id === selectedSectionId) ?? null;
+  }, [data, selectedSectionId]);
+
+  const exclusionsSection = useMemo(() => {
+    if (!exclusionsSectionId) return null;
+    return (data ?? []).find((s) => s.id === exclusionsSectionId) ?? null;
+  }, [data, exclusionsSectionId]);
 
   const filtered = useMemo(() => {
     const list = data ?? [];
@@ -99,22 +159,24 @@ function SectionsPage() {
   const upsert = useMutation({
     mutationFn: async (values: SectionForm & { id?: string }) => {
       if (values.id) {
+        // Preserve commander fields — they are synced from Chef de section personnel.
+        const existing = (data ?? []).find((s) => s.id === values.id);
         await updateSection(values.id, {
           name: values.name,
           shift_type: values.shift_type,
           active: values.active,
-          commander_full_name: values.commander_full_name,
-          commander_grade: values.commander_grade,
-          commander_mle: values.commander_mle,
+          commander_full_name: existing?.commander_full_name ?? "",
+          commander_grade: existing?.commander_grade ?? "",
+          commander_mle: existing?.commander_mle ?? "",
         });
       } else {
         await createSection({
           name: values.name,
           shift_type: values.shift_type,
           active: values.active,
-          commander_full_name: values.commander_full_name,
-          commander_grade: values.commander_grade,
-          commander_mle: values.commander_mle,
+          commander_full_name: "",
+          commander_grade: "",
+          commander_mle: "",
         });
       }
     },
@@ -144,6 +206,23 @@ function SectionsPage() {
 
   const openCreate = () => { setEditing(null); setDialogOpen(true); };
   const openEdit = (s: Section) => { setEditing(s); setDialogOpen(true); };
+  const openDetail = (s: SectionWithCount) => {
+    setSelectedSectionId(s.id);
+    setDetailOpen(true);
+  };
+  const openAssignments = () => {
+    setAssignmentsOpen(true);
+  };
+
+  useEffect(() => {
+    if (!detailOpen && !assignmentsOpen) {
+      setSelectedSectionId(null);
+    }
+  }, [detailOpen, assignmentsOpen]);
+
+  const openSectionExclusions = (sectionId: string) => {
+    setExclusionsSectionId(sectionId);
+  };
 
   return (
     <div className="space-y-6">
@@ -207,35 +286,82 @@ function SectionsPage() {
           />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {filtered.map((s) => (
-              <SectionManagementCard
-                key={s.id}
-                name={s.name}
-                shiftType={s.shift_type}
-                active={s.active}
-                agentCount={s.agent_count}
-                createdAt={s.created_at}
-                commanderFullName={s.commander_full_name}
-                commanderGrade={s.commander_grade}
-                commanderMle={s.commander_mle}
-                shiftDayLabel={t("shift.dayShort")}
-                shiftNightLabel={t("shift.nightShort")}
-                activeLabel={t("common.active")}
-                inactiveLabel={t("common.inactive")}
-                agentsLabel={t("sections.table.assignedAgents")}
-                createdLabel={t("sections.table.created")}
-                commanderLabel={t("sections.field.commanderFullName")}
-                gradeLabel={t("sections.field.commanderGrade")}
-                mleLabel={t("sections.field.commanderMle")}
-                editLabel={t("action.edit")}
-                deleteLabel={t("action.delete")}
-                onEdit={() => openEdit(s)}
-                onDelete={() => setDeleteTarget(s)}
-              />
-            ))}
+            {filtered.map((s) => {
+              const stats = statsBySectionId.get(s.id) ?? {
+                assigned: s.agent_count,
+                available: s.agent_count,
+                unavailable: 0,
+                activeExclusions: 0,
+              };
+              return (
+                <SectionManagementCard
+                  key={s.id}
+                  name={s.name}
+                  shiftType={s.shift_type}
+                  active={s.active}
+                  agentCount={stats.assigned}
+                  availableCount={stats.available}
+                  unavailableCount={stats.unavailable}
+                  activeExclusionsCount={stats.activeExclusions}
+                  commanderFullName={s.commander_full_name}
+                  commanderGrade={s.commander_grade}
+                  commanderMle={s.commander_mle}
+                  shiftDayLabel={t("shift.dayShort")}
+                  shiftNightLabel={t("shift.nightShort")}
+                  activeLabel={t("common.active")}
+                  inactiveLabel={t("common.inactive")}
+                  agentsLabel={t("sections.stat.assigned")}
+                  availableLabel={t("sections.stat.available")}
+                  unavailableLabel={t("sections.stat.unavailable")}
+                  exclusionsLabel={t("sections.stat.activeExclusions")}
+                  commanderLabel={t("sections.field.commanderFullName")}
+                  gradeLabel={t("sections.field.commanderGrade")}
+                  mleLabel={t("sections.field.commanderMle")}
+                  editLabel={t("action.edit")}
+                  deleteLabel={t("action.delete")}
+                  openLabel={t("sections.detail.open")}
+                  onOpen={() => openDetail(s)}
+                  onExclusionsClick={() => openSectionExclusions(s.id)}
+                  onEdit={() => openEdit(s)}
+                  onDelete={() => setDeleteTarget(s)}
+                />
+              );
+            })}
           </div>
         )}
       </PageContentShell>
+
+      <SectionDetailSheet
+        section={selectedSection}
+        open={detailOpen && !!selectedSection}
+        onOpenChange={setDetailOpen}
+        agents={agents}
+        exclusions={exclusions}
+        referenceISO={statusReferenceISO}
+        onManageAssignments={openAssignments}
+      />
+
+      <SectionAssignmentsDialog
+        open={assignmentsOpen && !!selectedSection}
+        onOpenChange={setAssignmentsOpen}
+        section={selectedSection}
+        sections={data ?? []}
+        agents={agents}
+        exclusions={exclusions}
+        referenceISO={statusReferenceISO}
+      />
+
+      <SectionExclusionsSheet
+        open={!!exclusionsSection}
+        onOpenChange={(open) => {
+          if (!open) setExclusionsSectionId(null);
+        }}
+        sectionName={exclusionsSection?.name ?? null}
+        sectionId={exclusionsSection?.id ?? null}
+        agents={agents}
+        exclusions={exclusions}
+        referenceISO={statusReferenceISO}
+      />
 
       <SectionDialog
         open={dialogOpen}
@@ -294,9 +420,6 @@ function SectionDialog({
   const [name, setName] = useState("");
   const [shiftType, setShiftType] = useState<ShiftType>("day");
   const [active, setActive] = useState(true);
-  const [commanderFullName, setCommanderFullName] = useState("");
-  const [commanderGrade, setCommanderGrade] = useState("");
-  const [commanderMle, setCommanderMle] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -304,9 +427,6 @@ function SectionDialog({
       setName(initial?.name ?? "");
       setShiftType(initial?.shift_type ?? "day");
       setActive(initial?.active ?? true);
-      setCommanderFullName(initial?.commander_full_name ?? "");
-      setCommanderGrade(initial?.commander_grade ?? "");
-      setCommanderMle(initial?.commander_mle ?? "");
       setErrors({});
     }
   }, [open, initial]);
@@ -317,9 +437,9 @@ function SectionDialog({
       name,
       shift_type: shiftType,
       active,
-      commander_full_name: commanderFullName,
-      commander_grade: commanderGrade,
-      commander_mle: commanderMle,
+      commander_full_name: initial?.commander_full_name ?? "",
+      commander_grade: initial?.commander_grade ?? "",
+      commander_mle: initial?.commander_mle ?? "",
     });
     if (!parsed.success) {
       const errs: Record<string, string> = {};
@@ -329,6 +449,8 @@ function SectionDialog({
     }
     onSubmit(parsed.data);
   };
+
+  const hasLinkedCommander = Boolean(initial?.commander_full_name?.trim());
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -368,58 +490,33 @@ function SectionDialog({
               </Select>
             </div>
 
-            <div className="space-y-3 rounded-lg border p-3">
+            <div className="space-y-2 rounded-lg border border-dashed border-border/80 bg-muted/20 p-3">
               <p className="text-sm font-medium text-foreground">{t("sections.commander.title")}</p>
-
-              <div className="space-y-2">
-                <Label htmlFor="commanderFullName">
-                  {t("sections.field.commanderFullName")} <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="commanderFullName"
-                  value={commanderFullName}
-                  onChange={(e) => setCommanderFullName(e.target.value)}
-                  placeholder={t("sections.placeholder.commanderFullName")}
-                  maxLength={120}
-                />
-                {errors.commander_full_name && (
-                  <p className="text-sm text-destructive">{errors.commander_full_name}</p>
-                )}
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="commanderGrade">
-                    {t("sections.field.commanderGrade")} <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="commanderGrade"
-                    value={commanderGrade}
-                    onChange={(e) => setCommanderGrade(e.target.value)}
-                    placeholder={t("sections.placeholder.commanderGrade")}
-                    maxLength={60}
-                  />
-                  {errors.commander_grade && (
-                    <p className="text-sm text-destructive">{errors.commander_grade}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="commanderMle">
-                    {t("sections.field.commanderMle")} <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="commanderMle"
-                    value={commanderMle}
-                    onChange={(e) => setCommanderMle(e.target.value)}
-                    placeholder={t("sections.placeholder.commanderMle")}
-                    maxLength={40}
-                  />
-                  {errors.commander_mle && (
-                    <p className="text-sm text-destructive">{errors.commander_mle}</p>
-                  )}
-                </div>
-              </div>
+              {hasLinkedCommander ? (
+                <>
+                  <p className="text-sm font-semibold text-foreground">
+                    {initial?.commander_full_name}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("sections.field.commanderGrade")}:{" "}
+                    <span className="font-medium text-foreground">
+                      {initial?.commander_grade || "—"}
+                    </span>
+                    {" · "}
+                    {t("sections.field.commanderMle")}:{" "}
+                    <span className="font-medium text-foreground">
+                      {initial?.commander_mle || "—"}
+                    </span>
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {t("sections.commander.linkedFromPersonnel")}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {t("sections.commander.autoHint")}
+              </p>
             </div>
 
             <div className="flex items-center justify-between rounded-lg border p-3">

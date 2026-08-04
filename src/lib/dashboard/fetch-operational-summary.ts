@@ -54,7 +54,7 @@ export function createEmptyOperationalSummary(
 }
 
 function countOperationalExclusions(
-  exclusions: Array<{ agent_id: string; exclusion_type: string }>,
+  exclusions: Array<{ agent_id: string | null; dog_id?: string | null; exclusion_type: string }>,
   sectionAgentIds: Set<string>,
 ) {
   const maladie = new Set<string>();
@@ -63,16 +63,17 @@ function countOperationalExclusions(
   const unavailableDogs = new Set<string>();
 
   for (const exclusion of exclusions) {
-    if (!sectionAgentIds.has(exclusion.agent_id)) continue;
+    const inSection = exclusion.agent_id != null && sectionAgentIds.has(exclusion.agent_id);
+    if (!inSection && !isDogLevelExclusionType(exclusion.exclusion_type)) continue;
 
-    if (exclusion.exclusion_type === "sickness") {
+    if (exclusion.exclusion_type === "sickness" && exclusion.agent_id) {
       maladie.add(exclusion.agent_id);
-    } else if (exclusion.exclusion_type === "training") {
+    } else if (exclusion.exclusion_type === "training" && exclusion.agent_id) {
       formation.add(exclusion.agent_id);
-    } else if (CONGE_EXCLUSION_TYPES.has(exclusion.exclusion_type)) {
+    } else if (CONGE_EXCLUSION_TYPES.has(exclusion.exclusion_type) && exclusion.agent_id) {
       conge.add(exclusion.agent_id);
     } else if (isDogLevelExclusionType(exclusion.exclusion_type)) {
-      unavailableDogs.add(exclusion.agent_id);
+      unavailableDogs.add(exclusion.dog_id ?? exclusion.agent_id ?? exclusion.exclusion_type);
     }
   }
 

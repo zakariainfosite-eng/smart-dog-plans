@@ -11,6 +11,8 @@ export type CreateCheckpointInput = {
   night: { explosives: number; narcotics: number };
   female_policy: "allowed" | "preferred" | "not_allowed";
   priority: 1 | 2 | 3 | 4;
+  /** true = Mandatory (YES), false = Optional (NO). Default true. */
+  mandatory: boolean;
 };
 
 export type UpdateCheckpointInput = CreateCheckpointInput;
@@ -30,6 +32,8 @@ type CheckpointRowDb = {
   night_shift_enabled: number;
   female_policy: "allowed" | "preferred" | "not_allowed";
   priority: number;
+  /** 1 = YES, 0 = NO. May be undefined on pre-migration rows. */
+  mandatory?: number;
   day_explosives: number;
   day_narcotics: number;
   night_explosives: number;
@@ -77,6 +81,8 @@ export type CheckpointRecord = {
   night_shift_enabled: boolean;
   female_policy: "allowed" | "preferred" | "not_allowed";
   priority: 1 | 2 | 3 | 4;
+  /** true = Mandatory (YES), false = Optional (NO). */
+  mandatory: boolean;
   day_explosives: number;
   day_narcotics: number;
   night_explosives: number;
@@ -149,6 +155,7 @@ function configToRowPayload(config: CreateCheckpointInput) {
     night_narcotics: config.night.narcotics,
     female_policy: config.female_policy,
     priority: config.priority,
+    mandatory: config.mandatory === false ? 0 : 1,
     night_only: !config.day_shift_enabled && config.night_shift_enabled ? 1 : 0,
     // Enabled shifts only — ignore residual counts on disabled shifts.
     required_drugs: Math.max(dayNarcotics, nightNarcotics),
@@ -169,6 +176,8 @@ function mapCheckpoint(row: CheckpointRowDb): CheckpointRecord {
     night_shift_enabled: row.night_shift_enabled === 1,
     female_policy: row.female_policy,
     priority: ([1, 2, 3, 4].includes(row.priority) ? row.priority : 3) as 1 | 2 | 3 | 4,
+    // Missing column (pre-migration) → treat as mandatory YES.
+    mandatory: row.mandatory === 0 ? false : true,
     day_explosives: row.day_explosives,
     day_narcotics: row.day_narcotics,
     night_explosives: row.night_explosives,
@@ -468,9 +477,9 @@ export function createCheckpoint(
     db.prepare(
       `INSERT INTO checkpoints (
         id, name, active, night_only, allowed_gender, operating_days, day_shift_enabled,
-        night_shift_enabled, female_policy, priority, day_explosives, day_narcotics, night_explosives,
+        night_shift_enabled, female_policy, priority, mandatory, day_explosives, day_narcotics, night_explosives,
         night_narcotics, required_drugs, required_explosives, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       id,
       payload.name,
@@ -482,6 +491,7 @@ export function createCheckpoint(
       payload.night_shift_enabled,
       payload.female_policy,
       payload.priority,
+      payload.mandatory,
       payload.day_explosives,
       payload.day_narcotics,
       payload.night_explosives,
@@ -530,6 +540,7 @@ export function updateCheckpoint(
           night_shift_enabled = ?,
           female_policy = ?,
           priority = ?,
+          mandatory = ?,
           day_explosives = ?,
           day_narcotics = ?,
           night_explosives = ?,
@@ -549,6 +560,7 @@ export function updateCheckpoint(
         payload.night_shift_enabled,
         payload.female_policy,
         payload.priority,
+        payload.mandatory,
         payload.day_explosives,
         payload.day_narcotics,
         payload.night_explosives,

@@ -47,7 +47,15 @@ type AgentRow = Database["public"]["Tables"]["agents"]["Row"] & {
 type DogRow = Database["public"]["Tables"]["dogs"]["Row"];
 
 const EXCLUSION_REASON_GROUPS: Record<string, ExclusionType[]> = {
-  sickDog: ["dog_sick", "female_dog_heat"],
+  sickDog: [
+    "dog_sick",
+    "female_dog_heat",
+    "dog_injured",
+    "dog_temporary_retirement",
+    "dog_vet_visit",
+    "dog_training",
+    "dog_other",
+  ],
   sickAgent: ["sickness"],
   leave: ["administrative_leave", "special_leave", "absence"],
   training: ["training"],

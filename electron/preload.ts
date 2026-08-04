@@ -63,7 +63,12 @@ contextBridge.exposeInMainWorld("cynoplanning", {
   files: {
     saveExportFiles: (request: {
       defaultBasename: string;
-      files: Array<{ filename: string; dataBase64?: string; data?: number[] }>;
+      files: Array<{
+        filename: string;
+        dataBase64?: string;
+        data?: number[];
+        byteLength?: number;
+      }>;
     }): Promise<{ canceled: true } | { canceled: false; paths: string[] }> =>
       ipcRenderer.invoke("fs:saveExportFiles", request),
   },

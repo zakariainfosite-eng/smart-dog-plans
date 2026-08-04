@@ -44,6 +44,20 @@
       "male": "Male",
       "female": "Female",
       "all": "All sexes"
+    },
+    "sex": {
+      "maleDisplay": "♂ Male",
+      "femaleDisplay": "♀ Female",
+      "unspecified": "Not specified",
+      "filterAll": "All",
+      "filterMale": "Males",
+      "filterFemale": "Females",
+      "sortAria": "Sort by sex"
+    },
+    "search": "Search by name, breed, microchip or sex…",
+    "field": {
+      "sex": "Sex",
+      "statusFromExclusions": "Computed automatically from active exclusions."
     }
   },
   "checkpoints": {
@@ -62,7 +76,15 @@
         "2": "High",
         "3": "Normal",
         "4": "Low"
-      }
+      },
+      "mandatory": "Mandatory",
+      "mandatoryHint": "Independent of priority. Optional checkpoints never break Smart Rotation.",
+      "mandatoryYes": "YES",
+      "mandatoryNo": "NO"
+    },
+    "badge": {
+      "mandatory": "Mandatory",
+      "optional": "Optional"
     },
     "error": {
       "loadFailed": "Failed to load checkpoints.",
@@ -119,13 +141,33 @@
       "description": "K9 unit headquarters — teams not deployed to operational checkpoints.",
       "badge": "Point 653",
       "noticeTitle": "Point 653"
+    },
+    "warnings": {
+      "title": "Warnings ({{count}})",
+      "criticalTitle": "Critical alerts ({{count}})",
+      "infoTitle": "Information ({{count}})"
+    },
+    "coverageReport": {
+      "title": "Checkpoint coverage",
+      "description": "Mandatory / Optional coverage after planning.",
+      "mandatory": "Mandatory checkpoints covered",
+      "optional": "Optional checkpoints covered",
+      "critical": "Critical warnings",
+      "optionalSkipped": "Optional skipped"
+    },
+    "complete": {
+      "title": "Planning complete",
+      "description": "All checkpoints are staffed. Assignments saved."
     }
   },
   "planning": {
     "warning": {
       "unassignedEligible": "{{count}} cynotechnician(s) assigned to Point 653.",
       "point653Assigned": "{{count}} cynotechnician(s) assigned to {{point}}.",
-      "femaleRest": "{{count}} female cynotechnician(s) marked REST (inactive Female Rotation group)."
+      "femaleRest": "{{count}} female cynotechnician(s) marked REST (inactive Female Rotation group).",
+      "criticalPrefix": "CRITICAL —",
+      "criticalNoAgent": "CRITICAL — Checkpoint {{name}}: No eligible cynotechnician available.",
+      "optionalNotCovered": "INFO — Checkpoint {{name}} not covered. Optional checkpoint."
     },
     "point653": {
       "reason": {
@@ -145,9 +187,74 @@
     }
   },
   "exclusions": {
+    "searchPersonnel": "Search name or professional number…",
+    "searchDogs": "Search dog name or ID…",
+    "tabs": {
+      "all": "All",
+      "personnel": "Personnel",
+      "dogs": "Dogs"
+    },
+    "sections": {
+      "personnel": "Cynotechnician exclusions",
+      "dogs": "Dog exclusions"
+    },
+    "filter": {
+      "reason": "Exclusion type",
+      "allReasons": "All types",
+      "allAgents": "All cynotechnicians",
+      "date": "Date"
+    },
+    "table": {
+      "photo": "Photo",
+      "fullName": "Full name",
+      "profNumber": "Professional number",
+      "dogPhoto": "Dog photo",
+      "dogName": "Dog name",
+      "dogId": "ID",
+      "assignedAgent": "Assigned cynotechnician",
+      "type": "Exclusion type",
+      "start": "Start date",
+      "end": "End date"
+    },
+    "empty": {
+      "nonePersonnel": "No personnel exclusions",
+      "noneDogs": "No dog exclusions"
+    },
     "field": {
+      "agent": "Cynotechnician",
+      "dog": "Dog",
+      "applyTo": "Apply to",
+      "exclusionType": "Exclusion type",
       "durationDays": "Duration (days)",
       "endDateCalculated": "End date (calculated)"
+    },
+    "applyTo": {
+      "agent": "Cynotechnician",
+      "dog": "Dog"
+    },
+    "selectAgent": "Select a cynotechnician",
+    "selectDog": "Select a dog",
+    "searchAgent": "Search name or professional number…",
+    "searchDog": "Search dog name or ID…",
+    "noAgentMatch": "No cynotechnician found",
+    "noDogMatch": "No dog found",
+    "type": {
+      "sickness": "Sick",
+      "annual_leave": "Annual leave",
+      "administrative_leave": "Administrative leave",
+      "mission": "Mission",
+      "training": "Training",
+      "dog_sick": "Sick",
+      "female_dog_heat": "In heat",
+      "other": "Other",
+      "absence": "Absence",
+      "special_leave": "Special leave",
+      "suspension": "Suspension",
+      "dog_injured": "Injured",
+      "dog_temporary_retirement": "Temporarily retired",
+      "dog_vet_visit": "Veterinary visit",
+      "dog_training": "Training",
+      "dog_other": "Other"
     },
     "hint": {
       "endDateEditable": "Calculated automatically from duration. You may edit it manually."
@@ -161,8 +268,166 @@
       "duration_other": "{{count}} days"
     }
   },
+  "personnelFonction": {
+    "chef_brigadier": "Brigade Chief",
+    "chef_brigadier_pi": "Brigade Chief PI",
+    "chef_brigade": "Brigade Chief",
+    "chef_brigade_pi": "Brigade Chief PI",
+    "chef_secretariat": "Secretariat Chief",
+    "secretaire": "Secretary",
+    "assistant_technique": "Technical assistant",
+    "chef_de_section": "Section chief",
+    "chef_de_section_pi": "Section chief PI",
+    "chef_materiel": "Equipment chief",
+    "aide_soignant_veterinaire": "Veterinary care aide",
+    "cynotechnicien": "Cynotechnician"
+  },
+  "employees": {
+    "title": "Personnel",
+    "description": "Cynotechnical brigade personnel.",
+    "addAgent": "Add personnel",
+    "hero": {
+      "title": "Personnel management",
+      "subtitle": "Manage cynotechnicians and support staff."
+    },
+    "search": "Search by name, ID, grade or function",
+    "sort": {
+      "label": "Sort by",
+      "matriculeAsc": "ID (ascending)",
+      "matriculeDesc": "ID (descending)",
+      "nameAsc": "Name (A → Z)",
+      "nameDesc": "Name (Z → A)",
+      "grade": "Grade",
+      "fonction": "Function",
+      "section": "Section",
+      "specialty": "Specialty",
+      "availability": "Availability (Available → Unavailable)",
+      "marital": "Marital status",
+      "gender": "Gender",
+      "seniorityAsc": "Seniority (longest first)",
+      "seniorityDesc": "Seniority (newest first)"
+    },
+    "maritalStatus": {
+      "single": "Single",
+      "married": "Married",
+      "divorced": "Divorced",
+      "widowed": "Widowed",
+      "unspecified": "Not specified",
+      "filterAll": "All",
+      "sortAria": "Sort by marital status"
+    },
+    "dialog": {
+      "addTitle": "Add personnel",
+      "editTitle": "Edit personnel",
+      "addDesc": "Create a new personnel record.",
+      "editDesc": "Update information and assignment."
+    },
+    "field": {
+      "fonction": "Function",
+      "maritalStatus": "Marital status",
+      "sectionResponsible": "Section responsible",
+      "photo": "Photo"
+    },
+    "placeholder": {
+      "sectionResponsible": "Select a section",
+      "maritalStatus": "Select marital status"
+    },
+    "table": {
+      "fonction": "Function",
+      "disponibilite": "Availability",
+      "adminTitle": "Administrative / command staff",
+      "operationalTitle": "Cynotechnicians"
+    },
+    "filter": {
+      "allStatuses": "All statuses",
+      "operationalStatus": "Status",
+      "specialty": "Specialty",
+      "grade": "Grade",
+      "allGrades": "All grades",
+      "fonction": "Function",
+      "allFonctions": "All functions",
+      "activeState": "Record status",
+      "reset": "Reset filters"
+    },
+    "operationalStatus": {
+      "available": "Available",
+      "excluded": "Out of service"
+    },
+    "hint": {
+      "inactiveExcluded": "Inactive personnel and non-cynotechnician roles are excluded from planning."
+    },
+    "error": {
+      "staleMainMaritalStatus": "Electron main is stale: marital status cannot be saved. Fully quit the app and restart with npm run electron:dev."
+    }
+  },
+  "sections": {
+    "stat": {
+      "assigned": "Assigned personnel",
+      "available": "Available",
+      "unavailable": "Unavailable",
+      "activeExclusions": "Active exclusions"
+    },
+    "exclusionsSheet": {
+      "title": "Active exclusions",
+      "description": "Active exclusions for personnel in “{{name}}”.",
+      "descriptionFallback": "Active exclusions for this section.",
+      "empty": "No active exclusions for this section.",
+      "personnel": "Personnel",
+      "type": "Type",
+      "period": "Period"
+    },
+    "commander": {
+      "title": "Section chief",
+      "linkedFromPersonnel": "No section chief assigned.",
+      "autoHint": "Assign personnel with the “Section chief” role to link automatically. One chief per section."
+    },
+    "detail": {
+      "title": "Section detail",
+      "description": "Assignments and headcount for this section.",
+      "open": "Open section",
+      "close": "Close",
+      "assignedPersonnel": "Assigned personnel",
+      "activeCynotechniciens": "Active cynotechnicians",
+      "personnelList": "Personnel list",
+      "emptyMembers": "No personnel assigned to this section.",
+      "manageAssignments": "Manage assignments",
+      "photo": "Photo",
+      "fullName": "Full name"
+    },
+    "assignments": {
+      "title": "Assignments — {{name}}",
+      "description": "Assign, move, or remove personnel. Removal never deletes the Personnel record.",
+      "members": "Members ({{count}})",
+      "availablePool": "Available personnel",
+      "unassigned": "Unassigned",
+      "moveTo": "Move to…",
+      "applyMove": "Apply",
+      "assignSelected": "Assign to section",
+      "removeSelected": "Remove from section",
+      "assignOne": "Assign",
+      "removeOne": "Remove from section",
+      "selectPerson": "Select",
+      "dropHereAssign": "Drop here to assign to this section.",
+      "dropHereRemove": "Drop here to unassign (clear section_id).",
+      "emptyPool": "No assignable personnel available.",
+      "safetyNote": "Removing someone from a section only clears section_id — the Personnel record stays intact.",
+      "error": {
+        "notAssignable": "This person cannot be assigned to a section (business rules)."
+      },
+      "toast": {
+        "assigned": "{{count}} person(s) assigned",
+        "removed": "{{count}} person(s) removed from the section",
+        "moved": "{{count}} person(s) moved"
+      }
+    }
+  },
   "validation": {
-    "durationMin": "Duration must be at least 1 day"
+    "durationMin": "Duration must be at least 1 day",
+    "fonctionRequired": "Function is required",
+    "maritalStatusRequired": "Marital status is required",
+    "sectionResponsibleRequired": "Section responsible is required",
+    "agentRequired": "Cynotechnician is required",
+    "dogRequired": "Dog is required"
   },
   "dashboard": {
     "operationalSummary": {
@@ -184,6 +449,65 @@
   "statistics": {
     "title": "Statistics",
     "description": "Operational dashboard — key figures and activity.",
+    "casesDashboard": {
+      "description": "Operational dashboard — figures from operational cases.",
+      "empty": "Aucune donnée statistique disponible.",
+      "summary": "Overview",
+      "totalCases": "Total cases",
+      "bySpecialty": "By specialty",
+      "cases": "Cases",
+      "casesUnit": "cases",
+      "noBreakdown": "No data",
+      "teamLabel": "{{agent}} + {{dog}}",
+      "specialty": {
+        "other": "Other specialties"
+      },
+      "panels": {
+        "operationalCases": "Operational cases"
+      },
+      "filters": {
+        "year": "Year",
+        "month": "Month",
+        "dateFrom": "From",
+        "dateTo": "To",
+        "specialty": "Specialty",
+        "section": "Section",
+        "checkpoint": "Checkpoint",
+        "agent": "Cynotechnician",
+        "dog": "Dog",
+        "allYears": "All years",
+        "allSpecialties": "All specialties"
+      },
+      "seizures": {
+        "title": "Seizures",
+        "cannabis": "Cannabis",
+        "cocaine": "Cocaine",
+        "heroin": "Heroin",
+        "kif": "Kif / Hashish",
+        "resin": "Resin",
+        "ecstasy": "Ecstasy / Exta",
+        "psychotropes": "Psychotropics",
+        "tablets": "tablets",
+        "otherNarcotics": "Other narcotics",
+        "banknotes": "Banknotes",
+        "banknoteCount": "Banknote count",
+        "currencyAmount": "Currency amount",
+        "explosives": "Explosives",
+        "otherRecorded": "Other recorded seizures"
+      },
+      "charts": {
+        "title": "Trends",
+        "monthly": "Monthly evolution",
+        "yearly": "Yearly evolution"
+      },
+      "rankings": {
+        "title": "Operational rankings",
+        "agents": "Top cynotechnicians",
+        "dogs": "Top dogs",
+        "checkpoints": "Top checkpoints",
+        "sections": "Top sections"
+      }
+    },
     "center": {
       "description": "Operational statistics center — tabular reports by year, section, and resource.",
       "yearlyTitle": "Yearly operational statistics",

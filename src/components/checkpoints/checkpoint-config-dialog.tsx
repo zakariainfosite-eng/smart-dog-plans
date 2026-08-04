@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { TFunction } from "i18next";
 import { z } from "zod";
-import { Sun, Moon, CalendarDays, Users, MapPin, Flag } from "lucide-react";
+import { Sun, Moon, CalendarDays, Users, MapPin, Flag, AlertTriangle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,7 @@ function configSchema(t: TFunction) {
       night_narcotics: z.coerce.number().int().min(0),
       female_policy: z.enum(["allowed", "preferred", "not_allowed"]),
       priority: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
+      mandatory: z.boolean(),
     })
     .refine(
       (v) =>
@@ -354,6 +355,52 @@ function CheckpointConfigFormBody({
         </RadioGroup>
       </ConfigSection>
 
+      <ConfigSection
+        icon={AlertTriangle}
+        title={t("checkpoints.config.mandatory")}
+        subtitle={t("checkpoints.config.mandatoryHint")}
+      >
+        <RadioGroup
+          value={config.mandatory ? "yes" : "no"}
+          onValueChange={(value) =>
+            setConfig((p) => ({
+              ...p,
+              mandatory: value === "yes",
+            }))
+          }
+          className="flex flex-wrap gap-1.5"
+        >
+          {([
+            { value: "yes", labelKey: "checkpoints.config.mandatoryYes" },
+            { value: "no", labelKey: "checkpoints.config.mandatoryNo" },
+          ] as const).map(({ value, labelKey }) => {
+            const selected = (config.mandatory ? "yes" : "no") === value;
+            return (
+              <div key={value} className="relative">
+                <RadioGroupItem
+                  value={value}
+                  id={`${idPrefix}-mandatory-${value}`}
+                  className="peer sr-only"
+                />
+                <Label
+                  htmlFor={`${idPrefix}-mandatory-${value}`}
+                  className={cn(
+                    "inline-flex h-8 cursor-pointer items-center rounded-full border px-3 text-xs font-medium transition-colors",
+                    selected
+                      ? value === "yes"
+                        ? "border-destructive bg-destructive text-destructive-foreground"
+                        : "border-border bg-muted text-muted-foreground"
+                      : "border-border/80 bg-white text-muted-foreground hover:border-primary/35 hover:text-foreground",
+                  )}
+                >
+                  {t(labelKey)}
+                </Label>
+              </div>
+            );
+          })}
+        </RadioGroup>
+      </ConfigSection>
+
       <ConfigSection icon={Users} title={t("checkpoints.config.femaleAgents")}>
         <RadioGroup
           value={config.female_policy}
@@ -443,6 +490,7 @@ export function CheckpointConfigDialog({
       night_narcotics: config.night.narcotics,
       female_policy: config.female_policy,
       priority: config.priority,
+      mandatory: config.mandatory,
     });
     if (!parsed.success) {
       const next: Record<string, string> = {};
@@ -455,6 +503,7 @@ export function CheckpointConfigDialog({
     onSubmit({
       ...config,
       name: parsed.data.name,
+      mandatory: parsed.data.mandatory,
       day: {
         explosives: parsed.data.day_explosives,
         narcotics: parsed.data.day_narcotics,

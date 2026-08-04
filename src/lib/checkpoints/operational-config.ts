@@ -17,6 +17,23 @@ export function normalizeCheckpointPriority(value: unknown): CheckpointPriority 
   return DEFAULT_CHECKPOINT_PRIORITY;
 }
 
+/**
+ * Stored on checkpoints for UI / DB compatibility.
+ * The Rotation Engine does NOT use this field — Priority alone drives ordering.
+ */
+export const DEFAULT_CHECKPOINT_MANDATORY = true;
+
+export function normalizeCheckpointMandatory(value: unknown): boolean {
+  if (value === false || value === 0 || value === "0") return false;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "no" || normalized === "false" || normalized === "optional") {
+      return false;
+    }
+  }
+  return DEFAULT_CHECKPOINT_MANDATORY;
+}
+
 /** ISO weekday: 1 = Monday … 7 = Sunday */
 export const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7] as const;
 export type Weekday = (typeof WEEKDAYS)[number];
@@ -36,6 +53,8 @@ export type CheckpointOperationalConfig = {
   night: ShiftTeamCounts;
   female_policy: FemalePolicy;
   priority: CheckpointPriority;
+  /** Persisted for UI/DB compatibility; ignored by the Rotation Engine. */
+  mandatory: boolean;
 };
 
 export const DEFAULT_OPERATING_DAYS: Weekday[] = [1, 2, 3, 4, 5, 6, 7];
@@ -56,6 +75,7 @@ export function defaultOperationalConfig(): CheckpointOperationalConfig {
     night: { ...EMPTY_SHIFT_COUNTS },
     female_policy: "allowed",
     priority: DEFAULT_CHECKPOINT_PRIORITY,
+    mandatory: DEFAULT_CHECKPOINT_MANDATORY,
   };
 }
 
@@ -96,6 +116,7 @@ export type CheckpointRowOperational = Pick<
   | "night_narcotics"
   | "female_policy"
   | "priority"
+  | "mandatory"
 >;
 
 export function operationalConfigFromRow(
@@ -118,6 +139,7 @@ export function operationalConfigFromRow(
     },
     female_policy: row.female_policy ?? "allowed",
     priority: normalizeCheckpointPriority(row.priority),
+    mandatory: normalizeCheckpointMandatory(row.mandatory),
   };
 }
 
@@ -141,6 +163,7 @@ export function operationalConfigToRowPayload(config: CheckpointOperationalConfi
     night_narcotics: config.night.narcotics,
     female_policy: config.female_policy,
     priority: normalizeCheckpointPriority(config.priority),
+    mandatory: normalizeCheckpointMandatory(config.mandatory),
     // Legacy columns kept in sync for statistics badges
     night_only: !config.day_shift_enabled && config.night_shift_enabled,
     required_drugs: staffing.narcotics,

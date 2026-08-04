@@ -27,6 +27,23 @@ export function translatePlanningReason(reason: string, t: TFunction): string {
   };
 
   if (map[reason]) return map[reason];
+  if (reason.startsWith("CRITICAL:")) {
+    const body = reason.slice("CRITICAL:".length).trim();
+    if (body.match(/^Checkpoint .+?: No eligible cynotechnician available\.$/)) {
+      const name = body.replace(/^Checkpoint /, "").replace(/: No eligible cynotechnician available\.$/, "");
+      return t("planning.warning.criticalNoAgent", { name });
+    }
+    return `${t("planning.warning.criticalPrefix")} ${translatePlanningReason(body, t)}`;
+  }
+  if (reason.startsWith("INFO:")) {
+    const optionalMatch = reason.match(
+      /^INFO: Checkpoint (.+) not covered\. Optional checkpoint\.$/,
+    );
+    if (optionalMatch) {
+      return t("planning.warning.optionalNotCovered", { name: optionalMatch[1] });
+    }
+    return reason.slice("INFO:".length).trim();
+  }
   if (reason.startsWith("Dog status:")) {
     const status = reason.replace("Dog status:", "").trim();
     return t("planning.reason.dogStatus", { status });

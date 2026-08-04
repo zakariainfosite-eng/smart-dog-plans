@@ -1,5 +1,7 @@
 export type ShiftType = "day" | "night";
 export type Gender = "male" | "female";
+export type { PersonnelFonction } from "@/lib/personnel-fonction";
+import type { PersonnelFonction } from "@/lib/personnel-fonction";
 
 export type Section = {
   id: string;
@@ -35,6 +37,8 @@ export type UpdateSectionInput = {
   commander_mle: string;
 };
 
+export type MaritalStatus = "single" | "married" | "divorced" | "widowed";
+
 export type Agent = {
   id: string;
   first_name: string;
@@ -42,6 +46,9 @@ export type Agent = {
   professional_number: string;
   grade: string;
   gender: Gender;
+  fonction: PersonnelFonction;
+  /** Null for legacy rows not yet filled — UI shows « Non renseignée ». */
+  marital_status: MaritalStatus | null;
   section_id: string | null;
   dog_id: string | null;
   is_section_chief: boolean;
@@ -77,6 +84,9 @@ export type AgentWriteInput = {
   professional_number: string;
   grade: string;
   gender: Gender;
+  fonction: PersonnelFonction;
+  /** Required on create/edit form; null allowed when preserving legacy rows. */
+  marital_status: MaritalStatus | null;
   section_id: string | null;
   dog_id: string | null;
   phone: string | null;
@@ -177,6 +187,8 @@ export type Checkpoint = {
   night_shift_enabled: boolean;
   female_policy: CheckpointFemalePolicy;
   priority: CheckpointPriority;
+  /** true = Mandatory, false = Optional. Default true. */
+  mandatory: boolean;
   day_explosives: number;
   day_narcotics: number;
   night_explosives: number;
@@ -201,6 +213,8 @@ export type CheckpointOperationalInput = {
   night: { explosives: number; narcotics: number };
   female_policy: CheckpointFemalePolicy;
   priority: CheckpointPriority;
+  /** true = Mandatory, false = Optional. Default true. */
+  mandatory: boolean;
 };
 
 export type CreateCheckpointInput = CheckpointOperationalInput;

@@ -1,5 +1,5 @@
 import { BrowserWindow, dialog, type App } from "electron";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, open, rename, unlink, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
 
 export type ExportFilePayload = {
@@ -8,6 +8,8 @@ export type ExportFilePayload = {
   data?: number[];
   /** Preferred: base64-encoded file bytes from the renderer. */
   dataBase64?: string;
+  /** Optional integrity check from renderer (byte length before base64). */
+  byteLength?: number;
 };
 
 export type SaveExportFilesRequest = {
@@ -26,16 +28,84 @@ function getParentWindow(): BrowserWindow | null {
   return all[0] ?? null;
 }
 
+function isDocxFilename(filename: string): boolean {
+  return extname(filename).toLowerCase() === ".docx";
+}
+
+function assertDocxZipMagic(buf: Buffer, context: string): void {
+  if (buf.length < 4 || buf[0] !== 0x50 || buf[1] !== 0x4b || buf[2] !== 0x03 || buf[3] !== 0x04) {
+    const head = Buffer.from(buf.subarray(0, Math.min(8, buf.length))).toString("hex");
+    throw new Error(
+      `${context}: decoded DOCX missing ZIP magic PK\\x03\\x04 (head=${head}, len=${buf.length})`,
+    );
+  }
+}
+
 function payloadToBuffer(file: ExportFilePayload): Buffer {
   if (typeof file.dataBase64 === "string" && file.dataBase64.length > 0) {
-    return Buffer.from(file.dataBase64, "base64");
+    // Strip whitespace / data-URL prefix that can appear after IPC string cloning.
+    let b64 = file.dataBase64.replace(/\s+/g, "");
+    const comma = b64.indexOf(",");
+    if (b64.startsWith("data:") && comma !== -1) {
+      b64 = b64.slice(comma + 1);
+    }
+    const buf = Buffer.from(b64, "base64");
+    if (typeof file.byteLength === "number" && file.byteLength > 0 && buf.length !== file.byteLength) {
+      throw new Error(
+        `Export file "${file.filename}" base64 length mismatch: expected ${file.byteLength} bytes, got ${buf.length}`,
+      );
+    }
+    if (isDocxFilename(file.filename)) {
+      assertDocxZipMagic(buf, `IPC decode ${file.filename}`);
+    }
+    return buf;
   }
   if (Array.isArray(file.data)) {
-    return Buffer.from(file.data);
+    const buf = Buffer.from(file.data);
+    if (isDocxFilename(file.filename)) {
+      assertDocxZipMagic(buf, `IPC decode ${file.filename}`);
+    }
+    return buf;
   }
   throw new Error(
     `Export file "${file.filename}" has no dataBase64/data payload (ipc-save / filesystem).`,
   );
+}
+
+/**
+ * Fully flush bytes to disk (important on Windows before Word opens the file).
+ * Write to a temp file, fsync, then rename over the destination.
+ */
+async function writeFileAtomic(outPath: string, data: Buffer): Promise<void> {
+  const tmpPath = `${outPath}.${process.pid}.${Date.now()}.tmp`;
+  try {
+    await writeFile(tmpPath, data);
+    const handle = await open(tmpPath, "r+");
+    try {
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+
+    try {
+      await rename(tmpPath, outPath);
+    } catch {
+      // Windows cannot rename over an existing file — replace explicitly.
+      try {
+        await unlink(outPath);
+      } catch {
+        // destination may not exist
+      }
+      await rename(tmpPath, outPath);
+    }
+  } catch (error) {
+    try {
+      await unlink(tmpPath);
+    } catch {
+      // ignore cleanup errors
+    }
+    throw error;
+  }
 }
 
 /**
@@ -88,13 +158,23 @@ export async function saveExportFiles(
     const targetDir = dirname(result.filePath);
     await mkdir(targetDir, { recursive: true });
 
-    const chosenBase = basename(result.filePath, extname(result.filePath)) || defaultBasename;
+    // Ensure Windows save dialog always keeps the intended extension for single-file saves.
+    let chosenPath = result.filePath;
+    if (!isMulti) {
+      const wantedExt = extname(files[0].filename);
+      if (wantedExt && extname(chosenPath).toLowerCase() !== wantedExt.toLowerCase()) {
+        chosenPath = `${chosenPath}${wantedExt}`;
+      }
+    }
+
+    const chosenBase = basename(chosenPath, extname(chosenPath)) || defaultBasename;
     const paths: string[] = [];
 
     for (const file of files) {
       const ext = extname(file.filename) || `.${primaryExt}`;
-      const outPath = isMulti ? join(targetDir, `${chosenBase}${ext}`) : result.filePath;
-      await writeFile(outPath, payloadToBuffer(file));
+      const outPath = isMulti ? join(targetDir, `${chosenBase}${ext}`) : chosenPath;
+      const buf = payloadToBuffer(file);
+      await writeFileAtomic(outPath, buf);
       paths.push(outPath);
     }
 

@@ -7,6 +7,12 @@ export type FeuillePresenceTableRow = {
   assignment: string;
   /** EMARGEMENT column — populated for non-operational agents only. */
   signature: string;
+  /**
+   * Female presence-only row (no planning assignment).
+   * Rendered inside the existing specialty table after male rows;
+   * Affectation stays empty. Used only for stable sort/order.
+   */
+  presenceOnly?: boolean;
 };
 
 export type FeuillePresenceData = {
@@ -23,23 +29,45 @@ export type FeuillePresenceBuildResult =
   | { ok: true; data: FeuillePresenceData }
   | { ok: false; errors: string[] };
 
-/** One row of the official cynotechnicians list PDF (same visual table style). */
+/** One row of the official personnel list PDF (same visual table style). */
 export type CynotechnicianListPdfRow = {
-  /** 1-based row number for the current filtered/sorted export. */
+  /** 1-based row number within the table (admin or operational). */
   numero: number;
   nom: string;
   prenom: string;
   matricule: string;
   grade: string;
+  /** Filled for administrative table; empty for operational. */
+  fonction: string;
+  situation: string;
   chien: string;
   specialite: string;
   section: string;
 };
 
+/** Column layout for a Personnel List PDF table. */
+export type CynotechniciansListPdfLayout = "operational" | "administrative";
+
+/**
+ * At most two tables:
+ * 1) Administrative / command (Fonction column, no dog/specialty/section)
+ * 2) Cynotechniciens (full operational columns)
+ */
+export type CynotechniciansListPdfTable = {
+  /** Section title above the table (empty = no title band). */
+  title: string;
+  layout: CynotechniciansListPdfLayout;
+  rows: CynotechnicianListPdfRow[];
+};
+
+/** @deprecated Use CynotechniciansListPdfTable — kept as alias during transition. */
+export type CynotechniciansListPdfSection = CynotechniciansListPdfTable;
+
 export type CynotechniciansListPdfData = {
   /** Header date line — same placement as the attendance sheet. */
   dateLine: string;
-  rows: CynotechnicianListPdfRow[];
+  /** 0–2 non-empty tables in fixed order (admin then operational). */
+  tables: CynotechniciansListPdfTable[];
 };
 
 /** One row of the official cynotechnical dogs list PDF (same visual table style). */
@@ -47,6 +75,7 @@ export type DogListPdfRow = {
   /** 1-based row number for the current filtered/sorted export. */
   numero: number;
   nom: string;
+  sexe: string;
   puce: string;
   race: string;
   specialite: string;

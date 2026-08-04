@@ -83,6 +83,8 @@ import {
   collectFeuillePresenceMetaAgentIds,
   type FeuillePresenceAgentMeta,
 } from "@/lib/documents/build-feuille-presence-data";
+import { loadActiveFemaleAgentsForPresence } from "@/lib/documents/build-cynotechniciennes-presence-data";
+import { compareMatriculeAsc } from "@/lib/documents/sort-attendance-by-matricule";
 
 export const Route = createFileRoute("/_authenticated/daily-planning")({
   head: () => ({ meta: [{ title: "Planification quotidienne — Smart K9 Planning" }] }),
@@ -526,10 +528,12 @@ function DailyPlanningPage() {
     );
     const exclusionTypesByAgent: Record<string, string> = {};
     for (const exclusion of exclusionsRaw) {
-      if (!metaAgentIds.includes(exclusion.agent_id)) continue;
+      if (!exclusion.agent_id || !metaAgentIds.includes(exclusion.agent_id)) continue;
       if (!isAgentLevelExclusionType(exclusion.exclusion_type)) continue;
       exclusionTypesByAgent[exclusion.agent_id] = exclusion.exclusion_type;
     }
+
+    const femaleAgents = await loadActiveFemaleAgentsForPresence(db);
 
     const buildResult = buildFeuillePresenceData({
       planningDate,
@@ -542,6 +546,7 @@ function DailyPlanningPage() {
         mle: commanderMle,
       },
       agents: agentsMeta,
+      femaleAgents,
       exclusionTypesByAgent,
       engineResult: sectionScopedResult,
     });
@@ -798,12 +803,42 @@ function DailyPlanningPage() {
           {(() => {
             const reserveWarnings = displayWarnings.filter(isReserveWarning);
             const restWarnings = displayWarnings.filter(isRestWarning);
+            const criticalWarnings = displayWarnings.filter(
+              (w) =>
+                !isReserveWarning(w) &&
+                !isRestWarning(w) &&
+                (w.startsWith("CRITICAL:") || w.includes("UNDERSTAFFED") || w.includes("INVALID:")),
+            );
+            const infoWarnings = displayWarnings.filter((w) => w.startsWith("INFO:"));
             const operationalWarnings = displayWarnings.filter(
-              (w) => !isReserveWarning(w) && !isRestWarning(w),
+              (w) =>
+                !isReserveWarning(w) &&
+                !isRestWarning(w) &&
+                !w.startsWith("CRITICAL:") &&
+                !w.startsWith("INFO:") &&
+                !w.includes("UNDERSTAFFED") &&
+                !w.includes("INVALID:"),
             );
 
             return (
               <>
+                {criticalWarnings.length > 0 && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>
+                      {t("dailyPlanning.warnings.criticalTitle", {
+                        count: criticalWarnings.length,
+                      })}
+                    </AlertTitle>
+                    <AlertDescription>
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
+                        {criticalWarnings.map((w: string, i: number) => (
+                          <li key={`crit-${i}`}>{translatePlanningReason(w, t)}</li>
+                        ))}
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                )}
                 {operationalWarnings.length > 0 && (
                   <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
@@ -814,6 +849,21 @@ function DailyPlanningPage() {
                       <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
                         {operationalWarnings.map((w: any, i: any) => (
                           <li key={i}>{translatePlanningReason(w, t)}</li>
+                        ))}
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {infoWarnings.length > 0 && (
+                  <Alert className="border-muted-foreground/20 bg-muted/40">
+                    <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                    <AlertTitle>
+                      {t("dailyPlanning.warnings.infoTitle", { count: infoWarnings.length })}
+                    </AlertTitle>
+                    <AlertDescription>
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
+                        {infoWarnings.map((w: string, i: number) => (
+                          <li key={`info-${i}`}>{translatePlanningReason(w, t)}</li>
                         ))}
                       </ul>
                     </AlertDescription>
@@ -845,7 +895,9 @@ function DailyPlanningPage() {
                     </AlertDescription>
                   </Alert>
                 )}
-                {operationalWarnings.length === 0 &&
+                {criticalWarnings.length === 0 &&
+                  operationalWarnings.length === 0 &&
+                  infoWarnings.length === 0 &&
                   reserveWarnings.length === 0 &&
                   restWarnings.length === 0 && (
                   <Alert>
@@ -859,6 +911,55 @@ function DailyPlanningPage() {
               </>
             );
           })()}
+
+          <Card className="mb-6 border-border/60 shadow-soft">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">
+                {t("dailyPlanning.coverageReport.title")}
+              </CardTitle>
+              <CardDescription>
+                {t("dailyPlanning.coverageReport.description")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5">
+                  <p className="text-xs text-muted-foreground">
+                    {t("dailyPlanning.coverageReport.mandatory")}
+                  </p>
+                  <p className="mt-1 text-lg font-semibold tabular-nums">
+                    {sectionScopedResult.summary.mandatoryCovered ?? 0} /{" "}
+                    {sectionScopedResult.summary.mandatoryTotal ?? 0}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5">
+                  <p className="text-xs text-muted-foreground">
+                    {t("dailyPlanning.coverageReport.optional")}
+                  </p>
+                  <p className="mt-1 text-lg font-semibold tabular-nums">
+                    {sectionScopedResult.summary.optionalCovered ?? 0} /{" "}
+                    {sectionScopedResult.summary.optionalTotal ?? 0}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5">
+                  <p className="text-xs text-muted-foreground">
+                    {t("dailyPlanning.coverageReport.critical")}
+                  </p>
+                  <p className="mt-1 text-lg font-semibold tabular-nums text-destructive">
+                    {sectionScopedResult.summary.criticalWarnings ?? 0}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5">
+                  <p className="text-xs text-muted-foreground">
+                    {t("dailyPlanning.coverageReport.optionalSkipped")}
+                  </p>
+                  <p className="mt-1 text-lg font-semibold tabular-nums">
+                    {sectionScopedResult.summary.optionalSkipped ?? 0}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           <div className="sticky top-14 z-20 -mx-4 mb-6 border-b border-border bg-background/90 px-4 py-4 backdrop-blur-md sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
@@ -885,7 +986,11 @@ function DailyPlanningPage() {
               </CardHeader>
               <CardContent>
                 <ul className="divide-y">
-                  {sectionScopedResult.offDuty.map((entry: any) => (
+                  {[...sectionScopedResult.offDuty]
+                    .sort((a: any, b: any) =>
+                      compareMatriculeAsc(a.professional_number ?? "", b.professional_number ?? ""),
+                    )
+                    .map((entry: any) => (
                     <li key={entry.agent_id} className="flex flex-wrap items-center gap-3 py-2 text-sm">
                       <StatusBadge tone="neutral" className="shrink-0">
                         {t("dailyPlanning.rest.badge")}
@@ -915,7 +1020,11 @@ function DailyPlanningPage() {
               </CardHeader>
               <CardContent>
                 <ul className="divide-y">
-                  {sectionScopedResult.point653.map((entry: any) => (
+                  {[...sectionScopedResult.point653]
+                    .sort((a: any, b: any) =>
+                      compareMatriculeAsc(a.professional_number ?? "", b.professional_number ?? ""),
+                    )
+                    .map((entry: any) => (
                     <li key={entry.agent_id} className="flex flex-wrap items-center gap-3 py-2 text-sm">
                       <StatusBadge tone="primary" className="shrink-0">
                         {t("dailyPlanning.point653.badge")}
@@ -1020,7 +1129,16 @@ function CheckpointAssignmentTable({ checkpoints }: { checkpoints: CheckpointAss
           </p>
         ) : (
           <div className="space-y-4">
-            {checkpoints.map((cp: any) => (
+            {checkpoints.map((cp: any) => {
+              // Display-only: stable matricule order (unfilled slots stay at the end).
+              const slots = [...cp.slots].sort((a: any, b: any) => {
+                const aMle = a.team?.professional_number ?? "";
+                const bMle = b.team?.professional_number ?? "";
+                if (!a.team && b.team) return 1;
+                if (a.team && !b.team) return -1;
+                return compareMatriculeAsc(aMle, bMle);
+              });
+              return (
               <div key={cp.checkpoint_id} className="enterprise-card hover-lift rounded-2xl p-5">
                 <div className="mb-4 flex flex-wrap items-center gap-2">
                   <span className="text-base font-semibold">{cp.checkpoint_name}</span>
@@ -1059,7 +1177,7 @@ function CheckpointAssignmentTable({ checkpoints }: { checkpoints: CheckpointAss
                       </tr>
                     </thead>
                     <tbody>
-                      {cp.slots.map((slot: any, idx: any) => (
+                      {slots.map((slot: any, idx: any) => (
                         <tr key={`${cp.checkpoint_id}-${slot.post_id}-${idx}`} className="border-b border-border/40 even:bg-muted/20">
                           <td className="px-4 py-3 font-medium">
                             {t(`specialty.${slot.specialty_required}`)}
@@ -1091,7 +1209,8 @@ function CheckpointAssignmentTable({ checkpoints }: { checkpoints: CheckpointAss
                   </table>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

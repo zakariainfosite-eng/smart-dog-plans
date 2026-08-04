@@ -14,6 +14,9 @@ import {
   Venus,
   Mars,
   FileText,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -27,9 +30,25 @@ import {
   updateDog,
   type DogRow,
   type DogSpecialty,
-  type DogStatus,
   type Gender,
 } from "@/integrations/database";
+import {
+  dogSexSearchTokens,
+  formatDogSexLabel,
+  normalizeDogSex,
+} from "@/lib/dog-sex";
+import {
+  ACTIVE_EXCLUSIONS_TODAY_QUERY_KEY,
+  DOG_EXCLUSION_FORM_TYPES,
+  fetchActiveExclusionsForDate,
+  todayISODate,
+  type AgentExclusionRecord,
+} from "@/lib/agent-exclusions";
+import {
+  deriveDogOperationalStatus,
+  dogOperationalStatusKey,
+  dogOperationalStatusLabelKey,
+} from "@/lib/dog-operational-status";
 import { PageTitle } from "@/components/layout/PageTitle";
 import {
   PageTableShell,
@@ -45,6 +64,7 @@ import { FilterSelectTrigger } from "@/components/enterprise/filter-select";
 import { DataTableShell } from "@/components/enterprise/data-table-shell";
 import { EnterpriseDataTable } from "@/components/enterprise/data-table";
 import { StatusBadge as EnterpriseStatusBadge } from "@/components/enterprise/status-badge";
+import { CellTooltip } from "@/components/enterprise/cell-tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -92,29 +112,27 @@ export const Route = createFileRoute("/_authenticated/dogs")({
 });
 
 function createDogSchema(t: (key: string) => string) {
-  return z
-    .object({
-      name: z.string().trim().min(2, t("validation.nameRequired")).max(60),
-      gender: z.enum(["male", "female"]),
-      specialty: z.enum(["narcotics", "explosives"]),
-      status: z.enum(["available", "sick", "heat"]),
-      agent_id: z.string().nullable(),
-      active: z.boolean(),
-      breed: z.string().trim().max(80),
-      microchip_number: z.string().trim().max(40),
-      date_of_birth: z.string(),
-      training_level: z.string().trim().max(80),
-      veterinary_notes: z.string().trim().max(1000),
-      observations: z.string().trim().max(500, t("validation.observationsMax")),
-      assignment_date: z.string(),
-      vaccination_info: z.string().trim().max(500),
-      health_status: z.string().trim().max(120),
-    })
-    .refine((v) => !(v.status === "heat" && v.gender === "male"), {
-      message: t("validation.heatFemaleOnly"),
-      path: ["status"],
-    });
+  return z.object({
+    name: z.string().trim().min(2, t("validation.nameRequired")).max(60),
+    gender: z.enum(["male", "female"]),
+    specialty: z.enum(["narcotics", "explosives"]),
+    /** Legacy column — operational status comes from exclusions, not this field. */
+    status: z.literal("available"),
+    agent_id: z.string().nullable(),
+    active: z.boolean(),
+    breed: z.string().trim().max(80),
+    microchip_number: z.string().trim().max(40),
+    date_of_birth: z.string(),
+    training_level: z.string().trim().max(80),
+    veterinary_notes: z.string().trim().max(1000),
+    observations: z.string().trim().max(500, t("validation.observationsMax")),
+    assignment_date: z.string(),
+    vaccination_info: z.string().trim().max(500),
+    health_status: z.string().trim().max(120),
+  });
 }
+
+type DogStatusFilter = "all" | "available" | (typeof DOG_EXCLUSION_FORM_TYPES)[number];
 
 type DogForm = z.infer<ReturnType<typeof createDogSchema>>;
 
@@ -148,7 +166,7 @@ function formValuesFromDog(dog: DogRow, agentId: string | null): DogFormValues {
     name: dog.name,
     gender: dog.gender,
     specialty: dog.specialty,
-    status: dog.status,
+    status: "available",
     active: dog.active,
     agent_id: agentId,
     breed: dog.breed ?? "",
@@ -175,7 +193,8 @@ function toDogPayload(values: DogForm) {
     name: values.name,
     gender: values.gender,
     specialty: values.specialty,
-    status: values.status,
+    // Operational status is derived from exclusions — never duplicate it here.
+    status: "available" as const,
     active: values.active,
     breed: values.breed.trim() || null,
     microchip_number: values.microchip_number.trim() || null,
@@ -200,7 +219,8 @@ function DogsPage() {
   const [page, setPage] = useState(1);
   const [specialtyFilter, setSpecialtyFilter] = useState<"all" | Specialty>("all");
   const [genderFilter, setGenderFilter] = useState<"all" | Gender>("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | DogStatus>("all");
+  const [sexSort, setSexSort] = useState<"none" | "asc" | "desc">("none");
+  const [statusFilter, setStatusFilter] = useState<DogStatusFilter>("all");
   const [activeFilter, setActiveFilter] = useState<"all" | "active" | "retired">("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<DogRow | null>(null);
@@ -217,6 +237,11 @@ function DogsPage() {
   const { data: dogs, isLoading, dataUpdatedAt } = useQuery({
     queryKey: ["dogs-with-agent"],
     queryFn: () => getDogs(),
+  });
+
+  const { data: todayExclusions = [] } = useQuery({
+    queryKey: ACTIVE_EXCLUSIONS_TODAY_QUERY_KEY,
+    queryFn: () => fetchActiveExclusionsForDate(db, todayISODate()),
   });
 
   const { data: agents } = useQuery({
@@ -260,39 +285,76 @@ function DogsPage() {
     };
   }, [dogs]);
 
+  const exclusions = todayExclusions as AgentExclusionRecord[];
+
+  const dogStatusOf = (dogId: string) => deriveDogOperationalStatus(dogId, exclusions);
+
   const filtered = useMemo(() => {
-    return (dogs ?? []).filter((dog) => {
+    const list = (dogs ?? []).filter((dog) => {
       const query = search.trim().toLowerCase();
-      if (
-        query &&
-        !dog.name.toLowerCase().includes(query) &&
-        !(dog.breed ?? "").toLowerCase().includes(query) &&
-        !(dog.microchip_number ?? "").toLowerCase().includes(query)
-      ) {
-        return false;
+      const operational = deriveDogOperationalStatus(dog.id, exclusions);
+      if (query) {
+        const statusLabel = t(dogOperationalStatusLabelKey(operational)).toLowerCase();
+        const hay = [
+          dog.name,
+          dog.breed ?? "",
+          dog.microchip_number ?? "",
+          dogSexSearchTokens(dog.gender, t),
+          statusLabel,
+          dogOperationalStatusKey(operational),
+        ]
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(query)) return false;
       }
       if (specialtyFilter !== "all" && dog.specialty !== specialtyFilter) return false;
       if (genderFilter !== "all" && dog.gender !== genderFilter) return false;
-      if (statusFilter !== "all" && dog.status !== statusFilter) return false;
+      if (
+        statusFilter !== "all" &&
+        dogOperationalStatusKey(operational) !== statusFilter
+      ) {
+        return false;
+      }
       if (activeFilter === "active" && !dog.active) return false;
       if (activeFilter === "retired" && dog.active) return false;
       return true;
     });
-  }, [dogs, search, specialtyFilter, genderFilter, statusFilter, activeFilter]);
+
+    if (sexSort === "none") return list;
+
+    const rank = (gender: DogRow["gender"]) => {
+      const sex = normalizeDogSex(gender);
+      if (sex === "male") return 0;
+      if (sex === "female") return 1;
+      return 2;
+    };
+
+    return [...list].sort((a, b) => {
+      const diff = rank(a.gender) - rank(b.gender);
+      return sexSort === "asc" ? diff : -diff;
+    });
+  }, [dogs, exclusions, search, specialtyFilter, genderFilter, statusFilter, activeFilter, sexSort, t]);
 
   const hasFilters =
     search.trim() !== "" ||
     specialtyFilter !== "all" ||
     genderFilter !== "all" ||
     statusFilter !== "all" ||
-    activeFilter !== "all";
+    activeFilter !== "all" ||
+    sexSort !== "none";
 
   const resetFilters = () => {
     setSearch("");
     setSpecialtyFilter("all");
     setGenderFilter("all");
+    setSexSort("none");
     setStatusFilter("all");
     setActiveFilter("all");
+    setPage(1);
+  };
+
+  const cycleSexSort = () => {
+    setSexSort((prev) => (prev === "none" ? "asc" : prev === "asc" ? "desc" : "none"));
     setPage(1);
   };
 
@@ -467,7 +529,7 @@ function DogsPage() {
       {
         id: "dog",
         header: t("dogs.field.dogName"),
-        meta: { width: "18%" },
+        meta: { width: "15%" },
         cell: ({ row }) => {
           const dog = row.original;
           return (
@@ -482,9 +544,43 @@ function DogsPage() {
         },
       },
       {
+        id: "sex",
+        header: () => (
+          <button
+            type="button"
+            onClick={cycleSexSort}
+            className="inline-flex items-center gap-1 text-left hover:text-foreground"
+            aria-label={t("dogs.sex.sortAria")}
+          >
+            <span>{t("dogs.field.sex")}</span>
+            {sexSort === "asc" ? (
+              <ArrowUp className="h-3.5 w-3.5" />
+            ) : sexSort === "desc" ? (
+              <ArrowDown className="h-3.5 w-3.5" />
+            ) : (
+              <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />
+            )}
+          </button>
+        ),
+        meta: { width: "11%" },
+        cell: ({ row }) => {
+          const sex = normalizeDogSex(row.original.gender);
+          const label = formatDogSexLabel(row.original.gender, t);
+          return (
+            <CellTooltip label={label}>
+              <span
+                className={`truncate text-sm ${sex ? "text-foreground" : "text-muted-foreground"}`}
+              >
+                {label}
+              </span>
+            </CellTooltip>
+          );
+        },
+      },
+      {
         id: "breed",
         header: t("dogs.field.breed"),
-        meta: { width: "14%" },
+        meta: { width: "12%" },
         cell: ({ row }) => (
           <span className="truncate text-sm text-muted-foreground">
             {row.original.breed?.trim() || "—"}
@@ -494,7 +590,7 @@ function DogsPage() {
       {
         id: "microchip",
         header: t("dogs.field.microchip"),
-        meta: { width: "12%" },
+        meta: { width: "11%" },
         cell: ({ row }) => (
           <span className="font-mono text-xs text-muted-foreground">
             {row.original.microchip_number?.trim() || "—"}
@@ -504,7 +600,7 @@ function DogsPage() {
       {
         id: "age",
         header: t("dogs.field.age"),
-        meta: { width: "12%" },
+        meta: { width: "10%" },
         cell: ({ row }) => (
           <span className="text-sm text-muted-foreground">
             {formatDogAgeLabel(row.original.date_of_birth, t)}
@@ -514,7 +610,7 @@ function DogsPage() {
       {
         id: "handler",
         header: t("dogs.table.currentAgent"),
-        meta: { width: "18%" },
+        meta: { width: "15%" },
         cell: ({ row }) => {
           const agent = row.original.agent;
           if (!agent) return <span className="text-sm text-muted-foreground">—</span>;
@@ -533,7 +629,7 @@ function DogsPage() {
       {
         id: "specialty",
         header: t("field.specialty"),
-        meta: { width: "16%" },
+        meta: { width: "13%" },
         cell: ({ row }) => (
           <EnterpriseStatusBadge tone="primary" className="max-w-full truncate px-2 py-0.5 text-[11px]">
             {t(`specialty.${row.original.specialty}`)}
@@ -543,10 +639,10 @@ function DogsPage() {
       {
         id: "status",
         header: t("common.status"),
-        meta: { width: "12%", align: "center" },
+        meta: { width: "10%", align: "center" },
         cell: ({ row }) => (
           <div className="flex justify-center">
-            <DogStatusBadge status={row.original.status} />
+            <DogStatusBadge status={dogStatusOf(row.original.id)} />
           </div>
         ),
       },
@@ -581,7 +677,7 @@ function DogsPage() {
         },
       },
     ],
-    [t],
+    [t, sexSort, exclusions],
   );
 
   return (
@@ -644,20 +740,23 @@ function DogsPage() {
             </SelectContent>
           </Select>
           <Select value={genderFilter} onValueChange={(value) => setGenderFilter(value as typeof genderFilter)}>
-            <FilterSelectTrigger><SelectValue /></FilterSelectTrigger>
+            <FilterSelectTrigger><SelectValue placeholder={t("dogs.field.sex")} /></FilterSelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{t("dogs.gender.all")}</SelectItem>
-              <SelectItem value="male">{t("dogs.gender.male")}</SelectItem>
-              <SelectItem value="female">{t("dogs.gender.female")}</SelectItem>
+              <SelectItem value="all">{t("dogs.sex.filterAll")}</SelectItem>
+              <SelectItem value="male">{t("dogs.sex.filterMale")}</SelectItem>
+              <SelectItem value="female">{t("dogs.sex.filterFemale")}</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as typeof statusFilter)}>
+          <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as DogStatusFilter)}>
             <FilterSelectTrigger><SelectValue /></FilterSelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("common.allStatuses")}</SelectItem>
               <SelectItem value="available">{t("dogStatus.available")}</SelectItem>
-              <SelectItem value="sick">{t("dogStatus.sick")}</SelectItem>
-              <SelectItem value="heat">{t("dogStatus.heat")}</SelectItem>
+              {DOG_EXCLUSION_FORM_TYPES.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {t(`exclusions.type.${type}`)}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Select value={activeFilter} onValueChange={(value) => setActiveFilter(value as typeof activeFilter)}>
@@ -713,6 +812,7 @@ function DogsPage() {
       <DogDetailsDrawer
         dogId={detailsDogId}
         dogRow={dogs?.find((dog) => dog.id === detailsDogId) ?? null}
+        todayExclusions={exclusions}
         open={!!detailsDogId}
         onOpenChange={(next) => {
           if (!next) setDetailsDogId(null);
@@ -739,6 +839,9 @@ function DogsPage() {
         errors={errors}
         agents={agents ?? []}
         currentAgentId={currentAgentId}
+        operationalStatus={
+          editing ? dogStatusOf(editing.id) : { kind: "available" }
+        }
         pendingPhotoFile={pendingPhotoFile}
         removePhoto={removePhoto}
         onPendingPhotoFileChange={setPendingPhotoFile}

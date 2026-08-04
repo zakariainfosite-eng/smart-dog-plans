@@ -34,6 +34,7 @@ import { useI18n } from "@/hooks/use-i18n";
 import type { Database } from "@/integrations/database/schema-types";
 import { formatDogAgeLabel } from "@/lib/dog-ui";
 import { DogStatusBadge } from "@/components/dogs/dog-status-badge";
+import type { DogOperationalStatus } from "@/lib/dog-operational-status";
 
 type Gender = Database["public"]["Enums"]["gender_type"];
 type Specialty = Database["public"]["Enums"]["dog_specialty"];
@@ -43,6 +44,7 @@ export type DogFormValues = {
   name: string;
   gender: Gender;
   specialty: Specialty;
+  /** Legacy DB column — always persisted as "available"; display uses exclusions. */
   status: DogStatus;
   active: boolean;
   agent_id: string | null;
@@ -74,6 +76,8 @@ type DogFormDialogProps = {
   errors: Partial<Record<keyof DogFormValues, string>>;
   agents: AgentOption[];
   currentAgentId: string | null;
+  /** Computed from active exclusions — not editable here. */
+  operationalStatus: DogOperationalStatus;
   pendingPhotoFile: File | null;
   removePhoto: boolean;
   onPendingPhotoFileChange: (file: File | null) => void;
@@ -93,6 +97,7 @@ export function DogFormDialog({
   errors,
   agents,
   currentAgentId,
+  operationalStatus,
   pendingPhotoFile,
   removePhoto,
   onPendingPhotoFileChange,
@@ -148,7 +153,7 @@ export function DogFormDialog({
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <DogStatusBadge status={form.status} />
+                <DogStatusBadge status={operationalStatus} />
                 <StatusBadge tone="primary">{t(`specialty.${form.specialty}`)}</StatusBadge>
                 <StatusBadge tone={form.active ? "success" : "neutral"}>
                   {form.active ? t("common.active") : t("status.retired")}
@@ -190,19 +195,13 @@ export function DogFormDialog({
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <FormField label={t("field.gender")} error={errors.gender}>
+                <FormField label={`${t("dogs.field.sex")} *`} error={errors.gender}>
                   <Select
                     value={form.gender}
-                    onValueChange={(value) => {
-                      const gender = value as Gender;
-                      patchForm({
-                        gender,
-                        status: gender === "male" && form.status === "heat" ? "available" : form.status,
-                      });
-                    }}
+                    onValueChange={(value) => patchForm({ gender: value as Gender })}
                   >
                     <SelectTrigger className="transition-shadow hover:shadow-sm">
-                      <SelectValue />
+                      <SelectValue placeholder={t("dogs.field.sex")} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="male">
@@ -220,22 +219,11 @@ export function DogFormDialog({
                     </SelectContent>
                   </Select>
                 </FormField>
-                <FormField label={t("common.status")} error={errors.status}>
-                  <Select
-                    value={form.status}
-                    onValueChange={(value) => patchForm({ status: value as DogStatus })}
-                  >
-                    <SelectTrigger className="transition-shadow hover:shadow-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="available">{t("dogStatus.available")}</SelectItem>
-                      <SelectItem value="sick">{t("dogStatus.sick")}</SelectItem>
-                      <SelectItem value="heat" disabled={form.gender === "male"}>
-                        {t("dogStatus.heat")}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                <FormField label={t("common.status")}>
+                  <div className="flex min-h-10 items-center rounded-[var(--radius)] border border-border/60 bg-muted/30 px-3 py-2">
+                    <DogStatusBadge status={operationalStatus} />
+                  </div>
+                  <p className="text-xs text-muted-foreground">{t("dogs.field.statusFromExclusions")}</p>
                 </FormField>
               </div>
 

@@ -21,6 +21,7 @@ import {
   StickyNote,
   Briefcase,
   Award,
+  HeartHandshake,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -33,6 +34,8 @@ import {
   openAgentProfilePrintWindow,
 } from "@/lib/agent-profile-export";
 import { agentSpecialty } from "@/lib/agent-ui";
+import { formatMaritalStatusLabel } from "@/lib/marital-status";
+import { normalizePersonnelFonction } from "@/lib/personnel-fonction";
 import {
   OperationalCaseDialog,
   type OperationalCaseDialogMode,
@@ -146,7 +149,18 @@ export function AgentDetailsDrawer({
             value: agent.professional_number,
           },
           { label: t("field.grade"), value: agent.grade },
+          {
+            label: t("employees.field.fonction"),
+            value: t(`personnelFonction.${normalizePersonnelFonction(agent.fonction)}`),
+          },
           { label: t("field.gender"), value: t(`gender.${agent.gender}`) },
+          {
+            label: t("employees.field.maritalStatus"),
+            value: formatMaritalStatusLabel(
+              agent.marital_status ?? agentRow?.marital_status,
+              t,
+            ),
+          },
           { label: t("employees.field.phone"), value: agent.phone ?? t("common.none") },
           { label: t("employees.field.address"), value: agent.address ?? t("common.none") },
           {
@@ -186,7 +200,7 @@ export function AgentDetailsDrawer({
         ],
       },
     ];
-  }, [data, specialty, t]);
+  }, [agentRow?.marital_status, data, specialty, t]);
 
   const handlePrint = () => {
     if (!data) return;
@@ -309,9 +323,24 @@ export function AgentDetailsDrawer({
                     />
                     <DetailItem icon={Shield} label={t("field.grade")} value={data.agent.grade} />
                     <DetailItem
+                      icon={Briefcase}
+                      label={t("employees.field.fonction")}
+                      value={t(
+                        `personnelFonction.${normalizePersonnelFonction(data.agent.fonction)}`,
+                      )}
+                    />
+                    <DetailItem
                       icon={data.agent.gender === "female" ? Venus : Mars}
                       label={t("field.gender")}
                       value={t(`gender.${data.agent.gender}`)}
+                    />
+                    <DetailItem
+                      icon={HeartHandshake}
+                      label={t("employees.field.maritalStatus")}
+                      value={formatMaritalStatusLabel(
+                        data.agent.marital_status ?? agentRow?.marital_status,
+                        t,
+                      )}
                     />
                     <DetailItem
                       icon={Phone}

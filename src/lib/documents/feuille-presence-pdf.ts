@@ -11,6 +11,7 @@ import type {
   DogsListPdfData,
   FeuillePresenceData,
 } from "@/lib/documents/feuille-presence-types";
+import { sortFeuillePresenceDataByMatricule } from "@/lib/documents/sort-attendance-by-matricule";
 
 /** Official K9 attendance sheet — A4 portrait blank template. */
 export type FeuillePresenceOptions = {
@@ -21,6 +22,13 @@ export type FeuillePresenceOptions = {
   /** Original PNG bytes or data URL — used for header seal and table watermark. */
   logoDataUrl?: string | Uint8Array;
 };
+
+/**
+ * PRESERVE — Female presence customization (do not remove):
+ * After male rows in each specialty table, female cynotechniciennes of that
+ * specialty appear with personnel fields only and an empty Affectation column.
+ * They are never operationally assigned. Rotation Engine must not strip these rows.
+ */
 
 export type CynotechniciansListPdfOptions = {
   year?: number;
@@ -51,7 +59,11 @@ function resolveLogoSources(
 export function generateFeuillePresencePdf(options: FeuillePresenceOptions = {}): jsPDF {
   const year = options.year ?? new Date().getFullYear();
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-  renderFeuillePresencePage(doc, year, resolveLogoSources(options.logoDataUrl), options.data);
+  // Keep male→female specialty blocks (presenceOnly rows must remain).
+  const data = options.data
+    ? sortFeuillePresenceDataByMatricule(options.data)
+    : undefined;
+  renderFeuillePresencePage(doc, year, resolveLogoSources(options.logoDataUrl), data);
   return doc;
 }
 

@@ -8,12 +8,19 @@ import {
   User,
   Pencil,
   Layers,
+  BarChart3,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { db } from "@/integrations/database/client";
 import { fetchDogDetails, type DogOperationalCase } from "@/lib/dog-details";
 import { formatDogAgeLabel } from "@/lib/dog-ui";
+import { formatDogSexLabel } from "@/lib/dog-sex";
+import type { AgentExclusionRecord } from "@/lib/agent-exclusions";
+import {
+  deriveDogOperationalStatus,
+  dogOperationalStatusLabelKey,
+} from "@/lib/dog-operational-status";
 import { DogAvatar } from "@/components/dogs/dog-avatar";
 import { DogPhotoLightbox } from "@/components/dogs/dog-photo-lightbox";
 import { DogOperationalCasesHistory } from "@/components/dogs/dog-operational-cases-history";
@@ -58,6 +65,8 @@ type DogWithAgentRow = DogRow & {
 type DogDetailsDrawerProps = {
   dogId: string | null;
   dogRow: DogWithAgentRow | null;
+  /** Active exclusions for today — used for status before details finish loading. */
+  todayExclusions?: AgentExclusionRecord[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit: (dog: DogWithAgentRow) => void;
@@ -66,6 +75,7 @@ type DogDetailsDrawerProps = {
 export function DogDetailsDrawer({
   dogId,
   dogRow,
+  todayExclusions = [],
   open,
   onOpenChange,
   onEdit,
@@ -94,6 +104,9 @@ export function DogDetailsDrawer({
   const name = dog?.name ?? "";
   const photoUrl = data?.dog.photo_url ?? dogRow?.photo_url ?? null;
   const specialty = dog?.specialty ?? null;
+  const operationalStatus = dogId
+    ? deriveDogOperationalStatus(dogId, data ? data.exclusions : todayExclusions)
+    : ({ kind: "available" } as const);
 
   const openCaseDetail = (caseRow: DogOperationalCase) => {
     setSelectedCase(caseRow);
@@ -143,7 +156,7 @@ export function DogDetailsDrawer({
               </SheetDescription>
               {dog && (
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <DogStatusBadge status={dog.status} />
+                  <DogStatusBadge status={operationalStatus} />
                   {specialty && (
                     <StatusBadge tone="primary">{t(`specialty.${specialty}`)}</StatusBadge>
                   )}
@@ -178,28 +191,42 @@ export function DogDetailsDrawer({
               <DetailsSection title={t("dogDetails.section.information")} icon={DogIcon}>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <InfoField label={t("dogs.field.dogName")} value={data.dog.name} />
-                  <InfoField label={t("dogs.field.breed")} value={data.dog.breed ?? t("common.none")} />
                   <InfoField
-                    label={t("dogs.field.microchip")}
-                    value={data.dog.microchip_number ?? t("common.none")}
+                    label={t("dogs.field.sex")}
+                    value={formatDogSexLabel(data.dog.gender, t)}
                   />
                   <InfoField
-                    label={t("field.gender")}
-                    value={t(`dogs.gender.${data.dog.gender}`)}
+                    label={t("dogs.field.microchip")}
+                    value={valueOrUnspecified(data.dog.microchip_number, t)}
+                  />
+                  <InfoField
+                    label={t("dogs.field.breed")}
+                    value={valueOrUnspecified(data.dog.breed, t)}
                   />
                   <InfoField
                     label={t("dogs.field.dateOfBirth")}
                     value={
                       data.dog.date_of_birth
                         ? format(parseISO(data.dog.date_of_birth), "dd/MM/yyyy")
-                        : t("common.none")
+                        : t("dogs.sex.unspecified")
                     }
                   />
                   <InfoField
                     label={t("dogs.field.age")}
-                    value={formatDogAgeLabel(data.dog.date_of_birth, t)}
+                    value={
+                      data.dog.date_of_birth
+                        ? formatDogAgeLabel(data.dog.date_of_birth, t)
+                        : t("dogs.sex.unspecified")
+                    }
                   />
-                  <InfoField label={t("common.status")} value={t(`dogStatus.${data.dog.status}`)} />
+                  <InfoField
+                    label={t("common.status")}
+                    value={t(dogOperationalStatusLabelKey(operationalStatus))}
+                  />
+                  <InfoField
+                    label={t("field.specialty")}
+                    value={t(`specialty.${data.dog.specialty}`)}
+                  />
                 </div>
               </DetailsSection>
 
@@ -210,16 +237,12 @@ export function DogDetailsDrawer({
                     value={
                       data.dog.agent
                         ? `${data.dog.agent.first_name} ${data.dog.agent.last_name}`
-                        : t("common.none")
+                        : t("dogs.sex.unspecified")
                     }
                   />
                   <InfoField
-                    label={t("field.specialty")}
-                    value={t(`specialty.${data.dog.specialty}`)}
-                  />
-                  <InfoField
                     label={t("field.section")}
-                    value={data.dog.agent?.section?.name ?? t("common.none")}
+                    value={data.dog.agent?.section?.name ?? t("dogs.sex.unspecified")}
                     icon={Layers}
                   />
                   <InfoField
@@ -227,12 +250,12 @@ export function DogDetailsDrawer({
                     value={
                       data.dog.assignment_date
                         ? format(parseISO(data.dog.assignment_date), "dd/MM/yyyy")
-                        : t("common.none")
+                        : t("dogs.sex.unspecified")
                     }
                   />
                   <InfoField
                     label={t("dogs.field.trainingLevel")}
-                    value={data.dog.training_level ?? t("common.none")}
+                    value={valueOrUnspecified(data.dog.training_level, t)}
                   />
                 </div>
               </DetailsSection>
@@ -241,17 +264,34 @@ export function DogDetailsDrawer({
                 <div className="grid gap-3">
                   <InfoField
                     label={t("dogs.field.veterinaryNotes")}
-                    value={data.dog.veterinary_notes?.trim() || t("common.none")}
+                    value={valueOrUnspecified(data.dog.veterinary_notes, t)}
                     multiline
                   />
                   <InfoField
                     label={t("dogs.field.vaccinationInfo")}
-                    value={data.dog.vaccination_info?.trim() || t("common.none")}
+                    value={valueOrUnspecified(data.dog.vaccination_info, t)}
                     multiline
                   />
                   <InfoField
                     label={t("dogs.field.healthStatus")}
-                    value={data.dog.health_status?.trim() || t("common.none")}
+                    value={valueOrUnspecified(data.dog.health_status, t)}
+                  />
+                </div>
+              </DetailsSection>
+
+              <DetailsSection title={t("dogDetails.section.statistics")} icon={BarChart3}>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <InfoField
+                    label={t("dogDetails.statistics.operationalCases")}
+                    value={String(data.statistics.operationalCases)}
+                  />
+                  <InfoField
+                    label={t("dogDetails.statistics.exclusions")}
+                    value={String(data.statistics.exclusions)}
+                  />
+                  <InfoField
+                    label={t("dogDetails.statistics.activeExclusions")}
+                    value={String(data.statistics.activeExclusions)}
                   />
                 </div>
               </DetailsSection>
@@ -270,18 +310,16 @@ export function DogDetailsDrawer({
               <DetailsSection title={t("dogDetails.section.exclusionsHistory")} icon={User}>
                 {data.sectionErrors?.exclusions ? (
                   <SectionError message={data.sectionErrors.exclusions} />
-                ) : data.dog.agent ? (
-                  <AgentExclusionsHistory exclusions={data.exclusions} />
                 ) : (
-                  <p className="text-sm text-muted-foreground">{t("dogDetails.exclusions.noAgent")}</p>
+                  <AgentExclusionsHistory exclusions={data.exclusions} />
                 )}
               </DetailsSection>
 
-              {data.dog.observations?.trim() ? (
-                <DetailsSection title={t("dogDetails.section.notes")} icon={DogIcon}>
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed">{data.dog.observations}</p>
-                </DetailsSection>
-              ) : null}
+              <DetailsSection title={t("dogDetails.section.notes")} icon={DogIcon}>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                  {data.dog.observations?.trim() || t("dogs.sex.unspecified")}
+                </p>
+              </DetailsSection>
             </div>
           )}
         </ScrollArea>
@@ -323,6 +361,14 @@ function DetailsSection({
       {children}
     </ProfileInfoCard>
   );
+}
+
+function valueOrUnspecified(
+  value: string | null | undefined,
+  t: (key: string) => string,
+): string {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : t("dogs.sex.unspecified");
 }
 
 function InfoField({

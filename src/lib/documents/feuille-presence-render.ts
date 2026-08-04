@@ -2,6 +2,7 @@ import type { jsPDF } from "jspdf";
 import type {
   CynotechnicianListPdfRow,
   CynotechniciansListPdfData,
+  CynotechniciansListPdfTable,
   DogListPdfRow,
   DogsListPdfData,
   FeuillePresenceData,
@@ -20,6 +21,7 @@ import {
   FP_CYNOTECHNICIANS_TABLE_COLS,
   FP_DOGS_LIST_TITLE,
   FP_DOGS_TABLE_COLS,
+  FP_PERSONNEL_ADMIN_TABLE_COLS,
   FP_LAYOUT,
   FP_MARGIN,
   FP_ORG_HEADER_LINES,
@@ -551,7 +553,7 @@ function drawCynotechniciansListTitle(doc: jsPDF, startY: number): number {
 
 function cellValueForCynotechnician(
   row: CynotechnicianListPdfRow,
-  key: (typeof FP_CYNOTECHNICIANS_TABLE_COLS)[number]["key"],
+  key: string,
 ): string {
   switch (key) {
     case "numero":
@@ -564,6 +566,10 @@ function cellValueForCynotechnician(
       return row.matricule;
     case "grade":
       return row.grade;
+    case "fonction":
+      return row.fonction;
+    case "situation":
+      return row.situation;
     case "chien":
       return row.chien;
     case "specialite":
@@ -575,16 +581,25 @@ function cellValueForCynotechnician(
   }
 }
 
+function personnelListTableColsForLayout(
+  layout: CynotechniciansListPdfTable["layout"],
+): readonly OfficialTableCol[] {
+  return layout === "operational"
+    ? FP_CYNOTECHNICIANS_TABLE_COLS
+    : FP_PERSONNEL_ADMIN_TABLE_COLS;
+}
+
 function drawCynotechniciansTableRows(
   doc: jsPDF,
   x: number,
   startY: number,
   rows: CynotechnicianListPdfRow[],
+  cols: readonly OfficialTableCol[],
 ): number {
   let y = startY;
   for (const row of rows) {
     let cx = x;
-    for (const col of FP_CYNOTECHNICIANS_TABLE_COLS) {
+    for (const col of cols) {
       drawRect(doc, cx, y, col.w, FP_TABLE.rowH);
       const value = cellValueForCynotechnician(row, col.key);
       const isNumeroCol = col.key === "numero";
@@ -620,10 +635,21 @@ function drawCynotechniciansTableRows(
   return y;
 }
 
+function personnelListTableHeaderHeight(hasTitle: boolean): number {
+  const titleH = hasTitle
+    ? FP_LAYOUT.sectionTitleBandH + FP_LAYOUT.sectionTitleBottomGap
+    : 0;
+  return titleH + FP_TABLE.headerH;
+}
+
+function countPersonnelListRows(tables: readonly CynotechniciansListPdfTable[]): number {
+  return tables.reduce((sum, table) => sum + table.rows.length, 0);
+}
+
 /**
- * Official cynotechnicians list — reuses Feuille de présence header, logo,
+ * Official personnel list — reuses Feuille de présence header, logo,
  * fonts, margins, table metrics, watermark and signature footer.
- * Continues onto additional pages with a repeated official header.
+ * Exactly two tables max: administrative/command, then Cynotechniciens.
  */
 export function renderCynotechniciansListPages(
   doc: jsPDF,
@@ -642,48 +668,93 @@ export function renderCynotechniciansListPages(
     + FP_LAYOUT.signatures.brigadeLabelOffsetY
     + 6;
   const pageBottomLimit = FP_LAYOUT.contentBottomY;
-  const rows = data.rows;
-  let rowIndex = 0;
-  let pageIndex = 0;
+  const tables = data.tables;
+  const totalRows = countPersonnelListRows(tables);
 
-  do {
+  let tableIndex = 0;
+  let rowIndexInTable = 0;
+  let rowsRendered = 0;
+  let pageIndex = 0;
+  let y = 0;
+
+  const startPage = () => {
     if (pageIndex > 0) {
       doc.addPage();
       applyFeuillePresenceDefaults(doc);
     }
-
     drawFeuillePresenceHeader(doc, year, headerAsset, data.dateLine);
-    let y = drawCynotechniciansListTitle(doc, FP_LAYOUT.titleStartY);
+    y = drawCynotechniciansListTitle(doc, FP_LAYOUT.titleStartY);
+    pageIndex += 1;
+  };
 
+  startPage();
+
+  if (tables.length === 0) {
+    drawFeuillePresenceSignatures(doc, y);
+    return;
+  }
+
+  while (tableIndex < tables.length) {
+    const table = tables[tableIndex]!;
+    const isContinuation = rowIndexInTable > 0;
+    const hasTitle = table.title.trim().length > 0;
+    const headerH = personnelListTableHeaderHeight(hasTitle);
+
+    if (y + headerH + FP_TABLE.rowH > pageBottomLimit) {
+      startPage();
+    }
+
+    if (hasTitle) {
+      const sectionTitle = isContinuation ? `${table.title} (suite)` : table.title;
+      y = drawFeuillePresenceSectionTitle(doc, sectionTitle, y);
+    }
+
+    const tableCols = personnelListTableColsForLayout(table.layout);
     const tableTopY = y;
-    drawOfficialTableHeader(doc, FP_MARGIN.left, y, FP_CYNOTECHNICIANS_TABLE_COLS);
+    drawOfficialTableHeader(doc, FP_MARGIN.left, y, tableCols);
     y += FP_TABLE.headerH;
 
     const chunk: CynotechnicianListPdfRow[] = [];
-    while (rowIndex < rows.length) {
+    while (rowIndexInTable < table.rows.length) {
       const nextY = y + (chunk.length + 1) * FP_TABLE.rowH;
-      const wouldBeLast = rowIndex + chunk.length + 1 >= rows.length;
-      const reserve = wouldBeLast ? signatureReserve : 0;
+      const wouldBeLastOverall =
+        rowsRendered + chunk.length + 1 >= totalRows
+        && tableIndex === tables.length - 1;
+      const reserve = wouldBeLastOverall ? signatureReserve : 0;
       if (nextY + reserve > pageBottomLimit && chunk.length > 0) break;
       if (nextY + reserve > pageBottomLimit && chunk.length === 0) {
-        chunk.push(rows[rowIndex]!);
-        rowIndex += 1;
+        chunk.push(table.rows[rowIndexInTable]!);
+        rowIndexInTable += 1;
         break;
       }
-      chunk.push(rows[rowIndex]!);
-      rowIndex += 1;
+      chunk.push(table.rows[rowIndexInTable]!);
+      rowIndexInTable += 1;
     }
 
     const tableBottomY = y + Math.max(chunk.length, 1) * FP_TABLE.rowH;
     drawFeuillePresenceTableWatermark(doc, headerAsset, tableTopY, tableBottomY);
-    y = drawCynotechniciansTableRows(doc, FP_MARGIN.left, y, chunk);
+    y = drawCynotechniciansTableRows(doc, FP_MARGIN.left, y, chunk, tableCols);
+    rowsRendered += chunk.length;
 
-    if (rowIndex >= rows.length) {
-      drawFeuillePresenceSignatures(doc, y);
+    if (rowIndexInTable < table.rows.length) {
+      startPage();
+      continue;
     }
 
-    pageIndex += 1;
-  } while (rowIndex < rows.length);
+    tableIndex += 1;
+    rowIndexInTable = 0;
+
+    if (tableIndex < tables.length) {
+      y += FP_LAYOUT.betweenTablesGap;
+      const next = tables[tableIndex]!;
+      const nextHeaderH = personnelListTableHeaderHeight(next.title.trim().length > 0);
+      if (y + nextHeaderH + FP_TABLE.rowH > pageBottomLimit) {
+        startPage();
+      }
+    }
+  }
+
+  drawFeuillePresenceSignatures(doc, y);
 }
 
 function drawDogsListTitle(doc: jsPDF, startY: number): number {
@@ -701,6 +772,8 @@ function cellValueForDog(
       return String(row.numero);
     case "nom":
       return row.nom;
+    case "sexe":
+      return row.sexe;
     case "puce":
       return row.puce;
     case "race":

@@ -13,6 +13,8 @@ const { pathToFileURL } = require("node:url");
 const tempRoot = mkdtempSync(join(tmpdir(), "cyno-migration-verify-"));
 const tempUserData = join(tempRoot, "userData");
 
+process.env.CYNOPLANNING_ALLOW_EMPTY_DB = "1";
+
 app.setName("CynoPlanning");
 app.setPath("userData", tempUserData);
 
@@ -23,6 +25,10 @@ function fail(message) {
 
 function ok(message) {
   console.log("OK", message);
+}
+
+function listBackups(userData, isMigrationBackupFileName) {
+  return readdirSync(userData).filter((name) => isMigrationBackupFileName(name));
 }
 
 app.whenReady().then(async () => {
@@ -45,9 +51,11 @@ app.whenReady().then(async () => {
       SQLITE_MIGRATIONS,
       createPreMigrationBackup,
       restoreDatabaseFromBackup,
+      isMigrationBackupFileName,
     } = sqlite;
 
     const mockApp = {
+      isReady: () => true,
       getPath: (name) => {
         if (name === "userData") return tempUserData;
         throw new Error(`unexpected getPath(${name})`);
@@ -56,38 +64,56 @@ app.whenReady().then(async () => {
 
     initializeDatabase(mockApp);
     const database = getDatabase();
-    const applied = database
-      .prepare(`SELECT id FROM ${SCHEMA_MIGRATIONS_TABLE} ORDER BY id`)
-      .all()
-      .map((row) => row.id);
+    const history = database
+      .prepare(
+        `SELECT id, name, applied_at, success FROM ${SCHEMA_MIGRATIONS_TABLE} ORDER BY id`,
+      )
+      .all();
 
-    if (applied.length !== SQLITE_MIGRATIONS.length) {
-      fail(`expected ${SQLITE_MIGRATIONS.length} migrations, got ${applied.length}`);
+    if (history.length !== SQLITE_MIGRATIONS.length) {
+      fail(`expected ${SQLITE_MIGRATIONS.length} migrations, got ${history.length}`);
     }
     for (const migration of SQLITE_MIGRATIONS) {
-      if (!applied.includes(migration.id)) {
+      const row = history.find((entry) => entry.id === migration.id);
+      if (!row) {
         fail(`missing migration record: ${migration.id}`);
       }
+      if (row.success !== 1) {
+        fail(`migration ${migration.id} success=${row.success}, expected 1`);
+      }
+      if (!row.name || !String(row.name).trim()) {
+        fail(`migration ${migration.id} missing name`);
+      }
+      if (!row.applied_at) {
+        fail(`migration ${migration.id} missing applied_at`);
+      }
     }
-    ok("fresh database — all migrations recorded");
+    ok("fresh database — all migrations recorded with name/date/success");
 
-    const backupsAfterFirst = readdirSync(tempUserData).filter((name) =>
-      name.startsWith("cynoplanning.db.pre-migration."),
-    );
+    const backupsAfterFirst = listBackups(tempUserData, isMigrationBackupFileName);
     if (backupsAfterFirst.length !== 1) {
       fail(`expected 1 pre-migration backup, found ${backupsAfterFirst.length}`);
     }
-    ok("pre-migration backup created");
+    if (!/^backup_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.db$/.test(backupsAfterFirst[0])) {
+      fail(`unexpected backup name: ${backupsAfterFirst[0]}`);
+    }
+    ok("pre-migration backup created (backup_YYYY-MM-DD_HH-MM-SS.db)");
 
     closeDatabase();
     initializeDatabase(mockApp);
-    const backupsAfterSecond = readdirSync(tempUserData).filter((name) =>
-      name.startsWith("cynoplanning.db.pre-migration."),
-    );
+    const backupsAfterSecond = listBackups(tempUserData, isMigrationBackupFileName);
     if (backupsAfterSecond.length !== 1) {
       fail(`expected 1 backup after re-init, found ${backupsAfterSecond.length}`);
     }
-    ok("re-init is idempotent — no duplicate backups");
+    ok("re-init is idempotent — no duplicate backups / migrations");
+
+    const historyCount = getDatabase()
+      .prepare(`SELECT COUNT(*) AS c FROM ${SCHEMA_MIGRATIONS_TABLE}`)
+      .get().c;
+    if (historyCount !== SQLITE_MIGRATIONS.length) {
+      fail(`duplicate migration rows after re-init: ${historyCount}`);
+    }
+    ok("no duplicate migration executions");
 
     closeDatabase();
     const dbPath = getDatabasePath(mockApp);
@@ -95,9 +121,9 @@ app.whenReady().then(async () => {
     const connection = new Database(dbPath);
     connection.pragma("journal_mode = WAL");
     const backupPath = createPreMigrationBackup(connection, tempUserData, dbPath);
-    connection.prepare(
-      `DELETE FROM ${SCHEMA_MIGRATIONS_TABLE} WHERE id = ?`,
-    ).run("004_female_agents_clear_section");
+    connection.prepare(`DELETE FROM ${SCHEMA_MIGRATIONS_TABLE} WHERE id = ?`).run(
+      "004_female_agents_clear_section",
+    );
     connection.exec("ALTER TABLE dogs ADD COLUMN __migration_test_fail__ TEXT");
     connection.close();
     const connectionForRestore = new Database(dbPath);

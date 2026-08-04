@@ -10,12 +10,21 @@ import Database from "better-sqlite3";
 import { appendFileSync, existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { dialog, type App } from "electron";
-import { runPendingMigrations } from "./migrations";
+import {
+  formatMigrationFailureDetail,
+  isSqliteMigrationError,
+  runPendingMigrations,
+} from "./migrations";
 
 export {
   SCHEMA_MIGRATIONS_TABLE,
   SQLITE_MIGRATIONS,
+  SqliteMigrationError,
   createPreMigrationBackup,
+  formatMigrationFailureDetail,
+  isMigrationBackupFileName,
+  isSqliteMigrationError,
+  migrationBackupTimestamp,
   restoreDatabaseFromBackup,
   runPendingMigrations,
 } from "./migrations";
@@ -89,6 +98,21 @@ export const SCHEMA_STATEMENTS: readonly string[] = [
     professional_number TEXT NOT NULL UNIQUE,
     grade TEXT NOT NULL,
     gender TEXT NOT NULL CHECK (gender IN ('male', 'female')),
+    fonction TEXT NOT NULL DEFAULT 'cynotechnicien' CHECK (fonction IN (
+      'chef_brigadier',
+      'chef_brigadier_pi',
+      'chef_secretariat',
+      'secretaire',
+      'assistant_technique',
+      'chef_de_section',
+      'chef_de_section_pi',
+      'chef_materiel',
+      'aide_soignant_veterinaire',
+      'cynotechnicien'
+    )),
+    marital_status TEXT DEFAULT NULL CHECK (
+      marital_status IS NULL OR marital_status IN ('single', 'married', 'divorced', 'widowed')
+    ),
     section_id TEXT REFERENCES sections(id) ON DELETE SET NULL,
     dog_id TEXT UNIQUE REFERENCES dogs(id) ON DELETE SET NULL,
     is_section_chief INTEGER NOT NULL DEFAULT 0 CHECK (is_section_chief IN (0, 1)),
@@ -112,6 +136,7 @@ export const SCHEMA_STATEMENTS: readonly string[] = [
     night_shift_enabled INTEGER NOT NULL DEFAULT 1 CHECK (night_shift_enabled IN (0, 1)),
     female_policy TEXT NOT NULL DEFAULT 'allowed' CHECK (female_policy IN ('allowed', 'preferred', 'not_allowed')),
     priority INTEGER NOT NULL DEFAULT 3 CHECK (priority IN (1, 2, 3, 4)),
+    mandatory INTEGER NOT NULL DEFAULT 1 CHECK (mandatory IN (0, 1)),
     day_explosives INTEGER NOT NULL DEFAULT 0 CHECK (day_explosives >= 0),
     day_narcotics INTEGER NOT NULL DEFAULT 0 CHECK (day_narcotics >= 0),
     night_explosives INTEGER NOT NULL DEFAULT 0 CHECK (night_explosives >= 0),
@@ -138,10 +163,13 @@ export const SCHEMA_STATEMENTS: readonly string[] = [
 
   `CREATE TABLE IF NOT EXISTS agent_exclusions (
     id TEXT PRIMARY KEY NOT NULL,
-    agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    agent_id TEXT REFERENCES agents(id) ON DELETE CASCADE,
+    dog_id TEXT REFERENCES dogs(id) ON DELETE CASCADE,
     exclusion_type TEXT NOT NULL CHECK (exclusion_type IN (
       'absence', 'sickness', 'administrative_leave', 'special_leave',
-      'dog_sick', 'female_dog_heat', 'annual_leave', 'mission', 'training', 'other'
+      'dog_sick', 'female_dog_heat', 'annual_leave', 'mission', 'training', 'other',
+      'suspension',
+      'dog_injured', 'dog_temporary_retirement', 'dog_vet_visit', 'dog_training', 'dog_other'
     )),
     start_date TEXT NOT NULL,
     end_date TEXT NOT NULL,
@@ -150,7 +178,8 @@ export const SCHEMA_STATEMENTS: readonly string[] = [
     is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-    CHECK (end_date >= start_date)
+    CHECK (end_date >= start_date),
+    CHECK (agent_id IS NOT NULL OR dog_id IS NOT NULL)
   )`,
 
   `CREATE TABLE IF NOT EXISTS planning (
@@ -253,6 +282,7 @@ export const SCHEMA_STATEMENTS: readonly string[] = [
   `CREATE INDEX IF NOT EXISTS idx_checkpoint_posts_checkpoint_shift_specialty
     ON checkpoint_posts(checkpoint_id, shift, specialty_required)`,
   `CREATE INDEX IF NOT EXISTS idx_agent_exclusions_agent ON agent_exclusions(agent_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_agent_exclusions_dog ON agent_exclusions(dog_id)`,
   `CREATE INDEX IF NOT EXISTS idx_agent_exclusions_dates ON agent_exclusions(start_date, end_date)`,
   `CREATE INDEX IF NOT EXISTS idx_agent_exclusions_active ON agent_exclusions(active)`,
   `CREATE INDEX IF NOT EXISTS idx_agent_exclusions_is_deleted ON agent_exclusions(is_deleted)`,
@@ -275,16 +305,47 @@ export const SCHEMA_STATEMENTS: readonly string[] = [
 
 export const SQLITE_SCHEMA_INIT_MESSAGE = "SQLite schema initialized successfully.";
 
+function isIndexStatement(statement: string): boolean {
+  return /^\s*CREATE\s+(UNIQUE\s+)?INDEX\b/i.test(statement);
+}
+
+/** Table / object DDL only — safe before migrations on older user databases. */
+export const SCHEMA_TABLE_STATEMENTS: readonly string[] = SCHEMA_STATEMENTS.filter(
+  (statement) => !isIndexStatement(statement),
+);
+
+/** Indexes may reference columns added by migrations — apply after migrations. */
+export const SCHEMA_INDEX_STATEMENTS: readonly string[] = SCHEMA_STATEMENTS.filter(
+  (statement) => isIndexStatement(statement),
+);
+
+/**
+ * Creates missing tables only (CREATE IF NOT EXISTS).
+ * Never drops, truncates, or recreates existing user tables.
+ * Indexes are applied separately after migrations (see ensureSchemaIndexes).
+ */
 export function initializeSchema(database: Database.Database): string {
   dbLog("initializeSchema: enter");
   const run = database.transaction(() => {
-    for (const statement of SCHEMA_STATEMENTS) {
+    for (const statement of SCHEMA_TABLE_STATEMENTS) {
       database.exec(statement);
     }
   });
   run();
   dbLog("initializeSchema: exit");
   return SQLITE_SCHEMA_INIT_MESSAGE;
+}
+
+/** Idempotent index creation — run after pending migrations succeed. */
+export function ensureSchemaIndexes(database: Database.Database): void {
+  dbLog("ensureSchemaIndexes: enter");
+  const run = database.transaction(() => {
+    for (const statement of SCHEMA_INDEX_STATEMENTS) {
+      database.exec(statement);
+    }
+  });
+  run();
+  dbLog("ensureSchemaIndexes: exit");
 }
 
 export function getDatabasePath(app: App): string {
@@ -337,9 +398,39 @@ function confirmCreateEmptyDatabase(app: App, dbPath: string): void {
   dbLog("initializeDatabase: user confirmed creating empty database");
 }
 
+function shouldShowUiDialogs(): boolean {
+  // CI / migration verify scripts must never block on modal dialogs.
+  if (process.env.CYNOPLANNING_ALLOW_EMPTY_DB === "1") return false;
+  if (process.env.CYNOPLANNING_NO_UI === "1") return false;
+  return true;
+}
+
+function showMigrationFailureDialog(app: App, error: unknown): void {
+  if (!shouldShowUiDialogs() || !app.isReady()) {
+    return;
+  }
+  const detail = formatMigrationFailureDetail(error);
+  const isMigration = isSqliteMigrationError(error);
+  try {
+    dialog.showMessageBoxSync({
+      type: "error",
+      buttons: ["OK"],
+      defaultId: 0,
+      title: "CynoPlanning — Database migration failed",
+      message: isMigration
+        ? "A database upgrade failed. Your previous data was restored."
+        : "Database initialization failed.",
+      detail,
+    });
+  } catch {
+    // headless / CI — dialog optional
+  }
+}
+
 /**
  * Opens (or creates) cynoplanning.db under Electron userData and runs schema init.
  * Safe to call on every launch when the file already exists — CREATE TABLE IF NOT EXISTS is idempotent.
+ * Never deletes or replaces an existing user database file.
  * If the file is missing, prompts before creating an empty DB (see CYNOPLANNING_ALLOW_EMPTY_DB).
  */
 export function initializeDatabase(app: App): Database.Database {
@@ -364,6 +455,8 @@ export function initializeDatabase(app: App): Database.Database {
   connection.pragma("foreign_keys = ON");
 
   try {
+    // 1) Missing tables only  2) pending migrations  3) indexes (may need new columns)
+    // Never deletes, truncates, or replaces the existing user database file.
     initializeSchema(connection);
     runPendingMigrations({
       database: connection,
@@ -371,6 +464,7 @@ export function initializeDatabase(app: App): Database.Database {
       dbPath,
       log: dbLog,
     });
+    ensureSchemaIndexes(connection);
     db = connection;
   } catch (error) {
     try {
@@ -379,6 +473,7 @@ export function initializeDatabase(app: App): Database.Database {
       // connection may already be closed after a failed migration restore
     }
     db = null;
+    showMigrationFailureDialog(app, error);
     throw error;
   }
 

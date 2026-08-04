@@ -1,0 +1,3194 @@
+{
+  "meta": {
+    "generatedAt": "2026-08-04T02:41:48.207Z",
+    "baseDate": "2026-08-31",
+    "simulationsRequested": 100,
+    "simulationsRun": 100,
+    "simulationsSkipped": 50,
+    "seedHistoryRows": 312,
+    "agentsInPool": 28,
+    "activeSections": [
+      "1ème Section",
+      "2ème Section",
+      "3ème Section"
+    ],
+    "note": "Each simulation = one section+shift planning. 100 runs = 50 calendar days × day+night. History seeded from live DB copy, then accumulated in-memory only. Live DB was not modified."
+  },
+  "global": {
+    "earlyRepetitionCount": 11,
+    "earlyReasonBreakdown": {
+      "phase2_or_phase3_smart_rotation_disabled": 7,
+      "phase2_mandatory_fill": 4
+    },
+    "mostRepeatedCheckpoints": [
+      {
+        "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+        "name": "753",
+        "assignments": 198
+      },
+      {
+        "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+        "name": "77 BIS",
+        "assignments": 198
+      },
+      {
+        "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+        "name": "77",
+        "assignments": 193
+      },
+      {
+        "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+        "name": "75",
+        "assignments": 191
+      },
+      {
+        "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+        "name": "20",
+        "assignments": 150
+      },
+      {
+        "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+        "name": "78",
+        "assignments": 133
+      },
+      {
+        "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+        "name": "9 BIS",
+        "assignments": 122
+      },
+      {
+        "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+        "name": "91",
+        "assignments": 109
+      },
+      {
+        "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+        "name": "21",
+        "assignments": 29
+      },
+      {
+        "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+        "name": "76",
+        "assignments": 27
+      }
+    ],
+    "leastAssignedCheckpoints": [
+      {
+        "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+        "name": "76",
+        "assignments": 27
+      },
+      {
+        "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+        "name": "21",
+        "assignments": 29
+      },
+      {
+        "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+        "name": "91",
+        "assignments": 109
+      },
+      {
+        "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+        "name": "9 BIS",
+        "assignments": 122
+      },
+      {
+        "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+        "name": "78",
+        "assignments": 133
+      },
+      {
+        "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+        "name": "20",
+        "assignments": 150
+      },
+      {
+        "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+        "name": "75",
+        "assignments": 191
+      },
+      {
+        "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+        "name": "77",
+        "assignments": 193
+      },
+      {
+        "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+        "name": "753",
+        "assignments": 198
+      },
+      {
+        "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+        "name": "77 BIS",
+        "assignments": 198
+      }
+    ],
+    "neverAssignedCheckpoints": [],
+    "agentsHighestRepetition": [
+      {
+        "fullName": "REDOUAN HALEB",
+        "earlyRepeatCount": 3,
+        "repetitionRate": 6,
+        "totalAssignments": 50,
+        "fairnessScore": 51.2
+      },
+      {
+        "fullName": "MOHALED DAIKI",
+        "earlyRepeatCount": 2,
+        "repetitionRate": 4,
+        "totalAssignments": 50,
+        "fairnessScore": 70.2
+      },
+      {
+        "fullName": "SAMIR GRIMI",
+        "earlyRepeatCount": 2,
+        "repetitionRate": 4,
+        "totalAssignments": 50,
+        "fairnessScore": 50.2
+      },
+      {
+        "fullName": "HOUSSAIN ROUGI",
+        "earlyRepeatCount": 1,
+        "repetitionRate": 2,
+        "totalAssignments": 50,
+        "fairnessScore": 100
+      },
+      {
+        "fullName": "MOHAMED LHBICH",
+        "earlyRepeatCount": 1,
+        "repetitionRate": 2,
+        "totalAssignments": 50,
+        "fairnessScore": 49.4
+      },
+      {
+        "fullName": "MOKHLIS BENYANI",
+        "earlyRepeatCount": 1,
+        "repetitionRate": 2,
+        "totalAssignments": 50,
+        "fairnessScore": 59.5
+      },
+      {
+        "fullName": "SOUFAINE KAITOUNI",
+        "earlyRepeatCount": 1,
+        "repetitionRate": 2,
+        "totalAssignments": 50,
+        "fairnessScore": 51
+      },
+      {
+        "fullName": "ABDELALI FILALI",
+        "earlyRepeatCount": 0,
+        "repetitionRate": 0,
+        "totalAssignments": 41,
+        "fairnessScore": 99.2
+      },
+      {
+        "fullName": "ABDELGHANI BEN",
+        "earlyRepeatCount": 0,
+        "repetitionRate": 0,
+        "totalAssignments": 50,
+        "fairnessScore": 99.6
+      },
+      {
+        "fullName": "ABDESSALAM ESSARGHINI",
+        "earlyRepeatCount": 0,
+        "repetitionRate": 0,
+        "totalAssignments": 50,
+        "fairnessScore": 69.8
+      },
+      {
+        "fullName": "ANAS EDDAKI",
+        "earlyRepeatCount": 0,
+        "repetitionRate": 0,
+        "totalAssignments": 50,
+        "fairnessScore": 66.8
+      },
+      {
+        "fullName": "AYOUB HALOUFI",
+        "earlyRepeatCount": 0,
+        "repetitionRate": 0,
+        "totalAssignments": 50,
+        "fairnessScore": 98
+      },
+      {
+        "fullName": "BADER BEN ABDI",
+        "earlyRepeatCount": 0,
+        "repetitionRate": 0,
+        "totalAssignments": 50,
+        "fairnessScore": 65.8
+      },
+      {
+        "fullName": "EL KHAZZAR ZAKARIA",
+        "earlyRepeatCount": 0,
+        "repetitionRate": 0,
+        "totalAssignments": 50,
+        "fairnessScore": 64.8
+      },
+      {
+        "fullName": "FOUAD HAMOUAD",
+        "earlyRepeatCount": 0,
+        "repetitionRate": 0,
+        "totalAssignments": 42,
+        "fairnessScore": 99.7
+      }
+    ],
+    "agentsPerfectRotation": [
+      {
+        "fullName": "ABDELALI FILALI",
+        "totalAssignments": 41,
+        "fairnessScore": 99.2
+      },
+      {
+        "fullName": "ABDELGHANI BEN",
+        "totalAssignments": 50,
+        "fairnessScore": 99.6
+      },
+      {
+        "fullName": "ABDESSALAM ESSARGHINI",
+        "totalAssignments": 50,
+        "fairnessScore": 69.8
+      },
+      {
+        "fullName": "AYOUB HALOUFI",
+        "totalAssignments": 50,
+        "fairnessScore": 98
+      },
+      {
+        "fullName": "FOUAD HAMOUAD",
+        "totalAssignments": 42,
+        "fairnessScore": 99.7
+      },
+      {
+        "fullName": "HAMID EL KHAZZAR",
+        "totalAssignments": 50,
+        "fairnessScore": 98.8
+      },
+      {
+        "fullName": "HAMOU TARA",
+        "totalAssignments": 42,
+        "fairnessScore": 98.5
+      },
+      {
+        "fullName": "HOUSSAINE NAJIH",
+        "totalAssignments": 50,
+        "fairnessScore": 99.2
+      },
+      {
+        "fullName": "ISMAIL HASSANI",
+        "totalAssignments": 50,
+        "fairnessScore": 52.3
+      },
+      {
+        "fullName": "MOHAMED AZOUZI",
+        "totalAssignments": 41,
+        "fairnessScore": 99.2
+      },
+      {
+        "fullName": "MOUHCINE BAHAMOU",
+        "totalAssignments": 41,
+        "fairnessScore": 99.8
+      },
+      {
+        "fullName": "OMAR MOUBACHIR",
+        "totalAssignments": 50,
+        "fairnessScore": 69.1
+      },
+      {
+        "fullName": "YOUNESS AZLGAN",
+        "totalAssignments": 43,
+        "fairnessScore": 97.6
+      }
+    ],
+    "averageFairnessScore": 75.1
+  },
+  "agents": [
+    {
+      "fullName": "REDOUAN HALEB",
+      "matricule": "114900",
+      "section_id": "5c4961c4-1e10-4b55-9b45-ac78810b157a",
+      "compatibleCheckpoints": [
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21"
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75"
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753"
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75",
+          "visits": 14
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753",
+          "visits": 14
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 6
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 6
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 4
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS",
+          "visits": 2
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21",
+          "visits": 1
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76",
+          "visits": 1
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 1
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 1
+        }
+      ],
+      "neverVisited": [],
+      "earlyRepeats": [
+        {
+          "date": "2026-09-08",
+          "shift": "night",
+          "checkpoint": "75",
+          "reason": "phase2_or_phase3_smart_rotation_disabled",
+          "phaseNote": "Phase 1 blocked → Phase 2 fill and/or Phase 3 night fallback (requireSmartRotation=false)",
+          "neverVisitedBefore": [
+            "20",
+            "78",
+            "91"
+          ]
+        },
+        {
+          "date": "2026-09-16",
+          "shift": "day",
+          "checkpoint": "75",
+          "reason": "phase2_mandatory_fill",
+          "phaseNote": "Phase 1 blocked → Phase 2 mandatory fill (requireSmartRotation=false)",
+          "neverVisitedBefore": [
+            "21"
+          ]
+        },
+        {
+          "date": "2026-09-19",
+          "shift": "day",
+          "checkpoint": "77 BIS",
+          "reason": "phase2_mandatory_fill",
+          "phaseNote": "Phase 1 blocked → Phase 2 mandatory fill (requireSmartRotation=false)",
+          "neverVisitedBefore": [
+            "21"
+          ]
+        }
+      ],
+      "earlyRepeatCount": 3,
+      "totalAssignments": 50,
+      "point653Count": 0,
+      "fairnessScore": 51.2,
+      "perfectRotation": false,
+      "repetitionRate": 6
+    },
+    {
+      "fullName": "MOHALED DAIKI",
+      "matricule": "80987",
+      "section_id": "43f86212-2d6b-4bc3-9eae-f9c7705cde4b",
+      "compatibleCheckpoints": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75"
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21"
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75",
+          "visits": 10
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753",
+          "visits": 10
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS",
+          "visits": 7
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 6
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 5
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 5
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 4
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21",
+          "visits": 2
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76",
+          "visits": 1
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 0
+        }
+      ],
+      "neverVisited": [
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        }
+      ],
+      "earlyRepeats": [
+        {
+          "date": "2026-08-31",
+          "shift": "night",
+          "checkpoint": "9 BIS",
+          "reason": "phase2_or_phase3_smart_rotation_disabled",
+          "phaseNote": "Phase 1 blocked → Phase 2 fill and/or Phase 3 night fallback (requireSmartRotation=false)",
+          "neverVisitedBefore": [
+            "20"
+          ]
+        },
+        {
+          "date": "2026-09-03",
+          "shift": "night",
+          "checkpoint": "78",
+          "reason": "phase2_or_phase3_smart_rotation_disabled",
+          "phaseNote": "Phase 1 blocked → Phase 2 fill and/or Phase 3 night fallback (requireSmartRotation=false)",
+          "neverVisitedBefore": [
+            "20"
+          ]
+        }
+      ],
+      "earlyRepeatCount": 2,
+      "totalAssignments": 50,
+      "point653Count": 0,
+      "fairnessScore": 70.2,
+      "perfectRotation": false,
+      "repetitionRate": 4
+    },
+    {
+      "fullName": "SAMIR GRIMI",
+      "matricule": "117998",
+      "section_id": "5c4961c4-1e10-4b55-9b45-ac78810b157a",
+      "compatibleCheckpoints": [
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21"
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75"
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753"
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75",
+          "visits": 14
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753",
+          "visits": 14
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 7
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 6
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 4
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21",
+          "visits": 1
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76",
+          "visits": 1
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 1
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS",
+          "visits": 1
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 1
+        }
+      ],
+      "neverVisited": [],
+      "earlyRepeats": [
+        {
+          "date": "2026-09-11",
+          "shift": "night",
+          "checkpoint": "75",
+          "reason": "phase2_or_phase3_smart_rotation_disabled",
+          "phaseNote": "Phase 1 blocked → Phase 2 fill and/or Phase 3 night fallback (requireSmartRotation=false)",
+          "neverVisitedBefore": [
+            "91"
+          ]
+        },
+        {
+          "date": "2026-09-16",
+          "shift": "day",
+          "checkpoint": "77 BIS",
+          "reason": "phase2_mandatory_fill",
+          "phaseNote": "Phase 1 blocked → Phase 2 mandatory fill (requireSmartRotation=false)",
+          "neverVisitedBefore": [
+            "21"
+          ]
+        }
+      ],
+      "earlyRepeatCount": 2,
+      "totalAssignments": 50,
+      "point653Count": 0,
+      "fairnessScore": 50.2,
+      "perfectRotation": false,
+      "repetitionRate": 4
+    },
+    {
+      "fullName": "HOUSSAIN ROUGI",
+      "matricule": "110490",
+      "section_id": "5c4961c4-1e10-4b55-9b45-ac78810b157a",
+      "compatibleCheckpoints": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 10
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 10
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 10
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 10
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 10
+        }
+      ],
+      "neverVisited": [],
+      "earlyRepeats": [
+        {
+          "date": "2026-09-05",
+          "shift": "night",
+          "checkpoint": "78",
+          "reason": "phase2_or_phase3_smart_rotation_disabled",
+          "phaseNote": "Phase 1 blocked → Phase 2 fill and/or Phase 3 night fallback (requireSmartRotation=false)",
+          "neverVisitedBefore": [
+            "91"
+          ]
+        }
+      ],
+      "earlyRepeatCount": 1,
+      "totalAssignments": 50,
+      "point653Count": 0,
+      "fairnessScore": 100,
+      "perfectRotation": false,
+      "repetitionRate": 2
+    },
+    {
+      "fullName": "MOHAMED LHBICH",
+      "matricule": "112456",
+      "section_id": "5c4961c4-1e10-4b55-9b45-ac78810b157a",
+      "compatibleCheckpoints": [
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21"
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75"
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753"
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753",
+          "visits": 15
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75",
+          "visits": 13
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 7
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 7
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 3
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21",
+          "visits": 1
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76",
+          "visits": 1
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 1
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS",
+          "visits": 1
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 1
+        }
+      ],
+      "neverVisited": [],
+      "earlyRepeats": [
+        {
+          "date": "2026-09-16",
+          "shift": "day",
+          "checkpoint": "75",
+          "reason": "phase2_mandatory_fill",
+          "phaseNote": "Phase 1 blocked → Phase 2 mandatory fill (requireSmartRotation=false)",
+          "neverVisitedBefore": [
+            "76"
+          ]
+        }
+      ],
+      "earlyRepeatCount": 1,
+      "totalAssignments": 50,
+      "point653Count": 0,
+      "fairnessScore": 49.4,
+      "perfectRotation": false,
+      "repetitionRate": 2
+    },
+    {
+      "fullName": "MOKHLIS BENYANI",
+      "matricule": "78987",
+      "section_id": "43f86212-2d6b-4bc3-9eae-f9c7705cde4b",
+      "compatibleCheckpoints": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75"
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21"
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753",
+          "visits": 12
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS",
+          "visits": 11
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75",
+          "visits": 10
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 4
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 4
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 3
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76",
+          "visits": 3
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21",
+          "visits": 2
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 1
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 0
+        }
+      ],
+      "neverVisited": [
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        }
+      ],
+      "earlyRepeats": [
+        {
+          "date": "2026-08-31",
+          "shift": "night",
+          "checkpoint": "9 BIS",
+          "reason": "phase2_or_phase3_smart_rotation_disabled",
+          "phaseNote": "Phase 1 blocked → Phase 2 fill and/or Phase 3 night fallback (requireSmartRotation=false)",
+          "neverVisitedBefore": [
+            "20"
+          ]
+        }
+      ],
+      "earlyRepeatCount": 1,
+      "totalAssignments": 50,
+      "point653Count": 0,
+      "fairnessScore": 59.5,
+      "perfectRotation": false,
+      "repetitionRate": 2
+    },
+    {
+      "fullName": "SOUFAINE KAITOUNI",
+      "matricule": "118045",
+      "section_id": "5c4961c4-1e10-4b55-9b45-ac78810b157a",
+      "compatibleCheckpoints": [
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21"
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75"
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753"
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75",
+          "visits": 14
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753",
+          "visits": 14
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 7
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 5
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 4
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS",
+          "visits": 2
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21",
+          "visits": 1
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76",
+          "visits": 1
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 1
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 1
+        }
+      ],
+      "neverVisited": [],
+      "earlyRepeats": [
+        {
+          "date": "2026-09-11",
+          "shift": "night",
+          "checkpoint": "75",
+          "reason": "phase2_or_phase3_smart_rotation_disabled",
+          "phaseNote": "Phase 1 blocked → Phase 2 fill and/or Phase 3 night fallback (requireSmartRotation=false)",
+          "neverVisitedBefore": [
+            "20"
+          ]
+        }
+      ],
+      "earlyRepeatCount": 1,
+      "totalAssignments": 50,
+      "point653Count": 0,
+      "fairnessScore": 51,
+      "perfectRotation": false,
+      "repetitionRate": 2
+    },
+    {
+      "fullName": "ABDELALI FILALI",
+      "matricule": "114877",
+      "section_id": "43f86212-2d6b-4bc3-9eae-f9c7705cde4b",
+      "compatibleCheckpoints": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 9
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 9
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 8
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 8
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 7
+        }
+      ],
+      "neverVisited": [],
+      "earlyRepeats": [],
+      "earlyRepeatCount": 0,
+      "totalAssignments": 41,
+      "point653Count": 9,
+      "fairnessScore": 99.2,
+      "perfectRotation": true,
+      "repetitionRate": 0
+    },
+    {
+      "fullName": "ABDELGHANI BEN",
+      "matricule": "114563",
+      "section_id": "5c4961c4-1e10-4b55-9b45-ac78810b157a",
+      "compatibleCheckpoints": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 11
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 10
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 10
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 10
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 9
+        }
+      ],
+      "neverVisited": [],
+      "earlyRepeats": [],
+      "earlyRepeatCount": 0,
+      "totalAssignments": 50,
+      "point653Count": 0,
+      "fairnessScore": 99.6,
+      "perfectRotation": true,
+      "repetitionRate": 0
+    },
+    {
+      "fullName": "ABDESSALAM ESSARGHINI",
+      "matricule": "118444",
+      "section_id": "43f86212-2d6b-4bc3-9eae-f9c7705cde4b",
+      "compatibleCheckpoints": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75"
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21"
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75",
+          "visits": 10
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753",
+          "visits": 9
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS",
+          "visits": 9
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 6
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 5
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 5
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 2
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21",
+          "visits": 2
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76",
+          "visits": 1
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 1
+        }
+      ],
+      "neverVisited": [],
+      "earlyRepeats": [],
+      "earlyRepeatCount": 0,
+      "totalAssignments": 50,
+      "point653Count": 0,
+      "fairnessScore": 69.8,
+      "perfectRotation": true,
+      "repetitionRate": 0
+    },
+    {
+      "fullName": "ANAS EDDAKI",
+      "matricule": "118903",
+      "section_id": "43f86212-2d6b-4bc3-9eae-f9c7705cde4b",
+      "compatibleCheckpoints": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75"
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21"
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS",
+          "visits": 11
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75",
+          "visits": 9
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753",
+          "visits": 9
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 6
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 5
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76",
+          "visits": 4
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 3
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21",
+          "visits": 2
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 1
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 0
+        }
+      ],
+      "neverVisited": [
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        }
+      ],
+      "earlyRepeats": [],
+      "earlyRepeatCount": 0,
+      "totalAssignments": 50,
+      "point653Count": 0,
+      "fairnessScore": 66.8,
+      "perfectRotation": false,
+      "repetitionRate": 0
+    },
+    {
+      "fullName": "AYOUB HALOUFI",
+      "matricule": "114678",
+      "section_id": "5c4961c4-1e10-4b55-9b45-ac78810b157a",
+      "compatibleCheckpoints": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 12
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 11
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 10
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 9
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 8
+        }
+      ],
+      "neverVisited": [],
+      "earlyRepeats": [],
+      "earlyRepeatCount": 0,
+      "totalAssignments": 50,
+      "point653Count": 0,
+      "fairnessScore": 98,
+      "perfectRotation": true,
+      "repetitionRate": 0
+    },
+    {
+      "fullName": "BADER BEN ABDI",
+      "matricule": "88794",
+      "section_id": "43f86212-2d6b-4bc3-9eae-f9c7705cde4b",
+      "compatibleCheckpoints": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75"
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21"
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS",
+          "visits": 11
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75",
+          "visits": 10
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753",
+          "visits": 9
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 6
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 4
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21",
+          "visits": 3
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76",
+          "visits": 3
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 2
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 2
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 0
+        }
+      ],
+      "neverVisited": [
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        }
+      ],
+      "earlyRepeats": [],
+      "earlyRepeatCount": 0,
+      "totalAssignments": 50,
+      "point653Count": 0,
+      "fairnessScore": 65.8,
+      "perfectRotation": false,
+      "repetitionRate": 0
+    },
+    {
+      "fullName": "EL KHAZZAR ZAKARIA",
+      "matricule": "119370",
+      "section_id": "43f86212-2d6b-4bc3-9eae-f9c7705cde4b",
+      "compatibleCheckpoints": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75"
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21"
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75",
+          "visits": 10
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753",
+          "visits": 10
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS",
+          "visits": 10
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 6
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 5
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76",
+          "visits": 4
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 2
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21",
+          "visits": 2
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 1
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 0
+        }
+      ],
+      "neverVisited": [
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        }
+      ],
+      "earlyRepeats": [],
+      "earlyRepeatCount": 0,
+      "totalAssignments": 50,
+      "point653Count": 0,
+      "fairnessScore": 64.8,
+      "perfectRotation": false,
+      "repetitionRate": 0
+    },
+    {
+      "fullName": "FOUAD HAMOUAD",
+      "matricule": "114566",
+      "section_id": "43f86212-2d6b-4bc3-9eae-f9c7705cde4b",
+      "compatibleCheckpoints": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 9
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 9
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 8
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 8
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 8
+        }
+      ],
+      "neverVisited": [],
+      "earlyRepeats": [],
+      "earlyRepeatCount": 0,
+      "totalAssignments": 42,
+      "point653Count": 8,
+      "fairnessScore": 99.7,
+      "perfectRotation": true,
+      "repetitionRate": 0
+    },
+    {
+      "fullName": "HAKIM MAACHI",
+      "matricule": "118987",
+      "section_id": "5c4961c4-1e10-4b55-9b45-ac78810b157a",
+      "compatibleCheckpoints": [
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21"
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75"
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753"
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753",
+          "visits": 13
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75",
+          "visits": 11
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS",
+          "visits": 10
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 7
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 6
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 2
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21",
+          "visits": 1
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76",
+          "visits": 0
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 0
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 0
+        }
+      ],
+      "neverVisited": [
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        }
+      ],
+      "earlyRepeats": [],
+      "earlyRepeatCount": 0,
+      "totalAssignments": 50,
+      "point653Count": 0,
+      "fairnessScore": 52.1,
+      "perfectRotation": false,
+      "repetitionRate": 0
+    },
+    {
+      "fullName": "HAMID EL KHAZZAR",
+      "matricule": "110990",
+      "section_id": "5c4961c4-1e10-4b55-9b45-ac78810b157a",
+      "compatibleCheckpoints": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 11
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 11
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 10
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 10
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 8
+        }
+      ],
+      "neverVisited": [],
+      "earlyRepeats": [],
+      "earlyRepeatCount": 0,
+      "totalAssignments": 50,
+      "point653Count": 0,
+      "fairnessScore": 98.8,
+      "perfectRotation": true,
+      "repetitionRate": 0
+    },
+    {
+      "fullName": "HAMOU TARA",
+      "matricule": "89006",
+      "section_id": "43f86212-2d6b-4bc3-9eae-f9c7705cde4b",
+      "compatibleCheckpoints": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 10
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 9
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 8
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 8
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 7
+        }
+      ],
+      "neverVisited": [],
+      "earlyRepeats": [],
+      "earlyRepeatCount": 0,
+      "totalAssignments": 42,
+      "point653Count": 8,
+      "fairnessScore": 98.5,
+      "perfectRotation": true,
+      "repetitionRate": 0
+    },
+    {
+      "fullName": "HOUSSAINE NAJIH",
+      "matricule": "112776",
+      "section_id": "5c4961c4-1e10-4b55-9b45-ac78810b157a",
+      "compatibleCheckpoints": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 11
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 11
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 10
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 9
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 9
+        }
+      ],
+      "neverVisited": [],
+      "earlyRepeats": [],
+      "earlyRepeatCount": 0,
+      "totalAssignments": 50,
+      "point653Count": 0,
+      "fairnessScore": 99.2,
+      "perfectRotation": true,
+      "repetitionRate": 0
+    },
+    {
+      "fullName": "ISMAIL HASSANI",
+      "matricule": "76006",
+      "section_id": "5c4961c4-1e10-4b55-9b45-ac78810b157a",
+      "compatibleCheckpoints": [
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21"
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75"
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753"
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753",
+          "visits": 15
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75",
+          "visits": 12
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 7
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 6
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 4
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS",
+          "visits": 2
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21",
+          "visits": 1
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76",
+          "visits": 1
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 1
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 1
+        }
+      ],
+      "neverVisited": [],
+      "earlyRepeats": [],
+      "earlyRepeatCount": 0,
+      "totalAssignments": 50,
+      "point653Count": 0,
+      "fairnessScore": 52.3,
+      "perfectRotation": true,
+      "repetitionRate": 0
+    },
+    {
+      "fullName": "MOHAMED AZOUZI",
+      "matricule": "118933",
+      "section_id": "43f86212-2d6b-4bc3-9eae-f9c7705cde4b",
+      "compatibleCheckpoints": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 9
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 9
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 8
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 8
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 7
+        }
+      ],
+      "neverVisited": [],
+      "earlyRepeats": [],
+      "earlyRepeatCount": 0,
+      "totalAssignments": 41,
+      "point653Count": 9,
+      "fairnessScore": 99.2,
+      "perfectRotation": true,
+      "repetitionRate": 0
+    },
+    {
+      "fullName": "MOHAMED LHBRI",
+      "matricule": "117890",
+      "section_id": "43f86212-2d6b-4bc3-9eae-f9c7705cde4b",
+      "compatibleCheckpoints": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75"
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21"
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS",
+          "visits": 12
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75",
+          "visits": 11
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753",
+          "visits": 11
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 6
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 5
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 2
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21",
+          "visits": 2
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 1
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76",
+          "visits": 0
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 0
+        }
+      ],
+      "neverVisited": [
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76"
+        }
+      ],
+      "earlyRepeats": [],
+      "earlyRepeatCount": 0,
+      "totalAssignments": 50,
+      "point653Count": 0,
+      "fairnessScore": 54.8,
+      "perfectRotation": false,
+      "repetitionRate": 0
+    },
+    {
+      "fullName": "MOUHCINE BAHAMOU",
+      "matricule": "114545",
+      "section_id": "43f86212-2d6b-4bc3-9eae-f9c7705cde4b",
+      "compatibleCheckpoints": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 9
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 8
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 8
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 8
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 8
+        }
+      ],
+      "neverVisited": [],
+      "earlyRepeats": [],
+      "earlyRepeatCount": 0,
+      "totalAssignments": 41,
+      "point653Count": 9,
+      "fairnessScore": 99.8,
+      "perfectRotation": true,
+      "repetitionRate": 0
+    },
+    {
+      "fullName": "OMAR MOUBACHIR",
+      "matricule": "80997",
+      "section_id": "43f86212-2d6b-4bc3-9eae-f9c7705cde4b",
+      "compatibleCheckpoints": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75"
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21"
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75",
+          "visits": 10
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753",
+          "visits": 10
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS",
+          "visits": 10
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 4
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 4
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 3
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 3
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21",
+          "visits": 2
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76",
+          "visits": 2
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 2
+        }
+      ],
+      "neverVisited": [],
+      "earlyRepeats": [],
+      "earlyRepeatCount": 0,
+      "totalAssignments": 50,
+      "point653Count": 0,
+      "fairnessScore": 69.1,
+      "perfectRotation": true,
+      "repetitionRate": 0
+    },
+    {
+      "fullName": "RYANI MOHAMED",
+      "matricule": "114567",
+      "section_id": "43f86212-2d6b-4bc3-9eae-f9c7705cde4b",
+      "compatibleCheckpoints": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75"
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21"
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS",
+          "visits": 11
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75",
+          "visits": 10
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753",
+          "visits": 10
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 5
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 4
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 4
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 2
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21",
+          "visits": 2
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76",
+          "visits": 2
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 0
+        }
+      ],
+      "neverVisited": [
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        }
+      ],
+      "earlyRepeats": [],
+      "earlyRepeatCount": 0,
+      "totalAssignments": 50,
+      "point653Count": 0,
+      "fairnessScore": 64.1,
+      "perfectRotation": false,
+      "repetitionRate": 0
+    },
+    {
+      "fullName": "SOUFIANE MOURTADA",
+      "matricule": "114560",
+      "section_id": "43f86212-2d6b-4bc3-9eae-f9c7705cde4b",
+      "compatibleCheckpoints": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75"
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21"
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75",
+          "visits": 10
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753",
+          "visits": 10
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS",
+          "visits": 8
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 6
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 5
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 4
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21",
+          "visits": 3
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 2
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76",
+          "visits": 2
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 0
+        }
+      ],
+      "neverVisited": [
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        }
+      ],
+      "earlyRepeats": [],
+      "earlyRepeatCount": 0,
+      "totalAssignments": 50,
+      "point653Count": 0,
+      "fairnessScore": 69.8,
+      "perfectRotation": false,
+      "repetitionRate": 0
+    },
+    {
+      "fullName": "YOUNESS AZLGAN",
+      "matricule": "112567",
+      "section_id": "43f86212-2d6b-4bc3-9eae-f9c7705cde4b",
+      "compatibleCheckpoints": [
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 11
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 9
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 8
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 8
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 7
+        }
+      ],
+      "neverVisited": [],
+      "earlyRepeats": [],
+      "earlyRepeatCount": 0,
+      "totalAssignments": 43,
+      "point653Count": 7,
+      "fairnessScore": 97.6,
+      "perfectRotation": true,
+      "repetitionRate": 0
+    },
+    {
+      "fullName": "YOUNESS HILMI",
+      "matricule": "119459",
+      "section_id": "5c4961c4-1e10-4b55-9b45-ac78810b157a",
+      "compatibleCheckpoints": [
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21"
+        },
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75"
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753"
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76"
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77"
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS"
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91"
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20"
+        }
+      ],
+      "visitsPerCheckpoint": [
+        {
+          "id": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+          "name": "75",
+          "visits": 13
+        },
+        {
+          "id": "53e62367-dc19-458e-a640-f9519318ee4e",
+          "name": "753",
+          "visits": 13
+        },
+        {
+          "id": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+          "name": "77 BIS",
+          "visits": 8
+        },
+        {
+          "id": "4058cae2-e2e4-4ca3-a34d-962aa9af3c33",
+          "name": "77",
+          "visits": 6
+        },
+        {
+          "id": "af966d28-b4ff-414f-bcfc-f6f47d9521b8",
+          "name": "20",
+          "visits": 4
+        },
+        {
+          "id": "066b001f-5a31-4e65-aab0-a837b25e6388",
+          "name": "9 BIS",
+          "visits": 4
+        },
+        {
+          "id": "d10153f0-9eff-4f0e-a0b0-72e85667a09d",
+          "name": "21",
+          "visits": 1
+        },
+        {
+          "id": "11631fa3-0baf-4ad0-80bf-38d06aeafb4a",
+          "name": "91",
+          "visits": 1
+        },
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76",
+          "visits": 0
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78",
+          "visits": 0
+        }
+      ],
+      "neverVisited": [
+        {
+          "id": "d753cfa0-d043-4782-b72e-90648ab2c40a",
+          "name": "76"
+        },
+        {
+          "id": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+          "name": "78"
+        }
+      ],
+      "earlyRepeats": [],
+      "earlyRepeatCount": 0,
+      "totalAssignments": 50,
+      "point653Count": 0,
+      "fairnessScore": 53,
+      "perfectRotation": false,
+      "repetitionRate": 0
+    }
+  ],
+  "earlyRepetitionEvents": [
+    {
+      "simIndex": 1,
+      "date": "2026-08-31",
+      "shift": "night",
+      "section": "1ème Section",
+      "agentId": "52f0ef74-bc6d-471b-bfc9-32e0bfca247e",
+      "agentName": "MOKHLIS BENYANI",
+      "checkpointId": "066b001f-5a31-4e65-aab0-a837b25e6388",
+      "checkpointName": "9 BIS",
+      "reason": "phase2_or_phase3_smart_rotation_disabled",
+      "visitedCompatibleCount": 7,
+      "compatibleSize": 8,
+      "neverVisitedBefore": [
+        "20"
+      ],
+      "otherAgentsBlockedBySmartRotation": 3,
+      "phaseNote": "Phase 1 blocked → Phase 2 fill and/or Phase 3 night fallback (requireSmartRotation=false)"
+    },
+    {
+      "simIndex": 1,
+      "date": "2026-08-31",
+      "shift": "night",
+      "section": "1ème Section",
+      "agentId": "e316076c-5b40-4940-9236-be7e4ebeda27",
+      "agentName": "MOHALED DAIKI",
+      "checkpointId": "066b001f-5a31-4e65-aab0-a837b25e6388",
+      "checkpointName": "9 BIS",
+      "reason": "phase2_or_phase3_smart_rotation_disabled",
+      "visitedCompatibleCount": 7,
+      "compatibleSize": 8,
+      "neverVisitedBefore": [
+        "20"
+      ],
+      "otherAgentsBlockedBySmartRotation": 3,
+      "phaseNote": "Phase 1 blocked → Phase 2 fill and/or Phase 3 night fallback (requireSmartRotation=false)"
+    },
+    {
+      "simIndex": 7,
+      "date": "2026-09-03",
+      "shift": "night",
+      "section": "1ème Section",
+      "agentId": "e316076c-5b40-4940-9236-be7e4ebeda27",
+      "agentName": "MOHALED DAIKI",
+      "checkpointId": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+      "checkpointName": "78",
+      "reason": "phase2_or_phase3_smart_rotation_disabled",
+      "visitedCompatibleCount": 7,
+      "compatibleSize": 8,
+      "neverVisitedBefore": [
+        "20"
+      ],
+      "otherAgentsBlockedBySmartRotation": 1,
+      "phaseNote": "Phase 1 blocked → Phase 2 fill and/or Phase 3 night fallback (requireSmartRotation=false)"
+    },
+    {
+      "simIndex": 11,
+      "date": "2026-09-05",
+      "shift": "night",
+      "section": "2ème Section",
+      "agentId": "9d15c15e-473e-4052-9945-e0f8c6e2a47b",
+      "agentName": "HOUSSAIN ROUGI",
+      "checkpointId": "c5ec30fc-3b52-4fd5-8335-5c614002f407",
+      "checkpointName": "78",
+      "reason": "phase2_or_phase3_smart_rotation_disabled",
+      "visitedCompatibleCount": 4,
+      "compatibleSize": 5,
+      "neverVisitedBefore": [
+        "91"
+      ],
+      "otherAgentsBlockedBySmartRotation": 3,
+      "phaseNote": "Phase 1 blocked → Phase 2 fill and/or Phase 3 night fallback (requireSmartRotation=false)"
+    },
+    {
+      "simIndex": 17,
+      "date": "2026-09-08",
+      "shift": "night",
+      "section": "2ème Section",
+      "agentId": "65e75021-9805-4c26-8e9d-f623f1d81352",
+      "agentName": "REDOUAN HALEB",
+      "checkpointId": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+      "checkpointName": "75",
+      "reason": "phase2_or_phase3_smart_rotation_disabled",
+      "visitedCompatibleCount": 5,
+      "compatibleSize": 8,
+      "neverVisitedBefore": [
+        "20",
+        "78",
+        "91"
+      ],
+      "otherAgentsBlockedBySmartRotation": 4,
+      "phaseNote": "Phase 1 blocked → Phase 2 fill and/or Phase 3 night fallback (requireSmartRotation=false)"
+    },
+    {
+      "simIndex": 23,
+      "date": "2026-09-11",
+      "shift": "night",
+      "section": "2ème Section",
+      "agentId": "fd7197e3-6e13-4e49-9feb-257ffb8dee1d",
+      "agentName": "SOUFAINE KAITOUNI",
+      "checkpointId": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+      "checkpointName": "75",
+      "reason": "phase2_or_phase3_smart_rotation_disabled",
+      "visitedCompatibleCount": 7,
+      "compatibleSize": 8,
+      "neverVisitedBefore": [
+        "20"
+      ],
+      "otherAgentsBlockedBySmartRotation": 4,
+      "phaseNote": "Phase 1 blocked → Phase 2 fill and/or Phase 3 night fallback (requireSmartRotation=false)"
+    },
+    {
+      "simIndex": 23,
+      "date": "2026-09-11",
+      "shift": "night",
+      "section": "2ème Section",
+      "agentId": "3253360b-0514-46e0-899d-995860ae9234",
+      "agentName": "SAMIR GRIMI",
+      "checkpointId": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+      "checkpointName": "75",
+      "reason": "phase2_or_phase3_smart_rotation_disabled",
+      "visitedCompatibleCount": 7,
+      "compatibleSize": 8,
+      "neverVisitedBefore": [
+        "91"
+      ],
+      "otherAgentsBlockedBySmartRotation": 4,
+      "phaseNote": "Phase 1 blocked → Phase 2 fill and/or Phase 3 night fallback (requireSmartRotation=false)"
+    },
+    {
+      "simIndex": 32,
+      "date": "2026-09-16",
+      "shift": "day",
+      "section": "2ème Section",
+      "agentId": "65e75021-9805-4c26-8e9d-f623f1d81352",
+      "agentName": "REDOUAN HALEB",
+      "checkpointId": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+      "checkpointName": "75",
+      "reason": "phase2_mandatory_fill",
+      "visitedCompatibleCount": 8,
+      "compatibleSize": 9,
+      "neverVisitedBefore": [
+        "21"
+      ],
+      "otherAgentsBlockedBySmartRotation": 4,
+      "phaseNote": "Phase 1 blocked → Phase 2 mandatory fill (requireSmartRotation=false)"
+    },
+    {
+      "simIndex": 32,
+      "date": "2026-09-16",
+      "shift": "day",
+      "section": "2ème Section",
+      "agentId": "1fcf1ad7-531b-4a08-946b-d15e5ac69ddd",
+      "agentName": "MOHAMED LHBICH",
+      "checkpointId": "07ecd6ed-e23d-4879-af11-0aa4b4d27a1a",
+      "checkpointName": "75",
+      "reason": "phase2_mandatory_fill",
+      "visitedCompatibleCount": 8,
+      "compatibleSize": 9,
+      "neverVisitedBefore": [
+        "76"
+      ],
+      "otherAgentsBlockedBySmartRotation": 4,
+      "phaseNote": "Phase 1 blocked → Phase 2 mandatory fill (requireSmartRotation=false)"
+    },
+    {
+      "simIndex": 32,
+      "date": "2026-09-16",
+      "shift": "day",
+      "section": "2ème Section",
+      "agentId": "3253360b-0514-46e0-899d-995860ae9234",
+      "agentName": "SAMIR GRIMI",
+      "checkpointId": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+      "checkpointName": "77 BIS",
+      "reason": "phase2_mandatory_fill",
+      "visitedCompatibleCount": 8,
+      "compatibleSize": 9,
+      "neverVisitedBefore": [
+        "21"
+      ],
+      "otherAgentsBlockedBySmartRotation": 4,
+      "phaseNote": "Phase 1 blocked → Phase 2 mandatory fill (requireSmartRotation=false)"
+    },
+    {
+      "simIndex": 38,
+      "date": "2026-09-19",
+      "shift": "day",
+      "section": "2ème Section",
+      "agentId": "65e75021-9805-4c26-8e9d-f623f1d81352",
+      "agentName": "REDOUAN HALEB",
+      "checkpointId": "7264fbd0-12f0-466b-ba81-5e109dfa2875",
+      "checkpointName": "77 BIS",
+      "reason": "phase2_mandatory_fill",
+      "visitedCompatibleCount": 8,
+      "compatibleSize": 9,
+      "neverVisitedBefore": [
+        "21"
+      ],
+      "otherAgentsBlockedBySmartRotation": 2,
+      "phaseNote": "Phase 1 blocked → Phase 2 mandatory fill (requireSmartRotation=false)"
+    }
+  ]
+}

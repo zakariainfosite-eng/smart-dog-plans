@@ -272,5 +272,6 @@ export async function syncCheckpointPosts(
     night: { narcotics: 0, explosives: 0 },
     female_policy: "allowed",
     priority: DEFAULT_CHECKPOINT_PRIORITY,
+    mandatory: true,
   });
 }

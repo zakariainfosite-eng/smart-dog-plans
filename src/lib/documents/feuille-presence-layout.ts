@@ -177,18 +177,33 @@ export const FP_SIGNATURE_BRIGADE = "SIGNATURE CHEF BRIGADE CYNOTECHNIQUE" as co
 export const FP_CYNOTECHNICIANS_LIST_TITLE = "LISTE DES CYNOTECHNICIENS" as const;
 
 /**
- * Cynotechnicians list columns — sum equals FP_CONTENT_W (186 mm).
+ * Operational staff (Cynotechnicien) columns — sum equals FP_CONTENT_W (186 mm).
  * Same table metrics (headerH / rowH / fill / borders) as the attendance sheet.
  */
 export const FP_CYNOTECHNICIANS_TABLE_COLS = [
-  { key: "numero", label: "N°", w: 9 },
-  { key: "nom", label: "NOM", w: 30 },
-  { key: "prenom", label: "PRÉNOM", w: 28 },
-  { key: "matricule", label: "MATRICULE", w: 21 },
-  { key: "grade", label: "GRADE", w: 17 },
-  { key: "chien", label: "CHIEN AFFECTÉ", w: 28 },
-  { key: "specialite", label: "SPÉCIALITÉ", w: 27 },
-  { key: "section", label: "SECTION", w: 26 },
+  { key: "numero", label: "N°", w: 8 },
+  { key: "nom", label: "NOM", w: 24 },
+  { key: "prenom", label: "PRÉNOM", w: 22 },
+  { key: "matricule", label: "MATRICULE", w: 18 },
+  { key: "grade", label: "GRADE", w: 14 },
+  { key: "situation", label: "SITUATION", w: 22 },
+  { key: "chien", label: "CHIEN AFFECTÉ", w: 24 },
+  { key: "specialite", label: "SPÉCIALITÉ", w: 26 },
+  { key: "section", label: "SECTION", w: 28 },
+] as const;
+
+/**
+ * Administrative / command staff columns — sum equals FP_CONTENT_W (186 mm).
+ * Includes Fonction; omits chien / spécialité / section.
+ */
+export const FP_PERSONNEL_ADMIN_TABLE_COLS = [
+  { key: "numero", label: "N°", w: 8 },
+  { key: "nom", label: "NOM", w: 26 },
+  { key: "prenom", label: "PRÉNOM", w: 24 },
+  { key: "matricule", label: "MATRICULE", w: 18 },
+  { key: "grade", label: "GRADE", w: 16 },
+  { key: "fonction", label: "FONCTION", w: 50 },
+  { key: "situation", label: "SITUATION", w: 44 },
 ] as const;
 
 /** Official list title — same typographic scale as FEUILLE DE PRESENCE. */
@@ -199,11 +214,12 @@ export const FP_DOGS_LIST_TITLE = "LISTE DES CHIENS CYNOTECHNIQUES" as const;
  * Same table metrics (headerH / rowH / fill / borders) as the attendance sheet.
  */
 export const FP_DOGS_TABLE_COLS = [
-  { key: "numero", label: "N°", w: 9 },
-  { key: "nom", label: "NOM DU CHIEN", w: 40 },
-  { key: "puce", label: "LA PUCE", w: 30 },
-  { key: "race", label: "RACE", w: 30 },
-  { key: "specialite", label: "SPÉCIALITÉ", w: 27 },
+  { key: "numero", label: "N°", w: 8 },
+  { key: "nom", label: "NOM DU CHIEN", w: 34 },
+  { key: "sexe", label: "SEXE", w: 16 },
+  { key: "puce", label: "LA PUCE", w: 26 },
+  { key: "race", label: "RACE", w: 26 },
+  { key: "specialite", label: "SPÉCIALITÉ", w: 26 },
   { key: "cynotechnicien", label: "CYNOTECHNICIEN AFFECTÉ", w: 50 },
 ] as const;
 

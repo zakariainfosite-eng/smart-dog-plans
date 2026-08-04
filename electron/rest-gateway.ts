@@ -168,7 +168,10 @@ function parseSelectFragment(
       continue;
     }
 
-    const embedMatch = part.match(/^([a-z_][a-z0-9_]*)\s*:\s*([a-z_][a-z0-9_]*)\s*\((.*)\)$/i);
+    // Alias embed, optionally with PostgREST FK hint: agent:agents!agents_dog_id_fkey(...)
+    const embedMatch = part.match(
+      /^([a-z_][a-z0-9_]*)\s*:\s*([a-z_][a-z0-9_]*)(?:![a-z_][a-z0-9_]*)?\s*\((.*)\)$/i,
+    );
     if (embedMatch) {
       const alias = embedMatch[1]!;
       const target = embedMatch[2]!;
@@ -317,6 +320,10 @@ function inferFkToParent(
   }
   if (related === "agents" && (parent === "operational_cases" || parent === "planning_assignments")) {
     return { column: "agent_id", cardinality: "one" };
+  }
+  // dogs ← agents.dog_id (reverse FK; one handler per dog in practice, array for gateway)
+  if (related === "agents" && parent === "dogs") {
+    return { column: "dog_id", cardinality: "many" };
   }
   // Parent.section_id → sections (agents, planning, …). Alias is often "sections", not "section".
   if (related === "sections") {

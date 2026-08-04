@@ -15,6 +15,7 @@ import {
   initializeDatabase,
 } from "./database";
 import { fetchAllSupabaseRows } from "./supabase-client";
+import { normalizePersonnelFonction } from "../src/lib/personnel-fonction";
 
 export type TableMigrationStatus = "OK" | "ERROR";
 
@@ -170,9 +171,9 @@ function insertDogs(db: Database.Database, rows: Record<string, unknown>[]): voi
 function insertAgents(db: Database.Database, rows: Record<string, unknown>[]): void {
   const stmt = db.prepare(`
     INSERT INTO agents (
-      id, first_name, last_name, professional_number, grade, gender, section_id, dog_id,
+      id, first_name, last_name, professional_number, grade, gender, fonction, section_id, dog_id,
       is_section_chief, active, phone, address, observations, photo_url, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   for (const row of rows) {
     stmt.run(
@@ -182,6 +183,9 @@ function insertAgents(db: Database.Database, rows: Record<string, unknown>[]): v
       row.professional_number,
       row.grade,
       row.gender,
+      normalizePersonnelFonction(
+        typeof row.fonction === "string" ? row.fonction : null,
+      ),
       row.section_id ?? null,
       row.dog_id ?? null,
       toSqlBool(row.is_section_chief),
@@ -200,9 +204,9 @@ function insertCheckpoints(db: Database.Database, rows: Record<string, unknown>[
   const stmt = db.prepare(`
     INSERT INTO checkpoints (
       id, name, active, night_only, allowed_gender, operating_days, day_shift_enabled,
-      night_shift_enabled, female_policy, priority, day_explosives, day_narcotics, night_explosives,
+      night_shift_enabled, female_policy, priority, mandatory, day_explosives, day_narcotics, night_explosives,
       night_narcotics, required_drugs, required_explosives, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   for (const row of rows) {
     stmt.run(
@@ -216,6 +220,7 @@ function insertCheckpoints(db: Database.Database, rows: Record<string, unknown>[
       toSqlBool(row.night_shift_enabled ?? true),
       row.female_policy ?? "allowed",
       Number(row.priority ?? 3),
+      toSqlBool(row.mandatory ?? true),
       row.day_explosives ?? 0,
       row.day_narcotics ?? 0,
       row.night_explosives ?? 0,
@@ -254,14 +259,15 @@ function insertCheckpointPosts(db: Database.Database, rows: Record<string, unkno
 function insertAgentExclusions(db: Database.Database, rows: Record<string, unknown>[]): void {
   const stmt = db.prepare(`
     INSERT INTO agent_exclusions (
-      id, agent_id, exclusion_type, start_date, end_date, notes, active, is_deleted,
+      id, agent_id, dog_id, exclusion_type, start_date, end_date, notes, active, is_deleted,
       created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   for (const row of rows) {
     stmt.run(
       row.id,
-      row.agent_id,
+      row.agent_id ?? null,
+      row.dog_id ?? null,
       row.exclusion_type,
       row.start_date,
       row.end_date,

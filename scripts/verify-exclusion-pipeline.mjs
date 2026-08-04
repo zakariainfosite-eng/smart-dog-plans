@@ -98,8 +98,8 @@ const agents = [
   },
 ];
 
-const inputs = toPlanningExclusionInputs(records, planningDate).filter((entry) =>
-  sectionAgentIds.has(entry.agent_id),
+const inputs = toPlanningExclusionInputs(records, planningDate).filter(
+  (entry) => entry.agent_id && sectionAgentIds.has(entry.agent_id),
 );
 const engineResult = runPlanningEngine({
   sectionId: "sec1",

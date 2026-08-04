@@ -1,5 +1,6 @@
 import type { DogRow, DogSpecialty } from "@/integrations/database";
 import type { DogListPdfRow, DogsListPdfData } from "@/lib/documents/feuille-presence-types";
+import { formatDogSexPdfLabel } from "@/lib/dog-sex";
 
 /** Official French labels — same language register as the attendance sheet. */
 const SPECIALTY_LABEL: Record<DogSpecialty, string> = {
@@ -42,6 +43,7 @@ export function buildDogsListPdfData(
   const rows: DogListPdfRow[] = dogs.map((dog, index) => ({
     numero: index + 1,
     nom: (dog.name ?? "").trim().toUpperCase() || "-",
+    sexe: formatDogSexPdfLabel(dog.gender),
     puce: dog.microchip_number?.trim() || "-",
     race: (dog.breed ?? "").trim().toUpperCase() || "-",
     specialite: specialiteLabel(dog.specialty),

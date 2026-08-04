@@ -10,6 +10,7 @@ import {
   collectFeuillePresenceMetaAgentIds,
   type FeuillePresenceAgentMeta,
 } from "@/lib/documents/build-feuille-presence-data";
+import { loadActiveFemaleAgentsForPresence } from "@/lib/documents/build-cynotechniciennes-presence-data";
 import type { FeuillePresenceData } from "@/lib/documents/feuille-presence-types";
 import type {
   CheckpointAssignment,
@@ -250,6 +251,7 @@ function buildEngineResultFromAssignments(
     point653,
     offDuty,
     assignments: persistable,
+    structuredWarnings: [],
     summary: {
       totalEmployees: assignedToCheckpoints + point653.length + offDuty.length,
       assignedEmployees: assignedToCheckpoints + point653.length + offDuty.length,
@@ -396,10 +398,12 @@ export async function prepareStoredPlanningExport(
   const exclusionsRaw = await fetchActiveExclusionsForDate(client, detail.planning_date);
   const exclusionTypesByAgent: Record<string, string> = {};
   for (const exclusion of exclusionsRaw) {
-    if (!metaAgentIds.includes(exclusion.agent_id)) continue;
+    if (!exclusion.agent_id || !metaAgentIds.includes(exclusion.agent_id)) continue;
     if (!isAgentLevelExclusionType(exclusion.exclusion_type)) continue;
     exclusionTypesByAgent[exclusion.agent_id] = exclusion.exclusion_type;
   }
+
+  const femaleAgents = await loadActiveFemaleAgentsForPresence(client);
 
   const buildResult = buildFeuillePresenceData({
     planningDate,
@@ -412,6 +416,7 @@ export async function prepareStoredPlanningExport(
       mle: detail.section.commander_mle,
     },
     agents: agentsMeta,
+    femaleAgents,
     exclusionTypesByAgent,
     engineResult: detail.engineResult,
   });

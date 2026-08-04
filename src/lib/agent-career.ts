@@ -13,7 +13,15 @@ export const EXCLUSION_TRAINING_TYPES: ExclusionType[] = ["training"];
 
 export const EXCLUSION_MEDICAL_TYPES: ExclusionType[] = ["sickness"];
 
-export const EXCLUSION_DOG_TYPES: ExclusionType[] = ["dog_sick", "female_dog_heat"];
+export const EXCLUSION_DOG_TYPES: ExclusionType[] = [
+  "dog_sick",
+  "female_dog_heat",
+  "dog_injured",
+  "dog_temporary_retirement",
+  "dog_vet_visit",
+  "dog_training",
+  "dog_other",
+];
 
 export type AgentCareerSummary = {
   totalOperationalCases: number;

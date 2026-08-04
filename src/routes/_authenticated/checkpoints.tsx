@@ -221,7 +221,7 @@ function CheckpointsPage() {
       {
         id: "priority",
         header: t("checkpoints.config.priority"),
-        meta: { width: "14%", align: "center" },
+        meta: { width: "12%", align: "center" },
         cell: ({ row }) => (
           <div className="flex justify-center">
             <StatusBadge tone="neutral" className="px-2 py-0.5 text-[11px]">
@@ -232,9 +232,29 @@ function CheckpointsPage() {
         ),
       },
       {
+        id: "mandatory",
+        header: t("checkpoints.config.mandatory"),
+        meta: { width: "10%", align: "center" },
+        cell: ({ row }) => {
+          const isMandatory = row.original.mandatory !== false;
+          return (
+            <div className="flex justify-center">
+              <StatusBadge
+                tone={isMandatory ? "danger" : "neutral"}
+                className="px-2 py-0.5 text-[11px]"
+              >
+                {isMandatory
+                  ? t("checkpoints.badge.mandatory")
+                  : t("checkpoints.badge.optional")}
+              </StatusBadge>
+            </div>
+          );
+        },
+      },
+      {
         id: "femalePolicy",
         header: t("checkpoints.config.femaleAgents"),
-        meta: { width: "14%", align: "center" },
+        meta: { width: "12%", align: "center" },
         cell: ({ row }) => (
           <div className="flex justify-center">
             <StatusBadge tone="neutral" className="px-2 py-0.5 text-[11px]">
@@ -246,7 +266,7 @@ function CheckpointsPage() {
       {
         id: "requirements",
         header: t("checkpoints.table.operationalReqs"),
-        meta: { width: "36%" },
+        meta: { width: "28%" },
         cell: ({ row }) => {
           const c = row.original;
           const staffing = staffingCountsFromCheckpointRow(c);

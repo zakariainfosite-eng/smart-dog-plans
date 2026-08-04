@@ -11,38 +11,34 @@ import {
   type AgentInput,
   type RotationHistoryInput,
 } from "@/lib/planning/engine";
+import { isCynotechnicienFonction } from "@/lib/personnel-fonction";
 
 /**
- * Load agents for planning:
- * - Males (and non-female) of the selected section
- * - All active females (independent of Sections A/B/C — section_id ignored)
+ * Load agents for automatic planning:
+ * - Active male Cynotechniciens of the selected section only
+ * - Non-cynotechnicien roles and females are never loaded into the engine
+ *   (Smart Rotation, checkpoint assignment, HQ Reserve, optimization).
  */
 async function loadPlanningAgents(
   db: DbClient,
   sectionId: string,
 ): Promise<AgentInput[]> {
   const agentSelect =
-    "id, first_name, last_name, professional_number, gender, active, section_id, dog_id, dogs:dog_id(id, name, specialty, status, active)";
+    "id, first_name, last_name, professional_number, gender, fonction, active, section_id, dog_id, dogs:dog_id(id, name, specialty, status, active)";
 
-  const [sectionRes, femaleRes] = await Promise.all([
-    db.from("agents").select(agentSelect).eq("active", true).eq("section_id", sectionId),
-    db.from("agents").select(agentSelect).eq("active", true).eq("gender", "female"),
-  ]);
+  const sectionRes = await db
+    .from("agents")
+    .select(agentSelect)
+    .eq("active", true)
+    .eq("section_id", sectionId);
 
   if (sectionRes.error) throw sectionRes.error;
-  if (femaleRes.error) throw femaleRes.error;
 
-  const byId = new Map<string, AgentInput>();
-  for (const row of (sectionRes.data ?? []) as AgentInput[]) {
-    // Females never belong to male sections — drop any legacy section membership here.
-    if (String(row.gender).toLowerCase() === "female") continue;
-    byId.set(row.id, row);
-  }
-  for (const row of (femaleRes.data ?? []) as AgentInput[]) {
-    byId.set(row.id, { ...row, section_id: null });
-  }
-
-  return [...byId.values()];
+  return ((sectionRes.data ?? []) as Array<AgentInput & { fonction?: string }>).filter(
+    (row) =>
+      isCynotechnicienFonction(row.fonction) &&
+      String(row.gender).toLowerCase() !== "female",
+  );
 }
 
 export async function loadPlanningContext(
@@ -78,10 +74,21 @@ export async function loadPlanningContext(
   ]);
 
   const sectionAgentIds = new Set(agentIds);
+  const sectionDogIds = new Set(
+    agents
+      .map((agent: { dog_id?: string | null }) => agent.dog_id)
+      .filter((id: string | null | undefined): id is string => Boolean(id)),
+  );
+  const dogToAgentId = new Map<string, string>();
+  for (const agent of agents as Array<{ id: string; dog_id?: string | null }>) {
+    if (agent.dog_id) dogToAgentId.set(agent.dog_id, agent.id);
+  }
   const exclusionDebug = buildPlanningExclusionReport(
     exclusionsRaw,
     dateISO,
     sectionAgentIds,
+    sectionDogIds,
+    dogToAgentId,
   );
   logPlanningExclusionDebug(exclusionDebug);
 
