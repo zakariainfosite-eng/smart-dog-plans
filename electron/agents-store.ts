@@ -27,6 +27,7 @@ export type CreateAgentInput = {
   marital_status: MaritalStatus;
   /** ISO `yyyy-MM-dd`. Required on form create/edit; NULL allowed for legacy rows. */
   date_naissance: string | null;
+  origine: string | null;
   section_id: string | null;
   dog_id: string | null;
   phone: string | null;
@@ -40,9 +41,10 @@ export type CreateAgentInput = {
  * Updates may omit marital_status / date_naissance (preserve previous), pass null
  * (legacy empty), or set an explicit value. Form create/edit always sends values.
  */
-export type UpdateAgentInput = Omit<CreateAgentInput, "marital_status" | "date_naissance"> & {
+export type UpdateAgentInput = Omit<CreateAgentInput, "marital_status" | "date_naissance" | "origine"> & {
   marital_status?: MaritalStatus | null;
   date_naissance?: string | null;
+  origine?: string | null;
 };
 
 type AgentRowDb = {
@@ -55,6 +57,7 @@ type AgentRowDb = {
   fonction: PersonnelFonction;
   marital_status: string | null;
   date_naissance: string | null;
+  origine: string | null;
   section_id: string | null;
   dog_id: string | null;
   is_section_chief: number;
@@ -83,6 +86,7 @@ export type AgentRecord = {
   fonction: PersonnelFonction;
   marital_status: MaritalStatus | null;
   date_naissance: string | null;
+  origine: string | null;
   section_id: string | null;
   dog_id: string | null;
   is_section_chief: boolean;
@@ -115,6 +119,7 @@ const AGENT_SELECT = `
     COALESCE(a.fonction, 'cynotechnicien') AS fonction,
     a.marital_status,
     a.date_naissance,
+    a.origine,
     a.section_id,
     a.dog_id,
     a.is_section_chief,
@@ -280,6 +285,7 @@ function mapAgentRow(row: AgentRowDb): AgentRecord {
     fonction: normalizePersonnelFonction(row.fonction),
     marital_status: normalizeMaritalStatus(row.marital_status),
     date_naissance: normalizeAgentBirthDate(row.date_naissance),
+    origine: row.origine,
     section_id: row.section_id,
     dog_id: row.dog_id,
     is_section_chief: row.is_section_chief === 1,
@@ -351,9 +357,9 @@ export function createAgent(db: Database.Database, input: CreateAgentInput): Age
       db.prepare(
         `INSERT INTO agents (
           id, first_name, last_name, professional_number, grade, gender, fonction, marital_status,
-          date_naissance, section_id, dog_id, is_section_chief, active, phone, address, observations,
+          date_naissance, origine, section_id, dog_id, is_section_chief, active, phone, address, observations,
           photo_url, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         id,
         input.first_name,
@@ -364,6 +370,7 @@ export function createAgent(db: Database.Database, input: CreateAgentInput): Age
         fonction,
         maritalStatus,
         birthDate,
+        input.origine?.trim() || null,
         sectionId,
         dogId,
         isSectionChief,
@@ -421,6 +428,8 @@ export function updateAgent(db: Database.Database, id: string, input: UpdateAgen
       : input.date_naissance == null || input.date_naissance === ""
         ? null
         : requireBirthDate(input.date_naissance);
+  const origine =
+    input.origine === undefined ? previous.origine : input.origine?.trim() || null;
 
   try {
     const run = db.transaction(() => {
@@ -442,6 +451,7 @@ export function updateAgent(db: Database.Database, id: string, input: UpdateAgen
             fonction = ?,
             marital_status = ?,
             date_naissance = ?,
+            origine = ?,
             section_id = ?,
             dog_id = ?,
             is_section_chief = ?,
@@ -462,6 +472,7 @@ export function updateAgent(db: Database.Database, id: string, input: UpdateAgen
           fonction,
           maritalStatus,
           birthDate,
+          origine,
           sectionId,
           dogId,
           isSectionChief,

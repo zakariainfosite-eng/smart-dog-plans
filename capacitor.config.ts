@@ -13,6 +13,15 @@ const config: CapacitorConfig = {
     androidScheme: "https",
     iosScheme: "capacitor",
   },
+  plugins: {
+    CapacitorSQLite: {
+      // Persistent app-container storage. Survives Xcode/TestFlight/App Store
+      // updates of the same bundle id. Never point this at a temp/cache path.
+      // Do not clear this directory on startup or during cap sync.
+      iosDatabaseLocation: "Library/CapacitorDatabase",
+      iosIsEncryption: false,
+    },
+  },
 };
 
 export default config;

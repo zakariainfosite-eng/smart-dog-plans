@@ -172,7 +172,7 @@ export function comparePersonnelRows(
   return compareMatricule(a, b);
 }
 
-/** Search Nom + Matricule + Grade + Fonction only. */
+/** Search Nom + Matricule + Grade + Fonction + Origine. */
 export function personnelMatchesSearch(
   agent: AgentRow,
   query: string,
@@ -188,6 +188,7 @@ export function personnelMatchesSearch(
     `${agent.last_name} ${agent.first_name}`,
     agent.professional_number,
     agent.grade,
+    agent.origine ?? "",
     fonctionLabel(fonction),
     fonction,
   ]

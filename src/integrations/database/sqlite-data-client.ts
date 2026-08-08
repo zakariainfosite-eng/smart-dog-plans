@@ -1,7 +1,8 @@
 /**
- * Minimal PostgREST-compatible client backed by Electron SQLite.
- * Supports the subset of PostgREST builder methods used by this app.
+ * Minimal PostgREST-compatible client backed by local SQLite.
+ * Electron uses the preload IPC gateway; Capacitor/iOS and browser use native/local SQLite.
  */
+import { isElectronDesktopRuntime } from "@/lib/runtime-platform";
 import type { RestQueryFilter, RestQueryRequest } from "./rest-query-types";
 
 export type { RestQueryRequest };
@@ -10,12 +11,24 @@ type Filter = RestQueryFilter;
 
 type ThenableResult = { data: any; error: { message: string; code?: string } | null; count: number | null };
 
-function getBridge() {
+function getElectronRestBridge() {
   const bridge = globalThis.window?.cynoplanning?.rest;
   if (!bridge) {
     throw new Error("SQLite data access requires the CynoPlanning Electron desktop app.");
   }
   return bridge;
+}
+
+async function queryRest(request: RestQueryRequest): Promise<ThenableResult> {
+  if (isElectronDesktopRuntime()) {
+    return getElectronRestBridge().query(request) as Promise<ThenableResult>;
+  }
+  const [{ getLocalSqliteExecutor }, { executeLocalRestQuery }] = await Promise.all([
+    import("./local-sqlite"),
+    import("./local-rest-engine"),
+  ]);
+  const db = await getLocalSqliteExecutor();
+  return executeLocalRestQuery(db, request);
 }
 
 class FilterBuilder implements PromiseLike<ThenableResult> {
@@ -152,7 +165,7 @@ class FilterBuilder implements PromiseLike<ThenableResult> {
     // Promise.resolve ensures sync throws from getBridge() become rejections
     // (otherwise an uncaught throw in then() can make button clicks look like no-ops).
     return Promise.resolve()
-      .then(() => getBridge().query(this.buildRequest()))
+      .then(() => queryRest(this.buildRequest()))
       .then((value) => value as ThenableResult)
       .then(onfulfilled, onrejected);
   }
@@ -196,7 +209,24 @@ class StorageBucket {
     const contentType =
       options?.contentType ??
       (typeof File !== "undefined" && file instanceof File ? file.type : "application/octet-stream");
-    const result = await getBridge().storageUpload({
+    const upload = isElectronDesktopRuntime()
+      ? getElectronRestBridge().storageUpload
+      : async (request: {
+          bucket: string;
+          path: string;
+          dataBase64: string;
+          contentType?: string;
+          upsert?: boolean;
+        }) => {
+          const { saveLocalMediaFile } = await import("./local-media");
+          return saveLocalMediaFile(
+            request.bucket,
+            request.path,
+            request.dataBase64,
+            request.upsert ?? false,
+          );
+        };
+    const result = await upload({
       bucket: this.bucket,
       path,
       dataBase64: BufferFrom(bytes),
@@ -207,7 +237,12 @@ class StorageBucket {
   }
 
   async remove(paths: string[]) {
-    const result = await getBridge().storageRemove({ bucket: this.bucket, paths });
+    if (isElectronDesktopRuntime()) {
+      const result = await getElectronRestBridge().storageRemove({ bucket: this.bucket, paths });
+      return { data: result.error ? null : paths, error: result.error };
+    }
+    const { removeLocalMediaFiles } = await import("./local-media");
+    const result = await removeLocalMediaFiles(this.bucket, paths);
     return { data: result.error ? null : paths, error: result.error };
   }
 
@@ -225,7 +260,11 @@ class StorageBucket {
   }
 
   async download(path: string) {
-    return getBridge().storageDownload({ bucket: this.bucket, path });
+    if (isElectronDesktopRuntime()) {
+      return getElectronRestBridge().storageDownload({ bucket: this.bucket, path });
+    }
+    const { readLocalMediaFile } = await import("./local-media");
+    return readLocalMediaFile(this.bucket, path);
   }
 }
 
@@ -243,7 +282,15 @@ class StorageApi {
 
 class AuthApi {
   async getSession() {
-    const session = await globalThis.window?.cynoplanning?.auth?.getSession();
+    const session = isElectronDesktopRuntime()
+      ? await globalThis.window?.cynoplanning?.auth?.getSession()
+      : await (async () => {
+          const [{ getLocalSqliteExecutor }, { getLocalSession }] = await Promise.all([
+            import("./local-sqlite"),
+            import("./local-auth-store"),
+          ]);
+          return getLocalSession(await getLocalSqliteExecutor());
+        })();
     if (!session) return { data: { session: null }, error: null };
     return {
       data: {
@@ -263,7 +310,15 @@ class AuthApi {
 
   async signInWithPassword({ email, password }: { email: string; password: string }) {
     try {
-      const session = await globalThis.window!.cynoplanning!.auth!.signIn(email, password);
+      const session = isElectronDesktopRuntime()
+        ? await globalThis.window!.cynoplanning!.auth!.signIn(email, password)
+        : await (async () => {
+            const [{ getLocalSqliteExecutor }, { signInLocal }] = await Promise.all([
+              import("./local-sqlite"),
+              import("./local-auth-store"),
+            ]);
+            return signInLocal(await getLocalSqliteExecutor(), email, password);
+          })();
       return {
         data: {
           session: {
@@ -299,7 +354,12 @@ class AuthApi {
   }
 
   async signOut() {
-    await globalThis.window?.cynoplanning?.auth?.signOut();
+    if (isElectronDesktopRuntime()) {
+      await globalThis.window?.cynoplanning?.auth?.signOut();
+    } else {
+      const { clearLocalAuthSession } = await import("./local-auth-store");
+      clearLocalAuthSession();
+    }
     return { error: null };
   }
 

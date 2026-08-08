@@ -273,6 +273,7 @@ export type Database = {
           last_name: string
           marital_status: Database["public"]["Enums"]["marital_status"] | null
           date_naissance: string | null
+          origine: string | null
           observations: string | null
           phone: string | null
           photo_url: string | null
@@ -294,6 +295,7 @@ export type Database = {
           last_name: string
           marital_status?: Database["public"]["Enums"]["marital_status"] | null
           date_naissance?: string | null
+          origine?: string | null
           observations?: string | null
           phone?: string | null
           photo_url?: string | null
@@ -315,6 +317,7 @@ export type Database = {
           last_name?: string
           marital_status?: Database["public"]["Enums"]["marital_status"] | null
           date_naissance?: string | null
+          origine?: string | null
           observations?: string | null
           phone?: string | null
           photo_url?: string | null

@@ -55,6 +55,7 @@ export type AgentFormValues = {
   marital_status: MaritalStatus | "";
   /** ISO `yyyy-MM-dd` for `<input type="date">`. */
   date_naissance: string;
+  origine: string;
   section_id: string | null;
   dog_id: string | null;
   phone: string;
@@ -336,6 +337,14 @@ export function AgentFormDialog({
                       patchForm({ date_naissance: event.target.value })
                     }
                     className="transition-shadow hover:shadow-sm"
+                  />
+                </FormField>
+                <FormField label={t("employees.field.origine")} error={errors.origine}>
+                  <Input
+                    value={form.origine}
+                    maxLength={120}
+                    onChange={(event) => patchForm({ origine: event.target.value })}
+                    className="transition-shadow hover:shadow-sm focus-visible:shadow-sm"
                   />
                 </FormField>
               </div>

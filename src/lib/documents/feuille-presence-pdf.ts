@@ -1,4 +1,5 @@
 import { jsPDF } from "jspdf";
+import { exportJsPdf } from "@/lib/documents/export-jspdf";
 import { FP_OFFICIAL_LOGO_URL } from "@/lib/documents/feuille-presence-layout";
 import type { FeuillePresenceLogoSources } from "@/lib/documents/feuille-presence-logo";
 import {
@@ -139,22 +140,24 @@ export function generateCynotechniciansListPdf(options: CynotechniciansListPdfOp
   return doc;
 }
 
-export function downloadCynotechniciansListPdf(options: CynotechniciansListPdfOptions): void {
+export async function downloadCynotechniciansListPdf(
+  options: CynotechniciansListPdfOptions,
+): Promise<void> {
   const dateISO = new Date().toISOString().slice(0, 10);
   const filename = options.filename ?? `Liste_Fonctionnaires_${dateISO}.pdf`;
-  generateCynotechniciansListPdf(options).save(filename);
+  await exportJsPdf(generateCynotechniciansListPdf(options), filename);
 }
 
 export async function downloadCynotechniciansListPdfWithLogo(
   options: CynotechniciansListPdfOptions,
 ): Promise<void> {
   if (options.logoDataUrl) {
-    downloadCynotechniciansListPdf(options);
+    await downloadCynotechniciansListPdf(options);
     return;
   }
 
   const logos = await loadFeuillePresenceLogos(options.logoUrl ?? FP_OFFICIAL_LOGO_URL);
-  downloadCynotechniciansListPdf({
+  await downloadCynotechniciansListPdf({
     ...options,
     logoDataUrl: logos.header,
   });
@@ -168,22 +171,22 @@ export function generateDogsListPdf(options: DogsListPdfOptions): jsPDF {
   return doc;
 }
 
-export function downloadDogsListPdf(options: DogsListPdfOptions): void {
+export async function downloadDogsListPdf(options: DogsListPdfOptions): Promise<void> {
   const dateISO = new Date().toISOString().slice(0, 10);
   const filename = options.filename ?? `Liste_Chiens_Cynotechniques_${dateISO}.pdf`;
-  generateDogsListPdf(options).save(filename);
+  await exportJsPdf(generateDogsListPdf(options), filename);
 }
 
 export async function downloadDogsListPdfWithLogo(
   options: DogsListPdfOptions,
 ): Promise<void> {
   if (options.logoDataUrl) {
-    downloadDogsListPdf(options);
+    await downloadDogsListPdf(options);
     return;
   }
 
   const logos = await loadFeuillePresenceLogos(options.logoUrl ?? FP_OFFICIAL_LOGO_URL);
-  downloadDogsListPdf({
+  await downloadDogsListPdf({
     ...options,
     logoDataUrl: logos.header,
   });

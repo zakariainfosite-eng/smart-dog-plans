@@ -162,6 +162,7 @@ export function AgentDetailsDrawer({
       gender: agent.gender === "female" ? "female" : "male",
       maritalStatus: agent.marital_status ?? agentRow?.marital_status,
       dateNaissance: agent.date_naissance ?? agentRow?.date_naissance,
+      origine: agent.origine ?? agentRow?.origine,
       phone: agent.phone,
       professionalNumber: agent.professional_number,
       sectionName: agent.sections?.name ?? null,
@@ -347,6 +348,11 @@ export function AgentDetailsDrawer({
                           data.agent.date_naissance ?? agentRow?.date_naissance,
                         ) || t("common.none")
                       }
+                    />
+                    <DetailItem
+                      icon={MapPin}
+                      label={t("employees.field.origine")}
+                      value={data.agent.origine ?? t("common.none")}
                     />
                     <DetailItem
                       icon={Phone}

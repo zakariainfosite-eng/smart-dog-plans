@@ -51,6 +51,7 @@ export type Agent = {
   marital_status: MaritalStatus | null;
   /** ISO `yyyy-MM-dd`. Null for legacy rows until filled. */
   date_naissance: string | null;
+  origine: string | null;
   section_id: string | null;
   dog_id: string | null;
   is_section_chief: boolean;
@@ -91,6 +92,7 @@ export type AgentWriteInput = {
   marital_status: MaritalStatus | null;
   /** Required on create/edit form (`yyyy-MM-dd`); null allowed for legacy rows. */
   date_naissance: string | null;
+  origine: string | null;
   section_id: string | null;
   dog_id: string | null;
   phone: string | null;

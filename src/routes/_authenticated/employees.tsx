@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
+import type { TFunction } from "i18next";
 import { z } from "zod";
 import {
   Users,
@@ -143,6 +144,7 @@ function createAgentSchema(t: (key: string) => string) {
         invalid_type_error: t("validation.maritalStatusRequired"),
       }),
       date_naissance: z.string().trim().min(1, t("validation.dateOfBirthRequired")),
+      origine: z.string().trim().max(120),
       section_id: z.string().uuid().nullable(),
       dog_id: z.string().uuid().nullable(),
       phone: z.string().trim().max(30),
@@ -180,7 +182,8 @@ function createAgentSchema(t: (key: string) => string) {
 }
 type AgentForm = z.infer<ReturnType<typeof createAgentSchema>>;
 
-type AgentSavePayload = Omit<AgentForm, "phone" | "address" | "observations"> & {
+type AgentSavePayload = Omit<AgentForm, "origine" | "phone" | "address" | "observations"> & {
+  origine: string | null;
   phone: string | null;
   address: string | null;
   observations: string | null;
@@ -201,6 +204,7 @@ function normalizeAgentForm(values: AgentForm): AgentSavePayload {
         ? values.section_id
         : null,
     dog_id: isCyno ? values.dog_id : null,
+    origine: values.origine.trim() || null,
     phone: values.phone.trim() || null,
     address: values.address.trim() || null,
     observations: values.observations.trim() || null,
@@ -221,6 +225,7 @@ const emptyForm: AgentFormValues = {
   fonction: DEFAULT_PERSONNEL_FONCTION,
   marital_status: "",
   date_naissance: "",
+  origine: "",
   section_id: null,
   dog_id: null,
   phone: "",
@@ -239,7 +244,7 @@ function pct(value: number, total: number): string {
   return `${Math.round((value / total) * 100)}%`;
 }
 
-function exportAgentsCsv(rows: AgentRow[], filename: string, t: (key: string) => string) {
+function exportAgentsCsv(rows: AgentRow[], filename: string, t: TFunction) {
   const escape = (value: string) => `"${value.replace(/"/g, '""')}"`;
   const header = [
     t("employees.table.name"),
@@ -251,6 +256,7 @@ function exportAgentsCsv(rows: AgentRow[], filename: string, t: (key: string) =>
     t("field.gender"),
     t("employees.field.maritalStatus"),
     t("employees.field.dateOfBirth"),
+    t("employees.field.origine"),
     t("field.active"),
   ];
   const lines = rows.map((row) =>
@@ -264,6 +270,7 @@ function exportAgentsCsv(rows: AgentRow[], filename: string, t: (key: string) =>
       t(`gender.${row.gender}`),
       formatMaritalStatusLabel(row.marital_status, t),
       formatAgentBirthDateDisplay(row.date_naissance) || t("common.none"),
+      row.origine ?? "",
       row.active ? t("common.yes") : t("common.no"),
     ]
       .map((cell) => escape(String(cell)))
@@ -621,6 +628,7 @@ function EmployeesPage() {
       fonction: normalizePersonnelFonction(a.fonction),
       marital_status: normalizeMaritalStatus(a.marital_status) ?? "",
       date_naissance: normalizeAgentBirthDate(a.date_naissance) ?? "",
+      origine: a.origine ?? "",
       section_id: a.section_id,
       dog_id: a.dog_id,
       phone: a.phone ?? "",
@@ -797,6 +805,11 @@ function EmployeesPage() {
                 <p className="truncate font-mono text-[10px] text-muted-foreground">
                   #{a.professional_number}
                 </p>
+                {a.origine ? (
+                  <p className="truncate text-[10px] text-muted-foreground">
+                    {t("employees.field.origine")}: {a.origine}
+                  </p>
+                ) : null}
               </button>
             </CellTooltip>
           </div>

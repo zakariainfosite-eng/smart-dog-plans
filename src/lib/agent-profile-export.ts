@@ -38,6 +38,7 @@ export type AgentFicheIndividuelleInput = {
   maritalStatus?: MaritalStatusValue;
   /** ISO `yyyy-MM-dd` or empty when unknown (legacy rows). */
   dateNaissance?: string | null;
+  origine?: string | null;
   phone?: string | null;
   professionalNumber: string;
   sectionName?: string | null;
@@ -308,6 +309,7 @@ function buildFormColumns(data: ResolvedFiche): {
   if (data.showSection) {
     right.push({ kind: "field", label: "Section", value: blank(data.sectionName) });
   }
+  right.push({ kind: "field", label: "Origine", value: blank(data.origine) });
   right.push({ kind: "field", label: "Adresse", value: blank(data.address) });
 
   return {

@@ -9,6 +9,10 @@ import {
   assertDocxZipIntegrity,
   uint8ArrayToBase64,
 } from "@/lib/documents/docx-binary";
+import {
+  shareExportFilesOnCapacitor,
+  shouldShareExportsOnCapacitor,
+} from "@/lib/documents/export-binary";
 import { wrapExportError } from "@/lib/documents/export-error";
 import type { FeuillePresenceData } from "@/lib/documents/feuille-presence-types";
 import { sortFeuillePresenceDataByMatricule } from "@/lib/documents/sort-attendance-by-matricule";
@@ -76,6 +80,18 @@ async function saveViaElectron(files: PlanningExportFile[]): Promise<PlanningExp
   }
 }
 
+async function saveViaCapacitorShare(
+  files: PlanningExportFile[],
+): Promise<PlanningExportSaveResult> {
+  const shared = await shareExportFilesOnCapacitor(
+    files.map((file) => ({ data: file.bytes, filename: file.filename })),
+  );
+  if (shared === null) {
+    return { canceled: true };
+  }
+  return { canceled: false, paths: shared };
+}
+
 export function planningExportBasename(planningDate: Date): string {
   return `Planning_${format(planningDate, "yyyy-MM-dd")}`;
 }
@@ -136,10 +152,17 @@ export async function savePlanningExportFiles(
 ): Promise<PlanningExportSaveResult> {
   if (files.length === 0) return { canceled: true };
 
+  // Electron desktop: native save dialog via existing IPC (unchanged).
   if (hasElectronSave()) {
     return saveViaElectron(files);
   }
 
+  // Capacitor/iOS: Cache + Share Sheet (Save to Files / open in Word).
+  if (shouldShareExportsOnCapacitor()) {
+    return saveViaCapacitorShare(files);
+  }
+
+  // Browser: historical Blob + <a download> path.
   for (const file of files) {
     downloadBrowserFile(file);
   }

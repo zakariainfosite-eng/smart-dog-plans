@@ -39,6 +39,7 @@
     "narcoticsDetection": "Narcotics & Banknotes",
     "explosives": "Explosives",
     "explosivesDetection": "Explosives",
+    "currency": "Currency",
     "all": "All specialties"
   },
   "shift": {
@@ -57,8 +58,20 @@
       "pdfError": "PDF export failed"
     },
     "stat": {
+      "total": "Total dogs",
+      "active": "Active dogs",
+      "excluded": "Excluded dogs",
       "narcotics": "Narcotics & Banknotes",
       "explosives": "Explosives"
+    },
+    "statistics": {
+      "overview": "Overview",
+      "bySpecialty": "Dogs by specialty",
+      "exclusions": "Excluded dogs breakdown",
+      "activeExclusionsToday": "Active exclusion reasons today",
+      "excludedExplosivesShort": "Explosives",
+      "excludedNarcoticsShort": "Narcotics",
+      "clickToFilter": "Click a statistic to filter the list."
     },
     "gender": {
       "male": "Male",
@@ -348,7 +361,7 @@
       "title": "Personnel management",
       "subtitle": "Manage cynotechnicians and support staff."
     },
-    "search": "Search by name, ID, grade or function",
+    "search": "Search by name, ID, grade, function or origin",
     "sort": {
       "label": "Sort by",
       "matriculeAsc": "ID (ascending)",
@@ -384,6 +397,7 @@
       "fonction": "Function",
       "maritalStatus": "Marital status",
       "dateOfBirth": "Date of birth",
+      "origine": "Origin",
       "sectionResponsible": "Section responsible",
       "photo": "Photo"
     },

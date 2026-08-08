@@ -81,6 +81,7 @@
     "narcoticsDetection": "مخدرات وأوراق نقدية",
     "explosives": "متفجرات",
     "explosivesDetection": "متفجرات",
+    "currency": "العملة",
     "all": "جميع التخصصات"
   },
   "dogStatus": {
@@ -417,6 +418,7 @@
       "fonction": "الوظيفة",
       "maritalStatus": "الحالة الاجتماعية",
       "dateOfBirth": "تاريخ الميلاد",
+      "origine": "الأصل",
       "sectionResponsible": "القسم المسؤول عنه",
       "assignedDog": "الكلب المعيّن",
       "phone": "الهاتف",
@@ -600,8 +602,19 @@
     "addDog": "إضافة كلب",
     "stat": {
       "total": "إجمالي الكلاب",
+      "active": "الكلاب النشطة",
+      "excluded": "الكلاب المستبعدة",
       "narcotics": "مخدرات وأوراق نقدية",
       "explosives": "متفجرات"
+    },
+    "statistics": {
+      "overview": "نظرة عامة",
+      "bySpecialty": "الكلاب حسب التخصص",
+      "exclusions": "تفاصيل الكلاب المستبعدة",
+      "activeExclusionsToday": "أسباب الاستبعاد النشطة اليوم",
+      "excludedExplosivesShort": "متفجرات",
+      "excludedNarcoticsShort": "مخدرات",
+      "clickToFilter": "انقر على إحصائية لتصفية القائمة."
     },
     "gender": {
       "male": "ذكر",

@@ -78,7 +78,8 @@ app.whenReady().then(async () => {
 
     const cols = db.prepare(`PRAGMA table_info(agents)`).all().map((c) => c.name);
     if (!cols.includes("marital_status")) fail("column marital_status missing");
-    ok("schema column marital_status");
+    if (!cols.includes("origine")) fail("column origine missing");
+    ok("schema columns marital_status + origine");
 
     const created = store.createAgent(db, {
       first_name: "Verify",
@@ -89,6 +90,7 @@ app.whenReady().then(async () => {
       fonction: "aide_soignant_veterinaire",
       marital_status: "married",
       date_naissance: "1990-05-15",
+      origine: "Tanger",
       section_id: null,
       dog_id: null,
       phone: null,
@@ -105,7 +107,14 @@ app.whenReady().then(async () => {
     if (rawCreate?.marital_status !== "married") {
       fail(`SQLite after create=${JSON.stringify(rawCreate?.marital_status)}`);
     }
-    ok("CREATE persists marital_status=married");
+    if (created.origine !== "Tanger") {
+      fail(`create returned origine=${JSON.stringify(created.origine)}`);
+    }
+    const rawCreateOrigin = db.prepare(`SELECT origine FROM agents WHERE id = ?`).get(created.id);
+    if (rawCreateOrigin?.origine !== "Tanger") {
+      fail(`SQLite origine after create=${JSON.stringify(rawCreateOrigin?.origine)}`);
+    }
+    ok("CREATE persists marital_status=married + origine=Tanger");
 
     const updated = store.updateAgent(db, created.id, {
       first_name: created.first_name,
@@ -115,6 +124,7 @@ app.whenReady().then(async () => {
       gender: created.gender,
       fonction: created.fonction,
       marital_status: "divorced",
+      origine: "Rabat",
       section_id: created.section_id,
       dog_id: created.dog_id,
       phone: created.phone,
@@ -132,7 +142,14 @@ app.whenReady().then(async () => {
     if (rawUpdate?.marital_status !== "divorced") {
       fail(`SQLite after update=${JSON.stringify(rawUpdate?.marital_status)}`);
     }
-    ok("UPDATE persists marital_status=divorced");
+    if (updated.origine !== "Rabat") {
+      fail(`update returned origine=${JSON.stringify(updated.origine)}`);
+    }
+    const rawUpdateOrigin = db.prepare(`SELECT origine FROM agents WHERE id = ?`).get(created.id);
+    if (rawUpdateOrigin?.origine !== "Rabat") {
+      fail(`SQLite origine after update=${JSON.stringify(rawUpdateOrigin?.origine)}`);
+    }
+    ok("UPDATE persists marital_status=divorced + origine=Rabat");
 
     const listed = store.getAgents(db).find((row) => row.id === created.id);
     if (!listed || !Object.prototype.hasOwnProperty.call(listed, "marital_status")) {
@@ -141,7 +158,10 @@ app.whenReady().then(async () => {
     if (listed.marital_status !== "divorced") {
       fail(`getAgents marital_status=${JSON.stringify(listed.marital_status)}`);
     }
-    ok("GET/List returns marital_status=divorced");
+    if (listed.origine !== "Rabat") {
+      fail(`getAgents origine=${JSON.stringify(listed.origine)}`);
+    }
+    ok("GET/List returns marital_status=divorced + origine=Rabat");
 
     store.deleteAgent(db, created.id);
     sqlite.closeDatabase();

@@ -22,6 +22,9 @@ export default defineConfig({
   nitro: false,
   vite: {
     envPrefix: ["VITE_", "DATABASE_", "AUTH_"],
+    optimizeDeps: {
+      exclude: ["@capacitor-community/sqlite"],
+    },
     build: {
       outDir: "dist",
       emptyOutDir: true,

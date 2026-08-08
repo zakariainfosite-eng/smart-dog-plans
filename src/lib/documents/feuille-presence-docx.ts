@@ -3,6 +3,7 @@ import {
   AlignmentType,
   BorderStyle,
   Document,
+  Header,
   HorizontalPositionAlign,
   HorizontalPositionRelativeFrom,
   ImageRun,
@@ -18,10 +19,7 @@ import {
   WidthType,
   convertMillimetersToTwip,
 } from "docx";
-import {
-  assertDocxZipIntegrity,
-  toZipSafeUint8Array,
-} from "@/lib/documents/docx-binary";
+import { assertDocxZipIntegrity, toZipSafeUint8Array } from "@/lib/documents/docx-binary";
 import {
   FP_CHEF_ADJOINT_REPLACEMENT_TITLE,
   FP_CHEF_MANUAL_FILL_DOTS,
@@ -42,8 +40,11 @@ import {
   FP_TABLE_COLS,
   FP_WORK_TITLE,
 } from "@/lib/documents/feuille-presence-layout";
-import { computeWatermarkBoxSize, fitLogoInSquareBox } from "@/lib/documents/feuille-presence-logo";
-import type { FeuillePresenceData, FeuillePresenceTableRow } from "@/lib/documents/feuille-presence-types";
+import { fitLogoInSquareBox } from "@/lib/documents/feuille-presence-logo";
+import type {
+  FeuillePresenceData,
+  FeuillePresenceTableRow,
+} from "@/lib/documents/feuille-presence-types";
 import { sortFeuillePresenceDataByMatricule } from "@/lib/documents/sort-attendance-by-matricule";
 
 /**
@@ -84,44 +85,12 @@ async function loadLogoBytes(url: string): Promise<Uint8Array | undefined> {
 
 function isPngBytes(bytes: Uint8Array): boolean {
   return (
-    bytes.byteLength >= 8
-    && bytes[0] === 0x89
-    && bytes[1] === 0x50
-    && bytes[2] === 0x4e
-    && bytes[3] === 0x47
+    bytes.byteLength >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47
   );
-}
-
-/** Match PDF table-region watermark scale (mm → px at 96 dpi). */
-function computeDocxTableRegionHeightMm(data: FeuillePresenceData): number {
-  const narcoticsCount = data.narcoticsRows?.length ?? FP_TABLE.narcoticsRows;
-  const explosivesCount = data.explosivesRows?.length ?? FP_TABLE.explosivesRows;
-  return (
-    FP_TABLE.headerH
-    + narcoticsCount * FP_TABLE.rowH
-    + FP_LAYOUT.betweenTablesGap
-    + FP_LAYOUT.sectionTitleBandH
-    + FP_LAYOUT.sectionTitleBottomGap
-    + explosivesCount * FP_TABLE.rowH
-  );
-}
-
-/** PDF-calibrated Y bounds for the narcotics+explosives table block (mm from page top). */
-function computeDocxTableRegionBoundsMm(data: FeuillePresenceData): { topMm: number; bottomMm: number } {
-  const chefBlockExtraMm =
-    data.chefNeedsReplacement || data.chefMode === "manual_fill" ? 22 : 0;
-  const topMm =
-    FP_LAYOUT.titleStartY
-    + FP_LAYOUT.titleMainGap
-    + FP_LAYOUT.titleSectionGap
-    + FP_LAYOUT.chefLineGap
-    + chefBlockExtraMm
-    + FP_LAYOUT.workBoxTopGap
-    + FP_LAYOUT.workBoxH
-    + FP_LAYOUT.workBoxBottomGap
-    + FP_LAYOUT.sectionTitleBandH
-    + FP_LAYOUT.sectionTitleBottomGap;
-  return { topMm, bottomMm: topMm + computeDocxTableRegionHeightMm(data) };
 }
 
 function mmToEmu(mm: number): number {
@@ -131,12 +100,8 @@ function mmToEmu(mm: number): number {
 function computeDocxWatermarkDisplaySize(
   nativeWidth: number,
   nativeHeight: number,
-  regionTopMm: number,
-  regionBottomMm: number,
 ): { width: number; height: number } {
-  const regionH = regionBottomMm - regionTopMm;
-  const boxSizeMm = computeWatermarkBoxSize(FP_CONTENT_W, regionH, FP_LAYOUT.watermark.areaFill);
-  const boxSizePx = boxSizeMm * PX_PER_MM;
+  const boxSizePx = FP_LAYOUT.pageWatermark.boxSize * PX_PER_MM;
   const { w, h } = fitLogoInSquareBox(nativeWidth, nativeHeight, boxSizePx);
   return { width: w, height: h };
 }
@@ -147,8 +112,8 @@ type DocxWatermarkAsset = {
   nativeHeight: number;
 };
 
-/** DOCX-only ink level (~2.5%) — Word renders PNG watermarks darker than PDF. */
-const DOCX_WATERMARK_INK = 0.025;
+/** DOCX-only ink level — Word ignores image opacity, so blend the seal toward white. */
+const DOCX_WATERMARK_INK = 0.045;
 
 /**
  * Build a Word-safe faint watermark from the official header seal.
@@ -206,15 +171,14 @@ async function buildDocxWatermarkAsset(
   }
 }
 
-function tableWatermarkAnchorParagraph(
+function pageWatermarkAnchorParagraph(
   watermarkBytes: Uint8Array,
   widthPx: number,
   heightPx: number,
-  centerYMm: number,
 ): Paragraph {
   const w = Math.max(1, Math.round(widthPx));
   const h = Math.max(1, Math.round(heightPx));
-  const topMm = centerYMm - h / PX_PER_MM / 2;
+  const topMm = 297 / 2 - h / PX_PER_MM / 2;
 
   return new Paragraph({
     spacing: { before: 0, after: 0, line: 0 },
@@ -406,9 +370,7 @@ function chefBlock(data: FeuillePresenceData): Paragraph[] {
   }
 
   const title =
-    data.chefMode === "adjoint_replacement"
-      ? FP_CHEF_ADJOINT_REPLACEMENT_TITLE
-      : FP_CHEF_TITLE;
+    data.chefMode === "adjoint_replacement" ? FP_CHEF_ADJOINT_REPLACEMENT_TITLE : FP_CHEF_TITLE;
   const name = data.chefName.trim() || "....................";
   const grade = data.chefGrade.trim() || "....................";
   const mle = data.chefMle.trim() || "....................";
@@ -476,9 +438,7 @@ export async function generateFeuillePresenceDocx(
   data = sortFeuillePresenceDataByMatricule(data);
 
   const options: GenerateFeuillePresenceDocxOptions =
-    typeof logoUrlOrOptions === "string"
-      ? { logoUrl: logoUrlOrOptions }
-      : logoUrlOrOptions;
+    typeof logoUrlOrOptions === "string" ? { logoUrl: logoUrlOrOptions } : logoUrlOrOptions;
 
   let logoBytes =
     options.logoBytes != null
@@ -491,30 +451,24 @@ export async function generateFeuillePresenceDocx(
   }
 
   const watermarkAsset = logoBytes ? await buildDocxWatermarkAsset(logoBytes) : undefined;
-  let watermarkAnchorParagraph: Paragraph | null = null;
+  let watermarkHeader: Header | undefined;
   if (watermarkAsset) {
-    const { topMm, bottomMm } = computeDocxTableRegionBoundsMm(data);
-    const centerYMm = (topMm + bottomMm) / 2;
     const { width, height } = computeDocxWatermarkDisplaySize(
       watermarkAsset.nativeWidth,
       watermarkAsset.nativeHeight,
-      topMm,
-      bottomMm,
     );
-    watermarkAnchorParagraph = tableWatermarkAnchorParagraph(
-      watermarkAsset.bytes,
-      width,
-      height,
-      centerYMm,
-    );
+    watermarkHeader = new Header({
+      children: [pageWatermarkAnchorParagraph(watermarkAsset.bytes, width, height)],
+    });
   }
 
-  const orgLines = FP_ORG_HEADER_LINES.map((line) =>
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 0 },
-      children: [textRun(line, { size: 13 })],
-    }),
+  const orgLines = FP_ORG_HEADER_LINES.map(
+    (line) =>
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 0 },
+        children: [textRun(line, { size: 13 })],
+      }),
   );
 
   const logoCellChildren: Paragraph[] = logoBytes
@@ -600,9 +554,7 @@ export async function generateFeuillePresenceDocx(
               new Paragraph({
                 alignment: AlignmentType.RIGHT,
                 spacing: { before: 480 },
-                children: [
-                  textRun(FP_SIGNATURE_BRIGADE, { bold: true, italics: true, size: 16 }),
-                ],
+                children: [textRun(FP_SIGNATURE_BRIGADE, { bold: true, italics: true, size: 16 })],
               }),
             ],
           }),
@@ -614,6 +566,7 @@ export async function generateFeuillePresenceDocx(
   const doc = new Document({
     sections: [
       {
+        headers: watermarkHeader ? { default: watermarkHeader } : undefined,
         properties: {
           page: {
             size: { width: PAGE_W, height: PAGE_H },
@@ -641,7 +594,6 @@ export async function generateFeuillePresenceDocx(
           ...chefBlock(data),
           workSystemBox(),
           new Paragraph({ spacing: { after: 100 }, children: [] }),
-          ...(watermarkAnchorParagraph ? [watermarkAnchorParagraph] : []),
           sectionTitle(FP_SECTION_NARCOTICS),
           attendanceTable(data.narcoticsRows, FP_TABLE.narcoticsRows, true),
           new Paragraph({ spacing: { after: 100 }, children: [] }),
@@ -656,7 +608,10 @@ export async function generateFeuillePresenceDocx(
 
   // Buffer polyfill still required by JSZip internals inside `docx`.
   ensureDocxBuffer();
-  if (typeof (globalThis as typeof globalThis & { Buffer?: typeof Buffer }).Buffer?.isBuffer !== "function") {
+  if (
+    typeof (globalThis as typeof globalThis & { Buffer?: typeof Buffer }).Buffer?.isBuffer !==
+    "function"
+  ) {
     throw new Error(
       "DOCX export: Buffer.isBuffer is missing after polyfill (document generation).",
     );

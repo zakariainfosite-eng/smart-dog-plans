@@ -81,6 +81,7 @@
     "narcoticsDetection": "Stupéfiants & Billets de banque",
     "explosives": "Explosifs",
     "explosivesDetection": "Explosifs",
+    "currency": "Monnaie",
     "all": "Toutes les spécialités"
   },
   "dogStatus": {
@@ -336,7 +337,7 @@
       "nightEligible": "Éligibles de nuit",
       "trendThisMonth": "+{{count}} ce mois"
     },
-    "search": "Rechercher par nom, matricule, grade ou fonction",
+    "search": "Rechercher par nom, matricule, grade, fonction ou origine",
     "sort": {
       "label": "Trier par",
       "matriculeAsc": "Matricule (croissant)",
@@ -417,6 +418,7 @@
       "fonction": "Fonction",
       "maritalStatus": "Situation familiale",
       "dateOfBirth": "Date de naissance",
+      "origine": "Origine",
       "sectionResponsible": "Section responsable",
       "assignedDog": "Chien assigné",
       "phone": "Téléphone",
@@ -600,8 +602,19 @@
     "addDog": "Ajouter un chien",
     "stat": {
       "total": "Total chiens",
+      "active": "Chiens actifs",
+      "excluded": "Chiens exclus",
       "narcotics": "Stupéfiants & Billets de banque",
       "explosives": "Explosifs"
+    },
+    "statistics": {
+      "overview": "Vue d’ensemble",
+      "bySpecialty": "Chiens par spécialité",
+      "exclusions": "Détail des chiens exclus",
+      "activeExclusionsToday": "Motifs d’exclusion actifs aujourd’hui",
+      "excludedExplosivesShort": "Explo",
+      "excludedNarcoticsShort": "Stupe",
+      "clickToFilter": "Cliquez sur une statistique pour filtrer la liste."
     },
     "gender": {
       "male": "Mâle",

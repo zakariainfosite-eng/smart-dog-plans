@@ -8,9 +8,8 @@ import {
   Plus,
   Activity,
   Bomb,
+  Ban,
   Pill,
-  Venus,
-  Mars,
   FileText,
   ArrowUpDown,
   ArrowUp,
@@ -28,14 +27,9 @@ import {
   getDogs,
   updateDog,
   type DogRow,
-  type DogSpecialty,
   type Gender,
 } from "@/integrations/database";
-import {
-  dogSexSearchTokens,
-  formatDogSexLabel,
-  normalizeDogSex,
-} from "@/lib/dog-sex";
+import { dogSexSearchTokens, formatDogSexLabel, normalizeDogSex } from "@/lib/dog-sex";
 import {
   ACTIVE_EXCLUSIONS_TODAY_QUERY_KEY,
   DOG_EXCLUSION_FORM_TYPES,
@@ -85,22 +79,13 @@ import { DogAvatar } from "@/components/dogs/dog-avatar";
 import { DogDetailsDrawer } from "@/components/dogs/dog-details-drawer";
 import { DogFormDialog, type DogFormValues } from "@/components/dogs/dog-form-dialog";
 import { DogStatusBadge } from "@/components/dogs/dog-status-badge";
-import {
-  deleteDogPhotoByUrl,
-  uploadDogPhoto,
-  validateDogPhotoFile,
-} from "@/lib/dog-photo-api";
+import { deleteDogPhotoByUrl, uploadDogPhoto, validateDogPhotoFile } from "@/lib/dog-photo-api";
 import { formatDogAgeLabel } from "@/lib/dog-ui";
 import { formatPageLastUpdated, paginate, totalPages } from "@/lib/page-ui";
 import { useI18n } from "@/hooks/use-i18n";
 import { useDocumentTitle } from "@/hooks/use-document-title";
-import {
-  buildDogsListPdfData,
-  dogsListFilename,
-} from "@/lib/documents/build-dogs-list-pdf-data";
+import { buildDogsListPdfData, dogsListFilename } from "@/lib/documents/build-dogs-list-pdf-data";
 import { downloadDogsListPdfWithLogo } from "@/lib/documents/feuille-presence-pdf";
-
-type Specialty = DogSpecialty;
 
 export const Route = createFileRoute("/_authenticated/dogs")({
   head: () => ({ meta: [{ title: "Chiens — CynoPlanning" }] }),
@@ -131,11 +116,12 @@ function createDogSchema(t: (key: string) => string) {
   });
 }
 
-type DogStatusFilter = "all" | "available" | (typeof DOG_EXCLUSION_FORM_TYPES)[number];
+type DogStatusFilter = "all" | "available" | "excluded" | (typeof DOG_EXCLUSION_FORM_TYPES)[number];
 
 type DogForm = z.infer<ReturnType<typeof createDogSchema>>;
 
 const PAGE_SIZE = 15;
+const KNOWN_DOG_SPECIALTIES = ["narcotics", "explosives", "currency"] as const;
 
 const emptyForm: DogFormValues = {
   name: "",
@@ -216,7 +202,7 @@ function DogsPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [specialtyFilter, setSpecialtyFilter] = useState<"all" | Specialty>("all");
+  const [specialtyFilter, setSpecialtyFilter] = useState<string>("all");
   const [genderFilter, setGenderFilter] = useState<"all" | Gender>("all");
   const [sexSort, setSexSort] = useState<"none" | "asc" | "desc">("none");
   const [statusFilter, setStatusFilter] = useState<DogStatusFilter>("all");
@@ -239,7 +225,11 @@ function DogsPage() {
     }
   }, [detailsFromSearch]);
 
-  const { data: dogs, isLoading, dataUpdatedAt } = useQuery({
+  const {
+    data: dogs,
+    isLoading,
+    dataUpdatedAt,
+  } = useQuery({
     queryKey: ["dogs-with-agent"],
     queryFn: () => getDogs(),
   });
@@ -278,21 +268,47 @@ function DogsPage() {
     setForm((prev) => ({ ...prev, agent_id: agentId }));
   }, [dialogOpen, editing, agents, form.agent_id]);
 
-  const stats = useMemo(() => {
-    const list = dogs ?? [];
-    return {
-      total: list.length,
-      active: list.filter((dog) => dog.active).length,
-      narcotics: list.filter((dog) => dog.specialty === "narcotics").length,
-      explosives: list.filter((dog) => dog.specialty === "explosives").length,
-      female: list.filter((dog) => dog.gender === "female").length,
-      male: list.filter((dog) => dog.gender === "male").length,
-    };
-  }, [dogs]);
-
   const exclusions = todayExclusions as AgentExclusionRecord[];
 
   const dogStatusOf = (dogId: string) => deriveDogOperationalStatus(dogId, exclusions);
+
+  const stats = useMemo(() => {
+    const list = dogs ?? [];
+    const statuses = new Map(
+      list.map((dog) => [dog.id, deriveDogOperationalStatus(dog.id, exclusions)]),
+    );
+    const excluded = list.filter((dog) => statuses.get(dog.id)?.kind === "excluded");
+
+    const specialtyKeys = new Set<string>(KNOWN_DOG_SPECIALTIES);
+    list.forEach((dog) => specialtyKeys.add(dog.specialty));
+    const specialties = [...specialtyKeys].map((specialty) => ({
+      specialty,
+      count: list.filter((dog) => dog.specialty === specialty).length,
+    }));
+
+    const exclusionTypes = new Set<string>(DOG_EXCLUSION_FORM_TYPES);
+    excluded.forEach((dog) => {
+      const status = statuses.get(dog.id);
+      if (status?.kind === "excluded") exclusionTypes.add(status.exclusionType);
+    });
+    const exclusionReasons = [...exclusionTypes].map((exclusionType) => ({
+      exclusionType,
+      count: excluded.filter((dog) => {
+        const status = statuses.get(dog.id);
+        return status?.kind === "excluded" && status.exclusionType === exclusionType;
+      }).length,
+    }));
+
+    return {
+      total: list.length,
+      active: list.length - excluded.length,
+      excluded: excluded.length,
+      excludedExplosives: excluded.filter((dog) => dog.specialty === "explosives").length,
+      excludedNarcotics: excluded.filter((dog) => dog.specialty === "narcotics").length,
+      specialties,
+      exclusionReasons,
+    };
+  }, [dogs, exclusions]);
 
   const filtered = useMemo(() => {
     const list = (dogs ?? []).filter((dog) => {
@@ -314,11 +330,12 @@ function DogsPage() {
       }
       if (specialtyFilter !== "all" && dog.specialty !== specialtyFilter) return false;
       if (genderFilter !== "all" && dog.gender !== genderFilter) return false;
-      if (
-        statusFilter !== "all" &&
-        dogOperationalStatusKey(operational) !== statusFilter
-      ) {
-        return false;
+      if (statusFilter !== "all") {
+        if (statusFilter === "excluded") {
+          if (operational.kind !== "excluded") return false;
+        } else if (dogOperationalStatusKey(operational) !== statusFilter) {
+          return false;
+        }
       }
       if (activeFilter === "active" && !dog.active) return false;
       if (activeFilter === "retired" && dog.active) return false;
@@ -338,7 +355,17 @@ function DogsPage() {
       const diff = rank(a.gender) - rank(b.gender);
       return sexSort === "asc" ? diff : -diff;
     });
-  }, [dogs, exclusions, search, specialtyFilter, genderFilter, statusFilter, activeFilter, sexSort, t]);
+  }, [
+    dogs,
+    exclusions,
+    search,
+    specialtyFilter,
+    genderFilter,
+    statusFilter,
+    activeFilter,
+    sexSort,
+    t,
+  ]);
 
   const hasFilters =
     search.trim() !== "" ||
@@ -356,6 +383,33 @@ function DogsPage() {
     setStatusFilter("all");
     setActiveFilter("all");
     setPage(1);
+  };
+
+  const filterBySpecialty = (specialty: string) => {
+    setSearch("");
+    setSpecialtyFilter(specialty);
+    setGenderFilter("all");
+    setSexSort("none");
+    setStatusFilter("all");
+    setActiveFilter("all");
+    setPage(1);
+  };
+
+  const filterByOperationalStatus = (status: DogStatusFilter) => {
+    setSearch("");
+    setSpecialtyFilter("all");
+    setGenderFilter("all");
+    setSexSort("none");
+    setStatusFilter(status);
+    setActiveFilter("all");
+    setPage(1);
+  };
+
+  const specialtyLabel = (specialty: string) => {
+    if (KNOWN_DOG_SPECIALTIES.includes(specialty as (typeof KNOWN_DOG_SPECIALTIES)[number])) {
+      return t(`specialty.${specialty}`);
+    }
+    return specialty.replace(/[_-]+/g, " ").replace(/\b\p{L}/gu, (letter) => letter.toUpperCase());
   };
 
   const cycleSexSort = () => {
@@ -383,10 +437,7 @@ function DogsPage() {
 
   const filteredTotal = filtered.length;
   const pages = totalPages(filteredTotal, PAGE_SIZE);
-  const paginated = useMemo(
-    () => paginate(filtered, page, PAGE_SIZE),
-    [filtered, page],
-  );
+  const paginated = useMemo(() => paginate(filtered, page, PAGE_SIZE), [filtered, page]);
 
   useEffect(() => {
     setPage(1);
@@ -624,9 +675,7 @@ function DogsPage() {
               <p className="truncate text-sm font-semibold leading-tight">
                 {agent.first_name} {agent.last_name}
               </p>
-              <p className="truncate text-xs text-muted-foreground">
-                {agent.section?.name ?? "—"}
-              </p>
+              <p className="truncate text-xs text-muted-foreground">{agent.section?.name ?? "—"}</p>
             </div>
           );
         },
@@ -636,7 +685,10 @@ function DogsPage() {
         header: t("field.specialty"),
         meta: { width: "13%" },
         cell: ({ row }) => (
-          <EnterpriseStatusBadge tone="primary" className="max-w-full truncate px-2 py-0.5 text-[11px]">
+          <EnterpriseStatusBadge
+            tone="primary"
+            className="max-w-full truncate px-2 py-0.5 text-[11px]"
+          >
             {t(`specialty.${row.original.specialty}`)}
           </EnterpriseStatusBadge>
         ),
@@ -702,14 +754,96 @@ function DogsPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-        <KpiCard icon={DogIcon} label={t("dogs.stat.total")} value={stats.total} accent="primary" loading={isLoading} />
-        <KpiCard icon={Activity} label={t("common.active")} value={stats.active} accent="success" loading={isLoading} />
-        <KpiCard icon={Pill} label={t("dogs.stat.narcotics")} value={stats.narcotics} accent="warning" loading={isLoading} />
-        <KpiCard icon={Bomb} label={t("dogs.stat.explosives")} value={stats.explosives} accent="danger" loading={isLoading} />
-        <KpiCard icon={Venus} label={t("dogs.gender.female")} value={stats.female} accent="neutral" loading={isLoading} />
-        <KpiCard icon={Mars} label={t("dogs.gender.male")} value={stats.male} accent="neutral" loading={isLoading} />
-      </div>
+      <section aria-labelledby="dogs-overview-title" className="space-y-3">
+        <h2 id="dogs-overview-title" className="text-sm font-semibold text-foreground">
+          {t("dogs.statistics.overview")}
+        </h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <button
+            type="button"
+            className="rounded-[18px] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={resetFilters}
+          >
+            <KpiCard
+              icon={DogIcon}
+              label={t("dogs.stat.total")}
+              value={stats.total}
+              accent="primary"
+              loading={isLoading}
+              className="h-full"
+            />
+          </button>
+          <button
+            type="button"
+            className="rounded-[18px] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={() => filterByOperationalStatus("available")}
+          >
+            <KpiCard
+              icon={Activity}
+              label={t("dogs.stat.active")}
+              value={stats.active}
+              accent="success"
+              loading={isLoading}
+              className="h-full"
+            />
+          </button>
+          <button
+            type="button"
+            className="rounded-[18px] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={() => filterByOperationalStatus("excluded")}
+          >
+            <KpiCard
+              icon={Ban}
+              label={t("dogs.stat.excluded")}
+              value={stats.excluded}
+              trend={`${t("dogs.statistics.excludedExplosivesShort")} : ${stats.excludedExplosives}\n${t("dogs.statistics.excludedNarcoticsShort")} : ${stats.excludedNarcotics}`}
+              accent="danger"
+              loading={isLoading}
+              className="h-full [&_p:last-child]:whitespace-pre-line [&_p:last-child]:normal-case"
+            />
+          </button>
+        </div>
+      </section>
+
+      <section
+        aria-labelledby="dogs-specialties-title"
+        className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm"
+      >
+        <div className="mb-3">
+          <h2 id="dogs-specialties-title" className="text-sm font-semibold text-foreground">
+            {t("dogs.statistics.bySpecialty")}
+          </h2>
+          <p className="text-xs text-muted-foreground">{t("dogs.statistics.clickToFilter")}</p>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {stats.specialties
+            .filter(({ specialty }) => specialty !== "currency")
+            .map(({ specialty, count }) => {
+              const SpecialtyIcon =
+                specialty === "narcotics" ? Pill : specialty === "explosives" ? Bomb : DogIcon;
+              return (
+                <button
+                  key={specialty}
+                  type="button"
+                  className="rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  onClick={() => filterBySpecialty(specialty)}
+                >
+                  <KpiCard
+                    icon={SpecialtyIcon}
+                    label={specialtyLabel(specialty)}
+                    value={count}
+                    accent={specialty === "explosives" ? "danger" : "warning"}
+                    loading={isLoading}
+                    variant="minimal"
+                    className={
+                      specialtyFilter === specialty ? "border-primary ring-1 ring-primary/40" : ""
+                    }
+                  />
+                </button>
+              );
+            })}
+        </div>
+      </section>
 
       <FilterBar
         showReset={hasFilters}
@@ -723,36 +857,57 @@ function DogsPage() {
           onChange={setSearch}
         />
         <FilterPills>
-          <Select value={specialtyFilter} onValueChange={(value) => setSpecialtyFilter(value as typeof specialtyFilter)}>
-            <FilterSelectTrigger><SelectValue placeholder={t("field.specialty")} /></FilterSelectTrigger>
+          <Select value={specialtyFilter} onValueChange={setSpecialtyFilter}>
+            <FilterSelectTrigger>
+              <SelectValue placeholder={t("field.specialty")} />
+            </FilterSelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("specialty.all")}</SelectItem>
-              <SelectItem value="narcotics">{t("specialty.narcotics")}</SelectItem>
-              <SelectItem value="explosives">{t("specialty.explosives")}</SelectItem>
+              {stats.specialties.map(({ specialty }) => (
+                <SelectItem key={specialty} value={specialty}>
+                  {specialtyLabel(specialty)}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
-          <Select value={genderFilter} onValueChange={(value) => setGenderFilter(value as typeof genderFilter)}>
-            <FilterSelectTrigger><SelectValue placeholder={t("dogs.field.sex")} /></FilterSelectTrigger>
+          <Select
+            value={genderFilter}
+            onValueChange={(value) => setGenderFilter(value as typeof genderFilter)}
+          >
+            <FilterSelectTrigger>
+              <SelectValue placeholder={t("dogs.field.sex")} />
+            </FilterSelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("dogs.sex.filterAll")}</SelectItem>
               <SelectItem value="male">{t("dogs.sex.filterMale")}</SelectItem>
               <SelectItem value="female">{t("dogs.sex.filterFemale")}</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as DogStatusFilter)}>
-            <FilterSelectTrigger><SelectValue /></FilterSelectTrigger>
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => setStatusFilter(value as DogStatusFilter)}
+          >
+            <FilterSelectTrigger>
+              <SelectValue />
+            </FilterSelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("common.allStatuses")}</SelectItem>
               <SelectItem value="available">{t("dogStatus.available")}</SelectItem>
-              {DOG_EXCLUSION_FORM_TYPES.map((type) => (
-                <SelectItem key={type} value={type}>
-                  {t(`exclusions.type.${type}`)}
+              <SelectItem value="excluded">{t("dogs.stat.excluded")}</SelectItem>
+              {stats.exclusionReasons.map(({ exclusionType }) => (
+                <SelectItem key={exclusionType} value={exclusionType}>
+                  {t(`exclusions.type.${exclusionType}`)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Select value={activeFilter} onValueChange={(value) => setActiveFilter(value as typeof activeFilter)}>
-            <FilterSelectTrigger><SelectValue /></FilterSelectTrigger>
+          <Select
+            value={activeFilter}
+            onValueChange={(value) => setActiveFilter(value as typeof activeFilter)}
+          >
+            <FilterSelectTrigger>
+              <SelectValue />
+            </FilterSelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("dogs.filter.activeAndRetired")}</SelectItem>
               <SelectItem value="active">{t("dogs.filter.activeOnly")}</SelectItem>
@@ -794,7 +949,9 @@ function DogsPage() {
               <EmptyState
                 icon={DogIcon}
                 title={dogs?.length ? t("dogs.empty.noMatch") : t("dogs.empty.noProfiles")}
-                description={dogs?.length ? t("common.tryAdjustFilters") : t("dogs.empty.registerFirst")}
+                description={
+                  dogs?.length ? t("common.tryAdjustFilters") : t("dogs.empty.registerFirst")
+                }
               />
             }
           />
@@ -831,9 +988,7 @@ function DogsPage() {
         errors={errors}
         agents={agents ?? []}
         currentAgentId={currentAgentId}
-        operationalStatus={
-          editing ? dogStatusOf(editing.id) : { kind: "available" }
-        }
+        operationalStatus={editing ? dogStatusOf(editing.id) : { kind: "available" }}
         pendingPhotoFile={pendingPhotoFile}
         removePhoto={removePhoto}
         onPendingPhotoFileChange={setPendingPhotoFile}

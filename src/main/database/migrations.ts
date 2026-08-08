@@ -736,6 +736,14 @@ function migrateAgentsDateNaissanceColumn(database: Database.Database): void {
   }
 }
 
+/** Nullable origin — existing personnel rows remain unchanged (NULL). */
+function migrateAgentsOrigineColumn(database: Database.Database): void {
+  const names = tableColumnNames(database, "agents");
+  if (!names.has("origine")) {
+    database.exec(`ALTER TABLE agents ADD COLUMN origine TEXT DEFAULT NULL`);
+  }
+}
+
 /** Ordered migration history — append only; never reorder or rename released ids. */
 export const SQLITE_MIGRATIONS: readonly SqliteMigration[] = [
   {
@@ -813,6 +821,11 @@ export const SQLITE_MIGRATIONS: readonly SqliteMigration[] = [
     id: "014_agents_date_naissance_column",
     description: "Add date_naissance (date of birth) to agents — nullable for existing rows",
     up: migrateAgentsDateNaissanceColumn,
+  },
+  {
+    id: "015_agents_origine_column",
+    description: "Add origine to agents — nullable for existing rows",
+    up: migrateAgentsOrigineColumn,
   },
 ];
 

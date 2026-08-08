@@ -94,6 +94,8 @@ export const FP_LAYOUT = {
   contentBottomY: 275,
   /** Attendance-table watermark — same PNG as header, low opacity, drawn before tables. */
   watermark: { opacity: 0.1, areaFill: 0.92 },
+  /** Full-page official watermark — centered behind all attendance-sheet content. */
+  pageWatermark: { opacity: 0.06, boxSize: 132 },
 } as const;
 
 export const FP_ORG_HEADER_LINES = [
@@ -124,10 +126,7 @@ function measureFeuillePresenceOrgBlockWidth(doc: jsPDF): number {
  * Horizontal center axis for the ministry block — mirrors the logo↔date gap on the left side.
  * Clamped so the block stays inside the left printable margin.
  */
-export function computeFeuillePresenceOrgHeaderCenterX(
-  doc: jsPDF,
-  dateLine: string,
-): number {
+export function computeFeuillePresenceOrgHeaderCenterX(doc: jsPDF, dateLine: string): number {
   const orgBlockWidth = measureFeuillePresenceOrgBlockWidth(doc);
 
   doc.setFont(FP_TYPO.date.family, FP_TYPO.date.style);

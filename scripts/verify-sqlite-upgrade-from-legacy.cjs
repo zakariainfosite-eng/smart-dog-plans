@@ -381,10 +381,16 @@ app.whenReady().then(async () => {
     ok("all legacy operational rows preserved (counts + ids)");
 
     const agentCols = columnNames(database, "agents");
-    for (const required of ["fonction", "marital_status", "date_naissance"]) {
+    for (const required of ["fonction", "marital_status", "date_naissance", "origine"]) {
       if (!agentCols.includes(required)) {
         fail(`missing new column agents.${required}`);
       }
+    }
+    const legacyOrigins = database
+      .prepare(`SELECT COUNT(*) AS n FROM agents WHERE origine IS NOT NULL`)
+      .get().n;
+    if (legacyOrigins !== 0) {
+      fail(`expected existing agents.origine to remain NULL, got ${legacyOrigins} populated row(s)`);
     }
     const checkpointCols = columnNames(database, "checkpoints");
     for (const required of ["priority", "mandatory"]) {
@@ -406,7 +412,7 @@ app.whenReady().then(async () => {
     if (!userCols.includes("role")) {
       fail("missing new column users.role");
     }
-    ok("new columns added (fonction, marital_status, mandatory, priority, dog_id, …)");
+    ok("new columns added (fonction, marital_status, date_naissance, origine, mandatory, priority, dog_id, …)");
 
     const history = database
       .prepare(

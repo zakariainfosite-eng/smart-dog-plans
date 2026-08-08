@@ -69,12 +69,7 @@ function drawCellTextCentered(
   });
 }
 
-function setTypo(
-  doc: jsPDF,
-  family: "times" | "helvetica",
-  style: FontStyle,
-  size: number,
-) {
+function setTypo(doc: jsPDF, family: "times" | "helvetica", style: FontStyle, size: number) {
   doc.setFont(family, style);
   doc.setFontSize(size);
 }
@@ -95,13 +90,7 @@ function drawRect(
   }
 }
 
-function drawCentered(
-  doc: jsPDF,
-  text: string,
-  cx: number,
-  y: number,
-  maxWidth?: number,
-) {
+function drawCentered(doc: jsPDF, text: string, cx: number, y: number, maxWidth?: number) {
   doc.text(text, cx, y, maxWidth ? { align: "center", maxWidth } : { align: "center" });
 }
 
@@ -132,12 +121,7 @@ export function drawFeuillePresenceHeader(
   }
 
   setTypo(doc, FP_TYPO.date.family, FP_TYPO.date.style, FP_TYPO.date.size);
-  doc.text(
-    resolvedDateLine,
-    FP_PAGE.w - FP_MARGIN.right,
-    FP_LAYOUT.dateY,
-    { align: "right" },
-  );
+  doc.text(resolvedDateLine, FP_PAGE.w - FP_MARGIN.right, FP_LAYOUT.dateY, { align: "right" });
 }
 
 function drawFeuillePresenceOrgHeader(doc: jsPDF, dateLine: string) {
@@ -213,11 +197,7 @@ function drawChefSegmentsCentered(
  *   CHEF DE SECTION : Nom Prénom
  *   Grade : XXX    MLE : XXXXX
  */
-function drawChefIdentityLine(
-  doc: jsPDF,
-  data: FeuillePresenceData,
-  startY: number,
-): number {
+function drawChefIdentityLine(doc: jsPDF, data: FeuillePresenceData, startY: number): number {
   const title = chefTitleForData(data);
   const name = data.chefName.trim() || FP_CHEF_PLACEHOLDER;
   const grade = data.chefGrade.trim() || FP_CHEF_PLACEHOLDER;
@@ -261,7 +241,11 @@ function drawChefIdentityLine(
   return startY + lineLeading + FP_LAYOUT.chefLineGap;
 }
 
-export function drawFeuillePresenceTitleBlock(doc: jsPDF, startY: number, data?: FeuillePresenceData): number {
+export function drawFeuillePresenceTitleBlock(
+  doc: jsPDF,
+  startY: number,
+  data?: FeuillePresenceData,
+): number {
   let y = startY;
 
   setTypo(doc, FP_TYPO.titleMain.family, FP_TYPO.titleMain.style, FP_TYPO.titleMain.size);
@@ -330,7 +314,12 @@ export function drawFeuillePresenceWorkSystem(doc: jsPDF, startY: number): numbe
   const titleX = (FP_PAGE.w - titleW) / 2;
   doc.text(FP_WORK_TITLE, titleX, y + FP_LAYOUT.workTitleBaseline);
   doc.setLineWidth(0.1);
-  doc.line(titleX, y + FP_LAYOUT.workTitleUnderline, titleX + titleW, y + FP_LAYOUT.workTitleUnderline);
+  doc.line(
+    titleX,
+    y + FP_LAYOUT.workTitleUnderline,
+    titleX + titleW,
+    y + FP_LAYOUT.workTitleUnderline,
+  );
   doc.setLineWidth(FP_TABLE.borderWidth);
 
   return y + boxH + FP_LAYOUT.workBoxBottomGap;
@@ -347,7 +336,12 @@ export function drawFeuillePresenceSectionTitle(doc: jsPDF, title: string, y: nu
   return y + FP_LAYOUT.sectionTitleBandH + FP_LAYOUT.sectionTitleBottomGap;
 }
 
-function drawOfficialTableHeader(doc: jsPDF, x: number, y: number, cols: readonly OfficialTableCol[]) {
+function drawOfficialTableHeader(
+  doc: jsPDF,
+  x: number,
+  y: number,
+  cols: readonly OfficialTableCol[],
+) {
   let cx = x;
   setTypo(doc, FP_TYPO.tableHeader.family, FP_TYPO.tableHeader.style, FP_TYPO.tableHeader.size);
   for (const col of cols) {
@@ -546,29 +540,15 @@ export function drawFeuillePresenceSignatures(doc: jsPDF, tablesBottomY: number)
   setTypo(doc, FP_TYPO.footer.family, FP_TYPO.footer.style, FP_TYPO.footer.size);
   doc.text(FP_SIGNATURE_SECTION, FP_MARGIN.left, labelY);
 
-  setTypo(doc, FP_TYPO.footerBrigade.family, FP_TYPO.footerBrigade.style, FP_TYPO.footerBrigade.size);
-  doc.text(
-    FP_SIGNATURE_BRIGADE,
-    FP_PAGE.w - FP_MARGIN.right,
-    labelY + brigadeLabelOffsetY,
-    { align: "right" },
+  setTypo(
+    doc,
+    FP_TYPO.footerBrigade.family,
+    FP_TYPO.footerBrigade.style,
+    FP_TYPO.footerBrigade.size,
   );
-}
-
-function computeOperationalTablesBottomY(
-  topY: number,
-  narcoticsRowCount: number,
-  explosivesRowCount: number,
-): number {
-  return (
-    topY
-    + FP_TABLE.headerH
-    + narcoticsRowCount * FP_TABLE.rowH
-    + FP_LAYOUT.betweenTablesGap
-    + FP_LAYOUT.sectionTitleBandH
-    + FP_LAYOUT.sectionTitleBottomGap
-    + explosivesRowCount * FP_TABLE.rowH
-  );
+  doc.text(FP_SIGNATURE_BRIGADE, FP_PAGE.w - FP_MARGIN.right, labelY + brigadeLabelOffsetY, {
+    align: "right",
+  });
 }
 
 function drawFeuillePresenceTableWatermark(
@@ -583,11 +563,7 @@ function drawFeuillePresenceTableWatermark(
   const centerY = (topY + bottomY) / 2;
   const regionW = FP_CONTENT_W;
   const regionH = bottomY - topY;
-  const boxSize = computeWatermarkBoxSize(
-    regionW,
-    regionH,
-    FP_LAYOUT.watermark.areaFill,
-  );
+  const boxSize = computeWatermarkBoxSize(regionW, regionH, FP_LAYOUT.watermark.areaFill);
 
   try {
     drawFeuillePresenceLogoContained(doc, logoAsset, centerX, centerY, boxSize, {
@@ -599,6 +575,29 @@ function drawFeuillePresenceTableWatermark(
   }
 }
 
+function drawFeuillePresencePageWatermark(
+  doc: jsPDF,
+  logoAsset: FeuillePresenceLogoAsset | undefined,
+) {
+  if (!logoAsset) return;
+
+  try {
+    drawFeuillePresenceLogoContained(
+      doc,
+      logoAsset,
+      FP_PAGE.w / 2,
+      FP_PAGE.h / 2,
+      FP_LAYOUT.pageWatermark.boxSize,
+      {
+        opacity: FP_LAYOUT.pageWatermark.opacity,
+        compression: "NONE",
+      },
+    );
+  } catch {
+    // Watermark is optional — the unchanged header seal still renders.
+  }
+}
+
 export function renderFeuillePresencePage(
   doc: jsPDF,
   year: number,
@@ -606,27 +605,16 @@ export function renderFeuillePresencePage(
   data?: FeuillePresenceData,
 ) {
   applyFeuillePresenceDefaults(doc);
-  const headerAsset = logos?.header
-    ? buildFeuillePresenceLogoAsset(doc, logos.header)
-    : undefined;
+  const headerAsset = logos?.header ? buildFeuillePresenceLogoAsset(doc, logos.header) : undefined;
 
-  const narcoticsCount = data?.narcoticsRows.length ?? FP_TABLE.narcoticsRows;
-  const explosivesCount = data?.explosivesRows.length ?? FP_TABLE.explosivesRows;
-
+  // Draw first so the watermark remains behind every title, table and signature.
+  drawFeuillePresencePageWatermark(doc, headerAsset);
   drawFeuillePresenceHeader(doc, year, headerAsset, data?.dateLine);
 
   let y: number = FP_LAYOUT.titleStartY;
   y = drawFeuillePresenceTitleBlock(doc, y, data);
   y = drawFeuillePresenceWorkSystem(doc, y);
   y = drawFeuillePresenceSectionTitle(doc, FP_SECTION_NARCOTICS, y);
-
-  const tablesTopY = y;
-  drawFeuillePresenceTableWatermark(
-    doc,
-    headerAsset,
-    tablesTopY,
-    computeOperationalTablesBottomY(tablesTopY, narcoticsCount, explosivesCount),
-  );
 
   y = drawFeuillePresenceNarcoticsTable(doc, y, data?.narcoticsRows);
   y += FP_LAYOUT.betweenTablesGap;
@@ -642,10 +630,7 @@ function drawCynotechniciansListTitle(doc: jsPDF, startY: number): number {
   return startY + FP_LAYOUT.titleMainGap + FP_LAYOUT.sectionTitleBottomGap;
 }
 
-function cellValueForCynotechnician(
-  row: CynotechnicianListPdfRow,
-  key: string,
-): string {
+function cellValueForCynotechnician(row: CynotechnicianListPdfRow, key: string): string {
   switch (key) {
     case "numero":
       return String(row.numero);
@@ -675,9 +660,7 @@ function cellValueForCynotechnician(
 function personnelListTableColsForLayout(
   layout: CynotechniciansListPdfTable["layout"],
 ): readonly OfficialTableCol[] {
-  return layout === "operational"
-    ? FP_CYNOTECHNICIANS_TABLE_COLS
-    : FP_PERSONNEL_ADMIN_TABLE_COLS;
+  return layout === "operational" ? FP_CYNOTECHNICIANS_TABLE_COLS : FP_PERSONNEL_ADMIN_TABLE_COLS;
 }
 
 function drawCynotechniciansTableRows(
@@ -727,9 +710,7 @@ function drawCynotechniciansTableRows(
 }
 
 function personnelListTableHeaderHeight(hasTitle: boolean): number {
-  const titleH = hasTitle
-    ? FP_LAYOUT.sectionTitleBandH + FP_LAYOUT.sectionTitleBottomGap
-    : 0;
+  const titleH = hasTitle ? FP_LAYOUT.sectionTitleBandH + FP_LAYOUT.sectionTitleBottomGap : 0;
   return titleH + FP_TABLE.headerH;
 }
 
@@ -749,15 +730,13 @@ export function renderCynotechniciansListPages(
   data: CynotechniciansListPdfData,
 ) {
   applyFeuillePresenceDefaults(doc);
-  const headerAsset = logos?.header
-    ? buildFeuillePresenceLogoAsset(doc, logos.header)
-    : undefined;
+  const headerAsset = logos?.header ? buildFeuillePresenceLogoAsset(doc, logos.header) : undefined;
 
   const signatureReserve =
-    FP_LAYOUT.signatures.gapAfterTables
-    + FP_LAYOUT.signatures.signingSpaceH
-    + FP_LAYOUT.signatures.brigadeLabelOffsetY
-    + 6;
+    FP_LAYOUT.signatures.gapAfterTables +
+    FP_LAYOUT.signatures.signingSpaceH +
+    FP_LAYOUT.signatures.brigadeLabelOffsetY +
+    6;
   const pageBottomLimit = FP_LAYOUT.contentBottomY;
   const tables = data.tables;
   const totalRows = countPersonnelListRows(tables);
@@ -809,8 +788,7 @@ export function renderCynotechniciansListPages(
     while (rowIndexInTable < table.rows.length) {
       const nextY = y + (chunk.length + 1) * FP_TABLE.rowH;
       const wouldBeLastOverall =
-        rowsRendered + chunk.length + 1 >= totalRows
-        && tableIndex === tables.length - 1;
+        rowsRendered + chunk.length + 1 >= totalRows && tableIndex === tables.length - 1;
       const reserve = wouldBeLastOverall ? signatureReserve : 0;
       if (nextY + reserve > pageBottomLimit && chunk.length > 0) break;
       if (nextY + reserve > pageBottomLimit && chunk.length === 0) {
@@ -878,12 +856,7 @@ function cellValueForDog(
   }
 }
 
-function drawDogsTableRows(
-  doc: jsPDF,
-  x: number,
-  startY: number,
-  rows: DogListPdfRow[],
-): number {
+function drawDogsTableRows(doc: jsPDF, x: number, startY: number, rows: DogListPdfRow[]): number {
   let y = startY;
   for (const row of rows) {
     let cx = x;
@@ -935,15 +908,13 @@ export function renderDogsListPages(
   data: DogsListPdfData,
 ) {
   applyFeuillePresenceDefaults(doc);
-  const headerAsset = logos?.header
-    ? buildFeuillePresenceLogoAsset(doc, logos.header)
-    : undefined;
+  const headerAsset = logos?.header ? buildFeuillePresenceLogoAsset(doc, logos.header) : undefined;
 
   const signatureReserve =
-    FP_LAYOUT.signatures.gapAfterTables
-    + FP_LAYOUT.signatures.signingSpaceH
-    + FP_LAYOUT.signatures.brigadeLabelOffsetY
-    + 6;
+    FP_LAYOUT.signatures.gapAfterTables +
+    FP_LAYOUT.signatures.signingSpaceH +
+    FP_LAYOUT.signatures.brigadeLabelOffsetY +
+    6;
   const pageBottomLimit = FP_LAYOUT.contentBottomY;
   const rows = data.rows;
   let rowIndex = 0;

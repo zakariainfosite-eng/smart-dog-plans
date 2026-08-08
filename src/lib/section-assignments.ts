@@ -21,6 +21,7 @@ export function agentWriteWithSection(
     gender: agent.gender,
     marital_status: agent.marital_status,
     date_naissance: agent.date_naissance,
+    origine: agent.origine,
     fonction: normalizePersonnelFonction(agent.fonction),
     section_id: sectionId,
     dog_id: agent.dog_id,
