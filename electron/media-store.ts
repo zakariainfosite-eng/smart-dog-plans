@@ -2,17 +2,33 @@
  * Local media files under Electron userData/media/{bucket}/...
  */
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
-import { dirname, join, normalize } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { App } from "electron";
+
+const ALLOWED_MEDIA_BUCKETS = new Set([
+  "agent-photos",
+  "dog-photos",
+  "operational-case-attachments",
+]);
 
 function mediaRoot(app: App): string {
   return join(app.getPath("userData"), "media");
 }
 
 function resolveSafePath(app: App, bucket: string, path: string): string {
-  const root = join(mediaRoot(app), bucket);
-  const target = normalize(join(root, path));
-  if (!target.startsWith(normalize(root))) {
+  if (!ALLOWED_MEDIA_BUCKETS.has(bucket)) {
+    throw new Error("Invalid media bucket");
+  }
+
+  const root = resolve(mediaRoot(app), bucket);
+  const target = resolve(root, path);
+  const relativeTarget = relative(root, target);
+  if (
+    !relativeTarget ||
+    relativeTarget === ".." ||
+    relativeTarget.startsWith(`..${sep}`) ||
+    isAbsolute(relativeTarget)
+  ) {
     throw new Error("Invalid media path");
   }
   return target;
@@ -66,7 +82,10 @@ export function readMediaFile(
     }
     return { data: new Uint8Array(readFileSync(filePath)), error: null };
   } catch (error) {
-    return { data: null, error: { message: error instanceof Error ? error.message : String(error) } };
+    return {
+      data: null,
+      error: { message: error instanceof Error ? error.message : String(error) },
+    };
   }
 }
 

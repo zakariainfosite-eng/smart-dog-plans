@@ -99,6 +99,19 @@ function tableColumnNames(database: Database.Database, table: string): Set<strin
   return new Set(columns.map((column) => column.name));
 }
 
+/**
+ * SQLite requires foreign_keys to be disabled before a table-rebuild transaction starts.
+ * The rebuild itself remains transactional, so a crash cannot strand a dropped live table.
+ */
+function runCrashAtomicTableRebuild(database: Database.Database, rebuild: () => void): void {
+  database.pragma("foreign_keys = OFF");
+  try {
+    database.transaction(rebuild)();
+  } finally {
+    database.pragma("foreign_keys = ON");
+  }
+}
+
 function migrateSectionsCommanderColumns(database: Database.Database): void {
   const names = tableColumnNames(database, "sections");
   if (!names.has("commander_full_name")) {
@@ -155,9 +168,7 @@ function migrateCheckpointsPriorityColumn(database: Database.Database): void {
 function migrateCheckpointsMandatoryColumn(database: Database.Database): void {
   const names = tableColumnNames(database, "checkpoints");
   if (!names.has("mandatory")) {
-    database.exec(
-      `ALTER TABLE checkpoints ADD COLUMN mandatory INTEGER NOT NULL DEFAULT 1`,
-    );
+    database.exec(`ALTER TABLE checkpoints ADD COLUMN mandatory INTEGER NOT NULL DEFAULT 1`);
   }
 }
 
@@ -178,9 +189,7 @@ function migrateFemaleAgentsClearSection(database: Database.Database): void {
 function migrateAgentsFonctionColumn(database: Database.Database): void {
   const names = tableColumnNames(database, "agents");
   if (!names.has("fonction")) {
-    database.exec(
-      `ALTER TABLE agents ADD COLUMN fonction TEXT NOT NULL DEFAULT 'cynotechnicien'`,
-    );
+    database.exec(`ALTER TABLE agents ADD COLUMN fonction TEXT NOT NULL DEFAULT 'cynotechnicien'`);
   }
   database
     .prepare(
@@ -245,8 +254,7 @@ function migrateAgentsFonctionChefMateriel(database: Database.Database): void {
     }
   }
 
-  database.exec(`PRAGMA foreign_keys = OFF`);
-  try {
+  runCrashAtomicTableRebuild(database, () => {
     database.exec(`
       CREATE TABLE agents__fonction_v2 (
         id TEXT PRIMARY KEY NOT NULL,
@@ -292,9 +300,7 @@ function migrateAgentsFonctionChefMateriel(database: Database.Database): void {
       CREATE INDEX IF NOT EXISTS idx_agents_section ON agents(section_id);
       CREATE INDEX IF NOT EXISTS idx_agents_active ON agents(active);
     `);
-  } finally {
-    database.exec(`PRAGMA foreign_keys = ON`);
-  }
+  });
 }
 
 /**
@@ -341,8 +347,7 @@ function migrateAgentsFonctionHierarchyV2(database: Database.Database): void {
 
   const hasMarital = names.has("marital_status");
 
-  database.exec(`PRAGMA foreign_keys = OFF`);
-  try {
+  runCrashAtomicTableRebuild(database, () => {
     database.exec(`
       CREATE TABLE agents__fonction_v3 (
         id TEXT PRIMARY KEY NOT NULL,
@@ -416,9 +421,7 @@ function migrateAgentsFonctionHierarchyV2(database: Database.Database): void {
       CREATE INDEX IF NOT EXISTS idx_agents_section ON agents(section_id);
       CREATE INDEX IF NOT EXISTS idx_agents_active ON agents(active);
     `);
-  } finally {
-    database.exec(`PRAGMA foreign_keys = ON`);
-  }
+  });
 }
 
 /**
@@ -461,9 +464,7 @@ function migrateAgentsFonctionBrigadierCanonical(database: Database.Database): v
 
   if (acceptsBrigadier) {
     database
-      .prepare(
-        `UPDATE agents SET fonction = 'chef_brigadier' WHERE fonction = 'chef_brigade'`,
-      )
+      .prepare(`UPDATE agents SET fonction = 'chef_brigadier' WHERE fonction = 'chef_brigade'`)
       .run();
     database
       .prepare(
@@ -475,8 +476,7 @@ function migrateAgentsFonctionBrigadierCanonical(database: Database.Database): v
 
   const hasMarital = names.has("marital_status");
 
-  database.exec(`PRAGMA foreign_keys = OFF`);
-  try {
+  runCrashAtomicTableRebuild(database, () => {
     database.exec(`
       CREATE TABLE agents__fonction_v4 (
         id TEXT PRIMARY KEY NOT NULL,
@@ -550,9 +550,7 @@ function migrateAgentsFonctionBrigadierCanonical(database: Database.Database): v
       CREATE INDEX IF NOT EXISTS idx_agents_section ON agents(section_id);
       CREATE INDEX IF NOT EXISTS idx_agents_active ON agents(active);
     `);
-  } finally {
-    database.exec(`PRAGMA foreign_keys = ON`);
-  }
+  });
 }
 
 /**
@@ -568,8 +566,7 @@ function migrateAgentExclusionsDogTarget(database: Database.Database): void {
   let schemaReady = false;
   if (hasDogId) {
     const agentRow = database.prepare(`SELECT id FROM agents LIMIT 1`).get() as
-      | { id: string }
-      | undefined;
+      { id: string } | undefined;
     if (agentRow) {
       try {
         database
@@ -618,8 +615,7 @@ function migrateAgentExclusionsDogTarget(database: Database.Database): void {
     return;
   }
 
-  database.exec(`PRAGMA foreign_keys = OFF`);
-  try {
+  runCrashAtomicTableRebuild(database, () => {
     database.exec(`
       CREATE TABLE agent_exclusions__v2 (
         id TEXT PRIMARY KEY NOT NULL,
@@ -712,9 +708,7 @@ function migrateAgentExclusionsDogTarget(database: Database.Database): void {
       CREATE INDEX IF NOT EXISTS idx_agent_exclusions_active ON agent_exclusions(active);
       CREATE INDEX IF NOT EXISTS idx_agent_exclusions_is_deleted ON agent_exclusions(is_deleted);
     `);
-  } finally {
-    database.exec(`PRAGMA foreign_keys = ON`);
-  }
+  });
 }
 
 /**
@@ -965,10 +959,7 @@ export function restoreDatabaseFromBackup(
   copyFileSync(backupPath, dbPath);
 }
 
-function recordSuccessfulMigration(
-  database: Database.Database,
-  migration: SqliteMigration,
-): void {
+function recordSuccessfulMigration(database: Database.Database, migration: SqliteMigration): void {
   database
     .prepare(
       `INSERT INTO ${SCHEMA_MIGRATIONS_TABLE} (id, name, applied_at, success)
@@ -1064,7 +1055,9 @@ export function runPendingMigrations(options: RunMigrationsOptions): void {
       }
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
-      log?.(`runPendingMigrations: failed at ${currentId ?? "unknown"} — restoring backup (${reason})`);
+      log?.(
+        `runPendingMigrations: failed at ${currentId ?? "unknown"} — restoring backup (${reason})`,
+      );
       let restored = false;
       try {
         restoreDatabaseFromBackup(database, dbPath, backupPath);
