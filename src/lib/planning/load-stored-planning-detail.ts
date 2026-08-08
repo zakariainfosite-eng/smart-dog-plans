@@ -11,6 +11,7 @@ import {
   type FeuillePresenceAgentMeta,
 } from "@/lib/documents/build-feuille-presence-data";
 import { loadActiveFemaleAgentsForPresence } from "@/lib/documents/build-cynotechniciennes-presence-data";
+import { resolveAttendanceSheetCommander } from "@/lib/documents/resolve-attendance-sheet-commander";
 import type { FeuillePresenceData } from "@/lib/documents/feuille-presence-types";
 import type {
   CheckpointAssignment,
@@ -395,6 +396,7 @@ export async function prepareStoredPlanningExport(
     });
   }
 
+  // PDF / attendance sheet: evaluate exclusions against the planning date, not today.
   const exclusionsRaw = await fetchActiveExclusionsForDate(client, detail.planning_date);
   const exclusionTypesByAgent: Record<string, string> = {};
   for (const exclusion of exclusionsRaw) {
@@ -402,6 +404,17 @@ export async function prepareStoredPlanningExport(
     if (!isAgentLevelExclusionType(exclusion.exclusion_type)) continue;
     exclusionTypesByAgent[exclusion.agent_id] = exclusion.exclusion_type;
   }
+
+  const resolvedCommander = await resolveAttendanceSheetCommander(
+    client,
+    detail.section.id,
+    {
+      fullName: detail.section.commander_full_name,
+      grade: detail.section.commander_grade,
+      mle: detail.section.commander_mle,
+    },
+    exclusionsRaw,
+  );
 
   const femaleAgents = await loadActiveFemaleAgentsForPresence(client);
 
@@ -411,9 +424,11 @@ export async function prepareStoredPlanningExport(
     sectionName: detail.section.name,
     sectionIndex: detail.section.index,
     sectionCommander: {
-      fullName: detail.section.commander_full_name,
-      grade: detail.section.commander_grade,
-      mle: detail.section.commander_mle,
+      fullName: resolvedCommander.fullName,
+      grade: resolvedCommander.grade,
+      mle: resolvedCommander.mle,
+      needsManualFill: resolvedCommander.needsManualFill,
+      mode: resolvedCommander.mode,
     },
     agents: agentsMeta,
     femaleAgents,

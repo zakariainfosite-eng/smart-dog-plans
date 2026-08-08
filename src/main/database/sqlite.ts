@@ -113,6 +113,7 @@ export const SCHEMA_STATEMENTS: readonly string[] = [
     marital_status TEXT DEFAULT NULL CHECK (
       marital_status IS NULL OR marital_status IN ('single', 'married', 'divorced', 'widowed')
     ),
+    date_naissance TEXT DEFAULT NULL,
     section_id TEXT REFERENCES sections(id) ON DELETE SET NULL,
     dog_id TEXT UNIQUE REFERENCES dogs(id) ON DELETE SET NULL,
     is_section_chief INTEGER NOT NULL DEFAULT 0 CHECK (is_section_chief IN (0, 1)),
@@ -180,6 +181,23 @@ export const SCHEMA_STATEMENTS: readonly string[] = [
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
     CHECK (end_date >= start_date),
     CHECK (agent_id IS NOT NULL OR dog_id IS NOT NULL)
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS exclusion_notifications (
+    id TEXT PRIMARY KEY NOT NULL,
+    exclusion_id TEXT NOT NULL REFERENCES agent_exclusions(id) ON DELETE CASCADE,
+    agent_id TEXT REFERENCES agents(id) ON DELETE CASCADE,
+    dog_id TEXT REFERENCES dogs(id) ON DELETE CASCADE,
+    subject_kind TEXT NOT NULL CHECK (subject_kind IN ('personnel', 'dog')),
+    notification_type TEXT NOT NULL,
+    milestone TEXT NOT NULL CHECK (milestone IN ('d7', 'd3', 'd1', 'd0')),
+    end_date TEXT NOT NULL,
+    return_date TEXT NOT NULL,
+    subject_name TEXT NOT NULL,
+    exclusion_type TEXT NOT NULL,
+    is_read INTEGER NOT NULL DEFAULT 0 CHECK (is_read IN (0, 1)),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (exclusion_id, milestone)
   )`,
 
   `CREATE TABLE IF NOT EXISTS planning (
@@ -286,6 +304,8 @@ export const SCHEMA_STATEMENTS: readonly string[] = [
   `CREATE INDEX IF NOT EXISTS idx_agent_exclusions_dates ON agent_exclusions(start_date, end_date)`,
   `CREATE INDEX IF NOT EXISTS idx_agent_exclusions_active ON agent_exclusions(active)`,
   `CREATE INDEX IF NOT EXISTS idx_agent_exclusions_is_deleted ON agent_exclusions(is_deleted)`,
+  `CREATE INDEX IF NOT EXISTS idx_exclusion_notifications_return_date ON exclusion_notifications(return_date)`,
+  `CREATE INDEX IF NOT EXISTS idx_exclusion_notifications_is_read ON exclusion_notifications(is_read)`,
   `CREATE INDEX IF NOT EXISTS idx_planning_date ON planning(planning_date)`,
   `CREATE INDEX IF NOT EXISTS idx_planning_section ON planning(section_id)`,
   `CREATE INDEX IF NOT EXISTS idx_pa_planning ON planning_assignments(planning_id)`,
@@ -304,6 +324,38 @@ export const SCHEMA_STATEMENTS: readonly string[] = [
 ];
 
 export const SQLITE_SCHEMA_INIT_MESSAGE = "SQLite schema initialized successfully.";
+
+/**
+ * On app startup: deactivate exclusions whose end_date is strictly before today.
+ * Persisted expiration always uses wall-clock today (never a future planning date).
+ * Mirrors renderer `expirePastExclusions` without going through the REST bridge.
+ */
+export function expirePastExclusionsInSqlite(
+  database: Database.Database,
+  todayISO: string = new Date().toISOString().slice(0, 10),
+): number {
+  try {
+    const result = database
+      .prepare(
+        `UPDATE agent_exclusions
+         SET active = 0, updated_at = datetime('now')
+         WHERE active = 1 AND end_date < ? AND is_deleted = 0`,
+      )
+      .run(todayISO);
+    return result.changes;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!/no such column:\s*is_deleted/i.test(message)) throw error;
+    const legacy = database
+      .prepare(
+        `UPDATE agent_exclusions
+         SET active = 0, updated_at = datetime('now')
+         WHERE active = 1 AND end_date < ?`,
+      )
+      .run(todayISO);
+    return legacy.changes;
+  }
+}
 
 function isIndexStatement(statement: string): boolean {
   return /^\s*CREATE\s+(UNIQUE\s+)?INDEX\b/i.test(statement);
@@ -478,6 +530,10 @@ export function initializeDatabase(app: App): Database.Database {
   }
 
   dbLog("initializeDatabase: ready");
+  const expired = expirePastExclusionsInSqlite(connection);
+  if (expired > 0) {
+    dbLog(`initializeDatabase: auto-expired ${expired} past exclusion(s)`);
+  }
   return db;
 }
 

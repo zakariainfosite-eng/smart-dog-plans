@@ -6,6 +6,7 @@ import {
   type OperationalCaseWithRelations,
 } from "@/lib/operational-case-api";
 import { computeAgentCareerSummary, type AgentCareerSummary } from "@/lib/agent-career";
+import { expirePastExclusions } from "@/lib/agent-exclusions";
 import { formatPgError } from "@/lib/soft-delete";
 
 type Db = DbClient;
@@ -273,6 +274,7 @@ export async function fetchAgentDetails(
   db: Db,
   agentId: string,
 ): Promise<AgentDetailsPayload> {
+  await expirePastExclusions(db);
   const sectionErrors: AgentDetailsSectionErrors = {};
 
   const agentRes = await db.from("agents").select("*").eq("id", agentId).single();

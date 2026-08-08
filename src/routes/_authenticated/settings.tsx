@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/_authenticated/settings")({
-  head: () => ({ meta: [{ title: "Paramètres — Smart K9 Planning" }] }),
+  head: () => ({ meta: [{ title: "Paramètres — CynoPlanning" }] }),
   component: SettingsPage,
 });
 

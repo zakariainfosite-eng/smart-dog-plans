@@ -6,8 +6,6 @@ import { z } from "zod";
 import {
   Dog as DogIcon,
   Plus,
-  Pencil,
-  Trash2,
   Activity,
   Bomb,
   Pill,
@@ -21,6 +19,7 @@ import {
 import { toast } from "sonner";
 
 import { db } from "@/integrations/database/client";
+import { RowActionButtons } from "@/components/enterprise/row-action-buttons";
 import {
   createDog,
   deleteDog,
@@ -56,7 +55,7 @@ import {
   pageHeroLastUpdatedMeta,
 } from "@/components/enterprise/page-layout";
 import { EmptyState } from "@/components/layout/EmptyState";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { KpiCard } from "@/components/enterprise/kpi-card";
 import { FilterBar, FilterPills } from "@/components/enterprise/filter-bar";
 import { SearchField } from "@/components/enterprise/search-field";
@@ -104,7 +103,7 @@ import { downloadDogsListPdfWithLogo } from "@/lib/documents/feuille-presence-pd
 type Specialty = DogSpecialty;
 
 export const Route = createFileRoute("/_authenticated/dogs")({
-  head: () => ({ meta: [{ title: "Chiens — Smart K9 Planning" }] }),
+  head: () => ({ meta: [{ title: "Chiens — CynoPlanning" }] }),
   validateSearch: (search: Record<string, unknown>) => ({
     details: typeof search.details === "string" ? search.details : undefined,
   }),
@@ -234,13 +233,19 @@ function DogsPage() {
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [exportingPdf, setExportingPdf] = useState(false);
 
+  useEffect(() => {
+    if (detailsFromSearch) {
+      setDetailsDogId(detailsFromSearch);
+    }
+  }, [detailsFromSearch]);
+
   const { data: dogs, isLoading, dataUpdatedAt } = useQuery({
     queryKey: ["dogs-with-agent"],
     queryFn: () => getDogs(),
   });
 
   const { data: todayExclusions = [] } = useQuery({
-    queryKey: ACTIVE_EXCLUSIONS_TODAY_QUERY_KEY,
+    queryKey: [...ACTIVE_EXCLUSIONS_TODAY_QUERY_KEY, todayISODate()],
     queryFn: () => fetchActiveExclusionsForDate(db, todayISODate()),
   });
 
@@ -653,26 +658,13 @@ function DogsPage() {
         cell: ({ row }) => {
           const dog = row.original;
           return (
-            <div className="flex items-center justify-center gap-0.5">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-lg"
-                onClick={() => openEdit(dog)}
-                aria-label={t("aria.edit")}
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive"
-                onClick={() => setDeleteTarget(dog)}
-                aria-label={t("aria.delete")}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
+            <RowActionButtons
+              className="justify-center"
+              editLabel={t("aria.edit")}
+              deleteLabel={t("aria.delete")}
+              onEdit={() => openEdit(dog)}
+              onDelete={() => setDeleteTarget(dog)}
+            />
           );
         },
       },
@@ -868,7 +860,7 @@ function DogsPage() {
                 event.preventDefault();
                 if (deleteTarget) remove.mutate(deleteTarget);
               }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className={buttonVariants({ variant: "danger" })}
             >
               {t("action.delete")}
             </AlertDialogAction>

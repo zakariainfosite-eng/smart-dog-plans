@@ -88,6 +88,7 @@ app.whenReady().then(async () => {
       gender: "male",
       fonction: "aide_soignant_veterinaire",
       marital_status: "married",
+      date_naissance: "1990-05-15",
       section_id: null,
       dog_id: null,
       phone: null,

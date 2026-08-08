@@ -209,9 +209,46 @@ assert(data.narcoticsRows[3].hour === "*****", "Non-op HEURE must show *****");
 assert(data.narcoticsRows[3].signature === "*****", "Non-op EMARGEMENT must show *****");
 assert(data.narcoticsRows[0].hour === "", "Operational HEURE stays blank");
 assert(data.narcoticsRows[0].signature === "", "Operational EMARGEMENT stays blank");
-assert(data.chefName === "ALAMI HASSAN", "Section commander name from section record");
+assert(data.chefName === "ALAMI Hassan", "Section commander name from section record");
 assert(data.chefGrade === "BRIGADIER", "Section commander grade from section record");
 assert(data.chefMle === "9001", "Section commander MLE from section record");
+assert(!data.chefNeedsReplacement, "Commander without exclusion keeps printed identity");
+
+const manualFillCommanderResult = buildFeuillePresenceData({
+  ...input,
+  sectionCommander: {
+    fullName: "",
+    grade: "",
+    mle: "",
+    needsManualFill: true,
+  },
+});
+assert(manualFillCommanderResult.ok, "Build with manual-fill chief must succeed");
+if (manualFillCommanderResult.ok) {
+  assert(manualFillCommanderResult.data.chefNeedsReplacement === true, "Manual-fill chief uses blank block");
+  assert(manualFillCommanderResult.data.chefName === "", "Manual-fill clears name");
+  assert(manualFillCommanderResult.data.chefGrade === "", "Manual-fill clears grade");
+  assert(manualFillCommanderResult.data.chefMle === "", "Manual-fill clears MLE");
+}
+
+const adjointReplacementResult = buildFeuillePresenceData({
+  ...input,
+  sectionCommander: {
+    fullName: "BENALI Karim",
+    grade: "BRIGADIER-CHEF",
+    mle: "9100",
+    needsManualFill: false,
+    mode: "adjoint_replacement",
+  },
+});
+assert(adjointReplacementResult.ok, "Build with adjoint replacement must succeed");
+if (adjointReplacementResult.ok) {
+  assert(!adjointReplacementResult.data.chefNeedsReplacement, "Available adjoint prints normally");
+  assert(adjointReplacementResult.data.chefMode === "adjoint_replacement", "Adjoint replacement title mode");
+  assert(adjointReplacementResult.data.chefName === "BENALI Karim", "Adjoint name printed");
+  assert(adjointReplacementResult.data.chefGrade === "BRIGADIER-CHEF", "Adjoint grade printed");
+  assert(adjointReplacementResult.data.chefMle === "9100", "Adjoint MLE printed");
+}
 
 assert(
   formatFeuillePresenceDateLine(new Date(2026, 7, 26), "day") === "TANGER LE 26 / 08 / 2026",
@@ -294,8 +331,62 @@ const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
 renderFeuillePresencePage(doc, 2026, { header: logoBytes }, data);
 writeFileSync(outPath, Buffer.from(doc.output("arraybuffer")));
 
+// DAY: reserved female presence lines appended; NIGHT: omitted entirely.
+const femaleAgents = [
+  {
+    id: "f-narco",
+    first_name: "Sara",
+    last_name: "FemmeNarc",
+    professional_number: "8001",
+    grade: "GARDIEN",
+    is_section_chief: false,
+    dog_name: "Luna",
+    dog_specialty: "narcotics" as const,
+  },
+  {
+    id: "f-explo",
+    first_name: "Nadia",
+    last_name: "FemmeExplo",
+    professional_number: "8002",
+    grade: "GARDIEN",
+    is_section_chief: false,
+    dog_name: "Iris",
+    dog_specialty: "explosives" as const,
+  },
+];
+const dayWithFemales = buildFeuillePresenceData({ ...input, shift: "day", femaleAgents });
+assert(dayWithFemales.ok, "Day + females must build");
+assert(
+  dayWithFemales.data.narcoticsRows.some((r) => r.fullName === "FEMMENARC SARA" && r.presenceOnly),
+  "Day sheet must include reserved Stupéfiants female line",
+);
+assert(
+  dayWithFemales.data.explosivesRows.some((r) => r.fullName === "FEMMEEXPLO NADIA" && r.presenceOnly),
+  "Day sheet must include reserved Explosifs female line",
+);
+const nightWithFemales = buildFeuillePresenceData({ ...input, shift: "night", femaleAgents });
+assert(nightWithFemales.ok, "Night + females must build");
+assert(
+  !nightWithFemales.data.narcoticsRows.some((r) => r.presenceOnly),
+  "Night sheet must omit reserved female lines (narcotics)",
+);
+assert(
+  !nightWithFemales.data.explosivesRows.some((r) => r.presenceOnly),
+  "Night sheet must omit reserved female lines (explosives)",
+);
+assert(
+  !nightWithFemales.data.narcoticsRows.some((r) => r.fullName.includes("FEMMENARC")),
+  "Night sheet must not list female placeholders",
+);
+assert(
+  nightWithFemales.data.narcoticsRows.length === data.narcoticsRows.length &&
+    nightWithFemales.data.explosivesRows.length === data.explosivesRows.length,
+  "Night sheet must list only shift-assigned personnel",
+);
+
 console.log("✓ buildFeuillePresenceData OK");
 console.log(`✓ narcotics: ${data.narcoticsRows.length}, explosives: ${data.explosivesRows.length}`);
+console.log("✓ day reserved female lines present; night reserved female lines omitted");
 console.log(`✓ verifyFeuillePresenceData OK (${verifyIssues.length} issues)`);
 console.log(`✓ populated PDF: ${outPath}`);
 console.log("All feuille de présence e2e checks passed.");

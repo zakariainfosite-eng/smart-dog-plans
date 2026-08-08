@@ -15,12 +15,12 @@ import {
 /** Official French labels for the Fonction column (PDF + deterministic export). */
 export const PDF_PERSONNEL_FONCTION_LABELS: Record<PersonnelFonction, string> = {
   chef_brigadier: "Chef Brigade",
-  chef_brigadier_pi: "Chef Brigade PI",
+  chef_brigadier_pi: "Adjoint Chef Brigade",
   chef_secretariat: "Chef Secrétariat",
   secretaire: "Secrétaire",
-  assistant_technique: "Assistant technique",
+  assistant_technique: "Assistant cynotechnique",
   chef_de_section: "Chef de section",
-  chef_de_section_pi: "Chef de section PI",
+  chef_de_section_pi: "Adjoint Chef de section",
   chef_materiel: "Chef matériel",
   aide_soignant_veterinaire: "Aide-soignant vétérinaire",
   cynotechnicien: "Cynotechnicien",

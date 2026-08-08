@@ -10,14 +10,13 @@ import { getAuthProvider } from "@/integrations/auth";
 import { useI18n } from "@/hooks/use-i18n";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { AppLogo } from "@/components/brand/app-logo";
-import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Connexion — Smart K9 Planning" },
-      { name: "description", content: "Connectez-vous à la console d'administration Smart K9 Planning." },
+      { title: "Connexion — CynoPlanning" },
+      { name: "description", content: "Connectez-vous à la console d'administration CynoPlanning." },
     ],
   }),
   component: AuthPage,
@@ -165,16 +164,7 @@ function AuthPage() {
                 </div>
               )}
 
-              <Button
-                type="submit"
-                disabled={submitting}
-                className={cn(
-                  "h-12 w-full rounded-2xl border-0 bg-gradient-to-r from-[#1D4ED8] to-[#2563EB] text-base font-semibold text-white shadow-[0_4px_20px_-4px_rgb(37_99_235/0.55)] transition-all duration-300",
-                  "hover:from-[#1e40af] hover:to-[#1D4ED8] hover:shadow-[0_8px_28px_-4px_rgb(37_99_235/0.6)] hover:-translate-y-0.5",
-                  "active:translate-y-0 active:scale-[0.99]",
-                  "disabled:translate-y-0 disabled:opacity-70 disabled:shadow-none",
-                )}
-              >
+              <Button type="submit" disabled={submitting} className="w-full text-base">
                 {submitting ? (
                   <>
                     <Loader2 className="h-5 w-5 animate-spin" />

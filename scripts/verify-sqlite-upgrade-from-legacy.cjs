@@ -381,7 +381,7 @@ app.whenReady().then(async () => {
     ok("all legacy operational rows preserved (counts + ids)");
 
     const agentCols = columnNames(database, "agents");
-    for (const required of ["fonction", "marital_status"]) {
+    for (const required of ["fonction", "marital_status", "date_naissance"]) {
       if (!agentCols.includes(required)) {
         fail(`missing new column agents.${required}`);
       }

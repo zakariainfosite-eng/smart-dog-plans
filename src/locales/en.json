@@ -1,4 +1,24 @@
 {
+  "nav": {
+    "group": "Navigation",
+    "groups": {
+      "personnel": "Personnel",
+      "operations": "Operations",
+      "analysis": "Analytics"
+    },
+    "dashboard": "Dashboard",
+    "sections": "Sections",
+    "employees": "Staff",
+    "dogs": "Dogs",
+    "checkpoints": "Checkpoints",
+    "exclusions": "Exclusions",
+    "operationalCases": "Operational cases",
+    "planning": "Planning",
+    "dailyPlanning": "Daily planning",
+    "history": "History",
+    "statistics": "Statistics",
+    "settings": "Settings"
+  },
   "auth": {
     "brandName": "CynoPlanning",
     "tagline": "Operational planning & cynotechnician management",
@@ -92,6 +112,23 @@
     }
   },
   "dailyPlanning": {
+    "create": {
+      "title": "Create daily planning",
+      "description": "Choose the date and shift, then manually assign Day, Night, and Rest to each section. The button generates, saves, and records history."
+    },
+    "field": {
+      "planningDate": "Planning date",
+      "shift": "Shift",
+      "sectionRole": "Section role"
+    },
+    "createButton": "Create daily planning",
+    "generating": "Generating…",
+    "alert": {
+      "rotationUnavailable": "Configuration unavailable",
+      "needThreeSections": "Planning requires exactly 3 active sections. Found: {{count}}.",
+      "invalidSectionRolesTitle": "Invalid section assignment",
+      "invalidSectionRoles": "Assign exactly one section to Day, one to Night, and one to Rest. Duplicates are not allowed."
+    },
     "attendanceSheet": {
       "generate": "Generate attendance sheet",
       "download": "Attendance sheet (PDF)",
@@ -189,55 +226,76 @@
   "exclusions": {
     "searchPersonnel": "Search name or professional number…",
     "searchDogs": "Search dog name or ID…",
+    "stat": {
+      "sickAgents": "Sick personnel"
+    },
+    "dialog": {
+      "newDesc": "Record an unavailability for a staff member or a dog."
+    },
     "tabs": {
       "all": "All",
       "personnel": "Personnel",
       "dogs": "Dogs"
     },
     "sections": {
-      "personnel": "Cynotechnician exclusions",
+      "personnel": "Personnel exclusions",
       "dogs": "Dog exclusions"
     },
     "filter": {
       "reason": "Exclusion type",
       "allReasons": "All types",
-      "allAgents": "All cynotechnicians",
+      "allAgents": "All personnel",
       "date": "Date"
     },
     "table": {
+      "agent": "Personnel",
       "photo": "Photo",
       "fullName": "Full name",
       "profNumber": "Professional number",
       "dogPhoto": "Dog photo",
       "dogName": "Dog name",
       "dogId": "ID",
-      "assignedAgent": "Assigned cynotechnician",
+      "assignedAgent": "Assigned personnel",
       "type": "Exclusion type",
       "start": "Start date",
       "end": "End date"
     },
     "empty": {
+      "noMatch": "No exclusions match the filters",
+      "none": "No exclusions",
+      "noneActive": "No active exclusions.",
       "nonePersonnel": "No personnel exclusions",
-      "noneDogs": "No dog exclusions"
+      "noneDogs": "No dog exclusions",
+      "recordFirst": "Add an exclusion to start tracking."
     },
     "field": {
-      "agent": "Cynotechnician",
+      "agent": "Personnel",
       "dog": "Dog",
       "applyTo": "Apply to",
       "exclusionType": "Exclusion type",
       "durationDays": "Duration (days)",
-      "endDateCalculated": "End date (calculated)"
+      "endDateCalculated": "End date (calculated)",
+      "section": "Section",
+      "dogSection": "Dog section",
+      "noSection": "No section"
     },
     "applyTo": {
-      "agent": "Cynotechnician",
+      "agent": "Personnel",
       "dog": "Dog"
     },
-    "selectAgent": "Select a cynotechnician",
+    "selectAgent": "Select a staff member",
     "selectDog": "Select a dog",
-    "searchAgent": "Search name or professional number…",
+    "searchAgent": "Search for a staff member…",
     "searchDog": "Search dog name or ID…",
-    "noAgentMatch": "No cynotechnician found",
+    "noAgentMatch": "No staff member found",
     "noDogMatch": "No dog found",
+    "noFemaleDogAvailable": "No female dog available.",
+    "selector": {
+      "noFonction": "No function"
+    },
+    "error": {
+      "overlap": "This staff member already has an exclusion for this period."
+    },
     "type": {
       "sickness": "Sick",
       "annual_leave": "Annual leave",
@@ -270,14 +328,14 @@
   },
   "personnelFonction": {
     "chef_brigadier": "Brigade Chief",
-    "chef_brigadier_pi": "Brigade Chief PI",
+    "chef_brigadier_pi": "Deputy Brigade Chief",
     "chef_brigade": "Brigade Chief",
-    "chef_brigade_pi": "Brigade Chief PI",
+    "chef_brigade_pi": "Deputy Brigade Chief",
     "chef_secretariat": "Secretariat Chief",
     "secretaire": "Secretary",
-    "assistant_technique": "Technical assistant",
+    "assistant_technique": "Cynotechnical assistant",
     "chef_de_section": "Section chief",
-    "chef_de_section_pi": "Section chief PI",
+    "chef_de_section_pi": "Deputy Section Chief",
     "chef_materiel": "Equipment chief",
     "aide_soignant_veterinaire": "Veterinary care aide",
     "cynotechnicien": "Cynotechnician"
@@ -325,6 +383,7 @@
     "field": {
       "fonction": "Function",
       "maritalStatus": "Marital status",
+      "dateOfBirth": "Date of birth",
       "sectionResponsible": "Section responsible",
       "photo": "Photo"
     },
@@ -361,23 +420,72 @@
     }
   },
   "sections": {
+    "title": "Sections",
+    "description": "Manage operational sections and their assignments.",
+    "hero": {
+      "totalSections": "Total sections",
+      "activeSections": "Active sections"
+    },
+    "new": "New section",
     "stat": {
       "assigned": "Assigned personnel",
       "available": "Available",
       "unavailable": "Unavailable",
-      "activeExclusions": "Active exclusions"
+      "activeExclusions": "Active exclusions",
+      "exclusionsDetail": "Section exclusion details",
+      "narcotics": "Narcotics",
+      "explosives": "Explosives",
+      "operational": "Operational",
+      "total": "Total",
+      "breakdown": {
+        "sickness": "Sick",
+        "leave": "Leave",
+        "training": "Training",
+        "mission": "Mission",
+        "absence": "Permission",
+        "dog_sick": "Sick dog",
+        "female_dog_heat": "Female dog in heat",
+        "dog_temporary_retirement": "Dog resting",
+        "other": "Other"
+      }
     },
     "exclusionsSheet": {
       "title": "Active exclusions",
-      "description": "Active exclusions for personnel in “{{name}}”.",
-      "descriptionFallback": "Active exclusions for this section.",
+      "titleFiltered": "Exclusions — {{type}}",
+      "description": "All active exclusions (personnel and dogs) for “{{name}}”.",
+      "descriptionFallback": "All active exclusions for this section.",
+      "descriptionFiltered": "Active “{{type}}” exclusions for “{{name}}”.",
+      "descriptionFilteredFallback": "Active “{{type}}” exclusions for this section.",
       "empty": "No active exclusions for this section.",
+      "emptyPersonnel": "No personnel exclusions.",
+      "emptyDogs": "No dog exclusions.",
+      "groupPersonnel": "Personnel",
+      "groupDogs": "Dogs",
       "personnel": "Personnel",
+      "personnelFallback": "Staff member",
+      "dogFallback": "Dog",
       "type": "Type",
-      "period": "Period"
+      "period": "Period",
+      "start": "Start",
+      "end": "End",
+      "remainingLabel": "Remaining",
+      "matricule": "ID {{value}}",
+      "dogId": "Dog ID {{value}}",
+      "handler": "Handler: {{name}}",
+      "status": {
+        "active": "Active",
+        "expiringSoon": "Expiring soon",
+        "endsToday": "Ends today"
+      },
+      "remaining": {
+        "today": "Today",
+        "one": "1 day",
+        "other": "{{count}} days"
+      }
     },
     "commander": {
       "title": "Section chief",
+      "adjointReplacement": "Section Chief (interim)",
       "linkedFromPersonnel": "No section chief assigned.",
       "autoHint": "Assign personnel with the “Section chief” role to link automatically. One chief per section."
     },
@@ -425,13 +533,38 @@
     "durationMin": "Duration must be at least 1 day",
     "fonctionRequired": "Function is required",
     "maritalStatusRequired": "Marital status is required",
+    "dateOfBirthRequired": "Date of birth is required",
+    "dateOfBirthInvalid": "Date of birth is invalid",
+    "dateOfBirthFuture": "Date of birth cannot be in the future",
+    "dateOfBirthTooYoung": "Age must be at least 18 years",
+    "dateOfBirthTooOld": "Age cannot exceed 70 years",
     "sectionResponsibleRequired": "Section responsible is required",
-    "agentRequired": "Cynotechnician is required",
+    "agentRequired": "Staff member is required",
     "dogRequired": "Dog is required"
   },
   "dashboard": {
+    "title": "Dashboard",
+    "description": "Operations and planning overview.",
+    "stat": {
+      "activeAgents": "Active cynotechnicians",
+      "activeK9": "Active K9 units",
+      "activeCheckpoints": "Active checkpoints",
+      "todayPlannings": "Today's plannings"
+    },
+    "kpi": {
+      "hint": {
+        "active": "Active",
+        "today": "Today",
+        "operational": "Operational",
+        "updated": "Updated"
+      }
+    },
+    "todayPlanning": "Today's planning",
+    "noPlanningToday": "No planning for today.",
+    "sectionFallback": "Section",
+    "validationProgress": "{{validated}} of {{total}} plannings validated",
     "operationalSummary": {
-      "title": "OPERATIONAL SUMMARY",
+      "title": "Operational summary",
       "subtitle": "Active section status for today",
       "noSection": "No active section for the current shift.",
       "noPlanning": "No validated planning for the current section and shift.",
@@ -440,10 +573,54 @@
       "activeSection": "Active section",
       "currentShift": "Current shift",
       "sectionChief": "Section chief",
+      "availabilityTitle": "Availability",
       "agentsMaladie": "Sick leave",
       "agentsFormation": "Training",
       "agentsConge": "Leave",
       "unavailableDogs": "Unavailable dogs"
+    }
+  },
+  "notifications": {
+    "title": "Alert center",
+    "subtitle": "Upcoming exclusion returns",
+    "empty": "No notifications right now.",
+    "markAllRead": "Mark all as read",
+    "filter": {
+      "all": "All",
+      "personnel": "Personnel",
+      "dogs": "Dogs",
+      "unread": "Unread",
+      "read": "Read"
+    },
+    "kind": {
+      "personnel": "Personnel",
+      "dog": "Dog"
+    },
+    "severity": {
+      "info": "Information",
+      "warning": "Within 3 days",
+      "success": "Available today"
+    },
+    "message": {
+      "personnel": {
+        "inDays": "{{name}} will become available in {{count}} days ({{date}}).",
+        "tomorrow": "{{name}} returns to service tomorrow.",
+        "today": "{{name}} is available again today."
+      },
+      "dog": {
+        "inDays": "Dog {{name}} ({{type}}) will be operational again in {{count}} days.",
+        "tomorrow": "Dog {{name}} finishes {{type}} tomorrow.",
+        "today": "Dog {{name}} is operational again today."
+      }
+    },
+    "imminent": {
+      "title": "Imminent returns",
+      "subtitle": "Next availability after exclusions",
+      "empty": "No returns expected soon.",
+      "inDays": "{{name}} — returns in {{count}} days",
+      "tomorrow": "{{name}} — {{type}} ends tomorrow",
+      "heatEndsTomorrow": "{{name}} — Heat period ends tomorrow",
+      "availableToday": "{{name}} — Available today"
     }
   },
   "statistics": {

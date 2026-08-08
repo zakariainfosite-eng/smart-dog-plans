@@ -2,9 +2,9 @@ import { writeFileSync } from "node:fs";
 
 const fr = {
   app: {
-    name: "Smart K9 Planning",
+    name: "CynoPlanning",
     subtitle: "Console d'administration",
-    brandShort: "Smart K9",
+    brandShort: "CynoPlanning",
     brandTagline: "Planning",
     description: "Console d'administration professionnelle pour la gestion des unités K9 et la planification.",
   },
@@ -100,19 +100,19 @@ const fr = {
   },
   aria: { edit: "Modifier", delete: "Supprimer", openProfile: "Ouvrir le profil", togglePosts: "Afficher/masquer les postes" },
   meta: {
-    appTitle: "Smart K9 Planning — Console de gestion K9",
-    auth: { title: "Connexion — Smart K9 Planning", description: "Connectez-vous à la console d'administration Smart K9 Planning." },
-    dashboard: { title: "Tableau de bord — Smart K9 Planning" },
-    employees: { title: "Agents — Smart K9 Planning" },
-    dogs: { title: "Chiens — Smart K9 Planning" },
-    dogProfile: { title: "Profil chien — Smart K9 Planning" },
-    checkpoints: { title: "Points de contrôle — Smart K9 Planning" },
-    exclusions: { title: "Exclusions — Smart K9 Planning" },
-    dailyPlanning: { title: "Planification quotidienne — Smart K9 Planning" },
-    sections: { title: "Sections — Smart K9 Planning" },
-    settings: { title: "Paramètres — Smart K9 Planning" },
-    reports: { title: "Rapports — Smart K9 Planning" },
-    history: { title: "Historique — Smart K9 Planning" },
+    appTitle: "CynoPlanning — Console de gestion K9",
+    auth: { title: "Connexion — CynoPlanning", description: "Connectez-vous à la console d'administration CynoPlanning." },
+    dashboard: { title: "Tableau de bord — CynoPlanning" },
+    employees: { title: "Agents — CynoPlanning" },
+    dogs: { title: "Chiens — CynoPlanning" },
+    dogProfile: { title: "Profil chien — CynoPlanning" },
+    checkpoints: { title: "Points de contrôle — CynoPlanning" },
+    exclusions: { title: "Exclusions — CynoPlanning" },
+    dailyPlanning: { title: "Planification quotidienne — CynoPlanning" },
+    sections: { title: "Sections — CynoPlanning" },
+    settings: { title: "Paramètres — CynoPlanning" },
+    reports: { title: "Rapports — CynoPlanning" },
+    history: { title: "Historique — CynoPlanning" },
   },
   error: {
     pageNotFound: "Page introuvable",
@@ -350,7 +350,7 @@ const fr = {
 };
 
 const ar = JSON.parse(JSON.stringify(fr));
-Object.assign(ar.app, { name: "التخطيط الذكي للكلاب البوليسية", subtitle: "وحدة تحكم الإدارة", brandShort: "Smart K9", brandTagline: "التخطيط", description: "وحدة تحكم احترافية لإدارة وحدات الكلاب والتخطيط." });
+Object.assign(ar.app, { name: "CynoPlanning", subtitle: "وحدة تحكم الإدارة", brandShort: "CynoPlanning", brandTagline: "التخطيط", description: "وحدة تحكم احترافية لإدارة وحدات الكلاب والتخطيط." });
 Object.assign(ar.nav, { group: "التنقل", dashboard: "لوحة القيادة", sections: "الأقسام", employees: "الأعوان", dogs: "الكلاب", checkpoints: "نقاط المراقبة", exclusions: "الاستثناءات", dailyPlanning: "التخطيط اليومي", history: "السجل", reports: "التقارير", settings: "الإعدادات" });
 Object.assign(ar.action, { signOut: "تسجيل الخروج", profile: "الملف الشخصي", toggleTheme: "تبديل السمة", notifications: "الإشعارات", language: "اللغة", cancel: "إلغاء", delete: "حذف", save: "حفظ", saveChanges: "حفظ التغييرات", saving: "جارٍ الحفظ…", create: "إنشاء", edit: "تعديل", tryAgain: "إعادة المحاولة", goHome: "العودة للرئيسية" });
 Object.assign(ar.account, { my: "حسابي", fallback: "الحساب" });
@@ -362,7 +362,7 @@ Object.assign(ar.shift, { day: "نهار", night: "ليل", rest: "راحة", da
 Object.assign(ar.status, { validated: "معتمد", draft: "مسودة", upcoming: "قادم", expired: "منتهٍ", retired: "متقاعد", enabled: "مفعّل", active: "نشط" });
 Object.assign(ar.field, { section: "القسم", grade: "الرتبة", gender: "الجنس", specialty: "التخصص", active: "نشط", startDate: "تاريخ البداية", endDate: "تاريخ النهاية", email: "البريد الإلكتروني", password: "كلمة المرور" });
 Object.assign(ar.aria, { edit: "تعديل", delete: "حذف", openProfile: "فتح الملف", togglePosts: "تبديل المناصب" });
-Object.assign(ar.meta, { appTitle: "التخطيط الذكي — وحدة إدارة الكلاب", auth: { title: "تسجيل الدخول — التخطيط الذكي", description: "سجّل الدخول إلى وحدة التحكم." }, dashboard: { title: "لوحة القيادة — التخطيط الذكي" }, employees: { title: "الأعوان — التخطيط الذكي" }, dogs: { title: "الكلاب — التخطيط الذكي" }, dogProfile: { title: "ملف الكلب — التخطيط الذكي" }, checkpoints: { title: "نقاط المراقبة — التخطيط الذكي" }, exclusions: { title: "الاستثناءات — التخطيط الذكي" }, dailyPlanning: { title: "التخطيط اليومي — التخطيط الذكي" }, sections: { title: "الأقسام — التخطيط الذكي" }, settings: { title: "الإعدادات — التخطيط الذكي" }, reports: { title: "التقارير — التخطيط الذكي" }, history: { title: "السجل — التخطيط الذكي" } });
+Object.assign(ar.meta, { appTitle: "CynoPlanning — وحدة إدارة الكلاب", auth: { title: "تسجيل الدخول — CynoPlanning", description: "سجّل الدخول إلى وحدة التحكم." }, dashboard: { title: "لوحة القيادة — CynoPlanning" }, employees: { title: "الأعوان — CynoPlanning" }, dogs: { title: "الكلاب — CynoPlanning" }, dogProfile: { title: "ملف الكلب — CynoPlanning" }, checkpoints: { title: "نقاط المراقبة — CynoPlanning" }, exclusions: { title: "الاستثناءات — CynoPlanning" }, dailyPlanning: { title: "التخطيط اليومي — CynoPlanning" }, sections: { title: "الأقسام — CynoPlanning" }, settings: { title: "الإعدادات — CynoPlanning" }, reports: { title: "التقارير — CynoPlanning" }, history: { title: "السجل — CynoPlanning" } });
 Object.assign(ar.error, { pageNotFound: "الصفحة غير موجودة", pageNotFoundDesc: "الصفحة التي تبحث عنها غير موجودة أو نُقلت.", pageLoadFailed: "تعذّر تحميل هذه الصفحة", pageLoadFailedDesc: "حدث خطأ. يمكنك التحديث أو العودة للرئيسية.", auth: { invalidCredentials: "البريد أو كلمة المرور غير صحيحة.", failed: "فشل المصادقة" } });
 Object.assign(ar.auth, { subtitle: "وحدة إدارة وحدات الكلاب البوليسية", cardTitle: "الوصول إلى وحدة التحكم", cardDescription: "سجّل الدخول لإدارة عمليات التخطيط.", tab: { signIn: "تسجيل الدخول", createAccount: "إنشاء حساب" }, placeholder: { email: "vous@agence.gov" }, submit: { signIn: "تسجيل الدخول", createAccount: "إنشاء حساب" }, footer: "وصول مقيّد · للموظفين المصرّح لهم فقط" });
 Object.assign(ar.toast, { auth: { welcomeBack: "مرحباً بعودتك", accountCreated: "تم إنشاء الحساب — تحقق من بريدك للتأكيد." } });

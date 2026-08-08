@@ -100,8 +100,13 @@ export function planningDayISO(reference: Date | string): string {
 /** Shared React Query key — invalidate after exclusion CRUD so Agents page updates immediately. */
 export const ACTIVE_EXCLUSIONS_TODAY_QUERY_KEY = ["active-exclusions-today"] as const;
 
+/**
+ * Local calendar “today” as `yyyy-MM-dd`.
+ * Must match exclusion forms and `isAgentExclusionActive(…, new Date())` —
+ * never use UTC (`toISOString`) or Morocco/Europe evenings drift a day early.
+ */
 export function todayISODate(): string {
-  return new Date().toISOString().slice(0, 10);
+  return planningDayISO(new Date());
 }
 
 export function exclusionReferenceDay(reference: Date | string = new Date()): Date {
@@ -143,6 +148,60 @@ export function isAgentExclusionActive(
   return exclusion.active && isExclusionInDateRange(exclusion, reference);
 }
 
+/**
+ * True when the exclusion end date is strictly before the reference day
+ * (`today > date_fin`). Inclusive end dates remain active on their last day.
+ */
+export function isExclusionPastEndDate(
+  exclusion: Pick<AgentExclusionRecord, "end_date">,
+  reference: Date | string = new Date(),
+): boolean {
+  return exclusion.end_date < planningDayISO(reference);
+}
+
+/**
+ * Persist automatic expiration against a calendar reference day (normally today).
+ * Sets active=false when end_date < reference.
+ *
+ * Call only from Dashboard, Exclusions page, and app startup — always with today's
+ * date. Never pass a future planning date here: that would deactivate exclusions
+ * that are still in force for current operations.
+ *
+ * Planning generation and PDF exports must NOT persist via this function; they
+ * evaluate effectiveness with {@link fetchActiveExclusionsForDate} / 
+ * {@link isAgentExclusionActive} against the planning date instead.
+ */
+export async function expirePastExclusions(
+  db: DbClient,
+  reference: Date | string = new Date(),
+): Promise<number> {
+  const referenceISO = planningDayISO(reference);
+  const updatedAt = new Date().toISOString();
+
+  const run = async (withSoftDelete: boolean) => {
+    let query = db
+      .from("agent_exclusions")
+      .update({ active: false, updated_at: updatedAt })
+      .eq("active", true)
+      .lt("end_date", referenceISO);
+    if (withSoftDelete) {
+      query = query.eq("is_deleted", false);
+    }
+    return query;
+  };
+
+  const { error, count } = await run(true);
+  if (!error) return count ?? 0;
+
+  if (isMissingSoftDeleteColumn(error)) {
+    const legacy = await run(false);
+    if (legacy.error) throw legacy.error;
+    return legacy.count ?? 0;
+  }
+
+  throw error;
+}
+
 export function filterActiveExclusions<T extends AgentExclusionRecord>(
   exclusions: T[],
   reference: Date | string = new Date(),
@@ -179,19 +238,31 @@ export function isAgentExcludedOnDate(
   );
 }
 
-/** Shared database select for planning / dashboard / agents operational status. */
+/**
+ * Load exclusions that affect operations on `referenceISO`.
+ *
+ * Effectiveness is always relative to that reference day (not wall-clock today):
+ * - Daily Planning → planning form date
+ * - PDF / feuille de présence → planning date of the export
+ * - Dashboard / Agents / Dogs → typically today
+ *
+ * Does not persist expiration. Call {@link expirePastExclusions} separately with
+ * today's date from Dashboard / Exclusions / startup only.
+ */
 export async function fetchActiveExclusionsForDate(
   db: DbClient,
-  dateISO: string,
+  referenceISO: string,
   agentIds?: string[],
 ): Promise<AgentExclusionRecord[]> {
+  const dayISO = planningDayISO(referenceISO);
+
   const run = async (withSoftDelete: boolean) => {
     let query = db
       .from("agent_exclusions")
       .select("agent_id, dog_id, exclusion_type, start_date, end_date, active")
       .eq("active", true)
-      .lte("start_date", dateISO)
-      .gte("end_date", dateISO);
+      .lte("start_date", dayISO)
+      .gte("end_date", dayISO);
 
     if (withSoftDelete) {
       query = query.eq("is_deleted", false);

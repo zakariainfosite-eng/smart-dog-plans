@@ -52,8 +52,9 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+/** Name only — grade is stored/displayed separately (never prefix the name). */
 function formatChefDisplayName(chef: SectionChefRow): string {
-  return [chef.grade, chef.first_name, chef.last_name]
+  return [chef.first_name, chef.last_name]
     .map((part) => part.trim())
     .filter(Boolean)
     .join(" ");
@@ -93,14 +94,17 @@ function agentCountsBySection(db: Database.Database): Map<string, number> {
   return counts;
 }
 
-/** Resolve the unique Chef de section linked via agents.fonction (source of truth). */
+/**
+ * Permanent Chef de section only (fonction = chef_de_section).
+ * Adjoint is never written into sections.commander_* — interim replacement is display-only.
+ */
 function chefsBySection(db: Database.Database): Map<string, SectionChefRow> {
   const rows = db
     .prepare(
       `SELECT section_id, first_name, last_name, grade, professional_number
        FROM agents
        WHERE section_id IS NOT NULL
-         AND fonction IN ('chef_de_section', 'chef_de_section_pi')
+         AND fonction = 'chef_de_section'
        ORDER BY datetime(updated_at) DESC`,
     )
     .all() as SectionChefRow[];

@@ -5,18 +5,13 @@ import {
   PageHero,
   PageFilterToolbar,
   PageTableShell,
-  pageHeroLastUpdatedMeta,
+  type PageHeroBreadcrumbItem,
 } from "@/components/enterprise/page-layout";
 
 type AgentsPageHeroProps = {
   title: string;
   subtitle: string;
-  totalAgents: number;
-  activeToday: number;
-  lastUpdated: string;
-  totalLabel: string;
-  activeTodayLabel: string;
-  lastUpdatedLabel: string;
+  breadcrumb?: PageHeroBreadcrumbItem[];
   addLabel: string;
   exportLabel: string;
   exportPdfLabel?: string;
@@ -31,12 +26,7 @@ type AgentsPageHeroProps = {
 export function AgentsPageHero({
   title,
   subtitle,
-  totalAgents,
-  activeToday,
-  lastUpdated,
-  totalLabel,
-  activeTodayLabel,
-  lastUpdatedLabel,
+  breadcrumb,
   addLabel,
   exportLabel,
   exportPdfLabel,
@@ -52,18 +42,10 @@ export function AgentsPageHero({
       icon={Shield}
       title={title}
       subtitle={subtitle}
+      breadcrumb={breadcrumb}
       loading={loading}
-      meta={[
-        { label: totalLabel, value: totalAgents },
-        pageHeroLastUpdatedMeta(lastUpdatedLabel, lastUpdated),
-        {
-          label: activeTodayLabel,
-          value: activeToday,
-          dotClassName: "bg-emerald-500",
-          valueClassName: "text-emerald-700 dark:text-emerald-400",
-        },
-      ]}
       actions={[
+        { label: addLabel, onClick: onAdd, icon: Plus, variant: "primary" },
         {
           label: exportLabel,
           onClick: onExport,
@@ -82,7 +64,6 @@ export function AgentsPageHero({
               },
             ]
           : []),
-        { label: addLabel, onClick: onAdd, icon: Plus, variant: "primary" },
       ]}
     />
   );

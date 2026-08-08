@@ -46,6 +46,7 @@ const ALLOWED_TABLES = new Set([
   "checkpoints",
   "checkpoint_posts",
   "agent_exclusions",
+  "exclusion_notifications",
   "planning",
   "planning_assignments",
   "rotation_history",
@@ -81,6 +82,7 @@ const BOOLEAN_COLUMNS = new Set([
   "is_hq_reserve",
   "is_off_duty",
   "is_deleted",
+  "is_read",
 ]);
 
 function assertTable(table: string): void {

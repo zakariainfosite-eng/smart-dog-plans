@@ -15,12 +15,21 @@ export type FeuillePresenceTableRow = {
   presenceOnly?: boolean;
 };
 
+export type FeuillePresenceChefMode = "chief" | "adjoint_replacement" | "manual_fill";
+
 export type FeuillePresenceData = {
   dateLine: string;
   sectionName: string;
   chefName: string;
   chefGrade: string;
   chefMle: string;
+  /**
+   * When true, the PDF omits any chief identity and shows blank Nom / Matricule / Grade
+   * dotted lines for handwritten fill-in (excluded chief, no available adjoint).
+   */
+  chefNeedsReplacement?: boolean;
+  /** Title mode: real chef, adjoint replacement, or blank fill-in. */
+  chefMode?: FeuillePresenceChefMode;
   narcoticsRows: FeuillePresenceTableRow[];
   explosivesRows: FeuillePresenceTableRow[];
 };
@@ -39,6 +48,7 @@ export type CynotechnicianListPdfRow = {
   grade: string;
   /** Filled for administrative table; empty for operational. */
   fonction: string;
+  /** Operational Statut (Disponible / exclusion reason) — same logic as Fonctionnaires page. */
   situation: string;
   chien: string;
   specialite: string;

@@ -67,6 +67,62 @@ export type Database = {
           },
         ]
       }
+      exclusion_notifications: {
+        Row: {
+          id: string
+          exclusion_id: string
+          agent_id: string | null
+          dog_id: string | null
+          subject_kind: "personnel" | "dog"
+          notification_type: string
+          milestone: "d7" | "d3" | "d1" | "d0"
+          end_date: string
+          return_date: string
+          subject_name: string
+          exclusion_type: string
+          is_read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          exclusion_id: string
+          agent_id?: string | null
+          dog_id?: string | null
+          subject_kind: "personnel" | "dog"
+          notification_type: string
+          milestone: "d7" | "d3" | "d1" | "d0"
+          end_date: string
+          return_date: string
+          subject_name: string
+          exclusion_type: string
+          is_read?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          exclusion_id?: string
+          agent_id?: string | null
+          dog_id?: string | null
+          subject_kind?: "personnel" | "dog"
+          notification_type?: string
+          milestone?: "d7" | "d3" | "d1" | "d0"
+          end_date?: string
+          return_date?: string
+          subject_name?: string
+          exclusion_type?: string
+          is_read?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exclusion_notifications_exclusion_id_fkey"
+            columns: ["exclusion_id"]
+            isOneToOne: false
+            referencedRelation: "agent_exclusions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       operational_cases: {
         Row: {
           agent_id: string
@@ -216,6 +272,7 @@ export type Database = {
           is_section_chief: boolean
           last_name: string
           marital_status: Database["public"]["Enums"]["marital_status"] | null
+          date_naissance: string | null
           observations: string | null
           phone: string | null
           photo_url: string | null
@@ -236,6 +293,7 @@ export type Database = {
           is_section_chief?: boolean
           last_name: string
           marital_status?: Database["public"]["Enums"]["marital_status"] | null
+          date_naissance?: string | null
           observations?: string | null
           phone?: string | null
           photo_url?: string | null
@@ -256,6 +314,7 @@ export type Database = {
           is_section_chief?: boolean
           last_name?: string
           marital_status?: Database["public"]["Enums"]["marital_status"] | null
+          date_naissance?: string | null
           observations?: string | null
           phone?: string | null
           photo_url?: string | null

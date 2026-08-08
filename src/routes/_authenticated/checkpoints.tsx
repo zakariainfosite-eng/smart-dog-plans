@@ -5,10 +5,11 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useI18n } from "@/hooks/use-i18n";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import {
-  MapPin, Plus, Pencil, Trash2, Moon, Users, Activity,
+  MapPin, Plus, Moon, Users, Activity,
   ChevronDown, ChevronRight, AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { RowActionButtons } from "@/components/enterprise/row-action-buttons";
 
 import {
   createCheckpoint,
@@ -25,7 +26,7 @@ import {
   pageHeroLastUpdatedMeta,
 } from "@/components/enterprise/page-layout";
 import { EmptyState } from "@/components/layout/EmptyState";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { KpiCard } from "@/components/enterprise/kpi-card";
 import { FilterBar, FilterPills } from "@/components/enterprise/filter-bar";
 import { SearchField } from "@/components/enterprise/search-field";
@@ -51,7 +52,7 @@ import {
 import { formatPageLastUpdated, paginate, totalPages } from "@/lib/page-ui";
 
 export const Route = createFileRoute("/_authenticated/checkpoints")({
-  head: () => ({ meta: [{ title: "Points de contrôle — Smart K9 Planning" }] }),
+  head: () => ({ meta: [{ title: "Points de contrôle — CynoPlanning" }] }),
   component: CheckpointsPage,
 });
 
@@ -306,26 +307,13 @@ function CheckpointsPage() {
         header: () => <span className="sr-only">{t("common.actions")}</span>,
         meta: { width: "88px", sticky: "right", align: "center" },
         cell: ({ row }) => (
-          <div className="flex items-center justify-center gap-0.5">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 rounded-lg"
-              onClick={() => openEdit(row.original)}
-              aria-label={t("aria.edit")}
-            >
-              <Pencil className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive"
-              onClick={() => setDeleteTarget(row.original)}
-              aria-label={t("aria.delete")}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </div>
+          <RowActionButtons
+            className="justify-center"
+            editLabel={t("aria.edit")}
+            deleteLabel={t("aria.delete")}
+            onEdit={() => openEdit(row.original)}
+            onDelete={() => setDeleteTarget(row.original)}
+          />
         ),
       },
     ],
@@ -468,7 +456,7 @@ function CheckpointsPage() {
             <AlertDialogAction
               disabled={!deleteTarget || remove.isPending}
               onClick={(e) => { e.preventDefault(); if (deleteTarget) remove.mutate(deleteTarget); }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className={buttonVariants({ variant: "danger" })}
             >
               {t("action.delete")}
             </AlertDialogAction>

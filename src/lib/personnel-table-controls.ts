@@ -10,7 +10,7 @@ import {
   type PersonnelFonction,
 } from "@/lib/personnel-fonction";
 import {
-  deriveAgentAvailability,
+  deriveAgentAvailabilityForAgent,
   type AgentAvailability,
 } from "@/lib/agent-ui";
 import type { AgentExclusionRecord } from "@/lib/agent-exclusions";
@@ -26,6 +26,13 @@ export const PERSONNEL_STATUS_FILTER_TYPES = [
   "training",
   "suspension",
   "other",
+  "dog_sick",
+  "female_dog_heat",
+  "dog_injured",
+  "dog_temporary_retirement",
+  "dog_vet_visit",
+  "dog_training",
+  "dog_other",
 ] as const;
 
 export type PersonnelStatusFilter =
@@ -135,8 +142,8 @@ export function comparePersonnelRows(
       primary = specialtyRank(a) - specialtyRank(b);
       break;
     case "availability_asc": {
-      const avA = deriveAgentAvailability(a.id, exclusions);
-      const avB = deriveAgentAvailability(b.id, exclusions);
+      const avA = deriveAgentAvailabilityForAgent(a, exclusions);
+      const avB = deriveAgentAvailabilityForAgent(b, exclusions);
       primary = availabilityRank(avA) - availabilityRank(avB);
       if (primary === 0 && avA.status === "excluded" && avB.status === "excluded") {
         primary = compareText(avA.exclusionType, avB.exclusionType);
@@ -190,12 +197,12 @@ export function personnelMatchesSearch(
 }
 
 export function personnelMatchesStatusFilter(
-  agentId: string,
+  agent: Pick<AgentRow, "id" | "dog_id">,
   exclusions: AgentExclusionRecord[],
   statusFilter: PersonnelStatusFilter,
 ): boolean {
   if (statusFilter === "all") return true;
-  const availability = deriveAgentAvailability(agentId, exclusions);
+  const availability = deriveAgentAvailabilityForAgent(agent, exclusions);
   if (statusFilter === "available") {
     return availability.status === "available";
   }

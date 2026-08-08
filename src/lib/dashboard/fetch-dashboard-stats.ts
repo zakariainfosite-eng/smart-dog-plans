@@ -1,6 +1,6 @@
 import { db, type DbClient } from "@/integrations/database/client";
 import { getAgents, getCheckpoints, getDogs } from "@/integrations/database";
-import { todayISODate } from "@/lib/agent-exclusions";
+import { expirePastExclusions, todayISODate } from "@/lib/agent-exclusions";
 
 export type DashboardPlanningRow = {
   id: string;
@@ -31,6 +31,9 @@ export type DashboardStats = {
 export async function fetchDashboardStats(
   client: DbClient = db,
 ): Promise<DashboardStats> {
+  // Keep exclusion flags in sync whenever the dashboard opens.
+  await expirePastExclusions(client);
+
   // Same data source + same cardinality as Employees / Dogs / Checkpoints pages.
   const [agents, dogs, checkpoints] = await Promise.all([
     getAgents(),

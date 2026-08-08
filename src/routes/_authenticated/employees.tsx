@@ -6,8 +6,6 @@ import { z } from "zod";
 import {
   Users,
   Plus,
-  Pencil,
-  Trash2,
   Dog as DogIcon,
   Shield,
   Moon,
@@ -23,6 +21,7 @@ import {
 import { toast } from "sonner";
 
 import { db } from "@/integrations/database/client";
+import { RowActionButtons } from "@/components/enterprise/row-action-buttons";
 import {
   createAgent,
   deleteAgent,
@@ -38,6 +37,11 @@ import {
   MARITAL_STATUSES,
   normalizeMaritalStatus,
 } from "@/lib/marital-status";
+import {
+  formatAgentBirthDateDisplay,
+  normalizeAgentBirthDate,
+  validateAgentBirthDate,
+} from "@/lib/agent-birth-date";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { AgentsPageHero, AgentsFilterToolbar, AgentsTableShell } from "@/components/agents/agents-page-hero";
 import { AgentsStatCard } from "@/components/agents/agents-stat-card";
@@ -74,8 +78,7 @@ import {
 import {
   agentSpecialty,
   availabilityBadgeTone,
-  deriveAgentAvailability,
-  deriveAgentOperationalStatus,
+  deriveAgentAvailabilityForAgent,
   isNightEligible,
 } from "@/lib/agent-ui";
 import {
@@ -113,7 +116,10 @@ import { useI18n } from "@/hooks/use-i18n";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 
 export const Route = createFileRoute("/_authenticated/employees")({
-  head: () => ({ meta: [{ title: "Personnel — Smart K9 Planning" }] }),
+  head: () => ({ meta: [{ title: "Personnel — CynoPlanning" }] }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    details: typeof search.details === "string" ? search.details : undefined,
+  }),
   component: EmployeesPage,
 });
 
@@ -136,6 +142,7 @@ function createAgentSchema(t: (key: string) => string) {
         required_error: t("validation.maritalStatusRequired"),
         invalid_type_error: t("validation.maritalStatusRequired"),
       }),
+      date_naissance: z.string().trim().min(1, t("validation.dateOfBirthRequired")),
       section_id: z.string().uuid().nullable(),
       dog_id: z.string().uuid().nullable(),
       phone: z.string().trim().max(30),
@@ -149,6 +156,24 @@ function createAgentSchema(t: (key: string) => string) {
           code: z.ZodIssueCode.custom,
           message: t("validation.sectionResponsibleRequired"),
           path: ["section_id"],
+        });
+      }
+      const birthCode = validateAgentBirthDate(values.date_naissance);
+      if (birthCode) {
+        const messageKey =
+          birthCode === "future"
+            ? "validation.dateOfBirthFuture"
+            : birthCode === "tooYoung"
+              ? "validation.dateOfBirthTooYoung"
+              : birthCode === "tooOld"
+                ? "validation.dateOfBirthTooOld"
+                : birthCode === "invalid"
+                  ? "validation.dateOfBirthInvalid"
+                  : "validation.dateOfBirthRequired";
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: t(messageKey),
+          path: ["date_naissance"],
         });
       }
     });
@@ -195,6 +220,7 @@ const emptyForm: AgentFormValues = {
   gender: "male",
   fonction: DEFAULT_PERSONNEL_FONCTION,
   marital_status: "",
+  date_naissance: "",
   section_id: null,
   dog_id: null,
   phone: "",
@@ -224,6 +250,7 @@ function exportAgentsCsv(rows: AgentRow[], filename: string, t: (key: string) =>
     t("employees.field.assignedDog"),
     t("field.gender"),
     t("employees.field.maritalStatus"),
+    t("employees.field.dateOfBirth"),
     t("field.active"),
   ];
   const lines = rows.map((row) =>
@@ -236,6 +263,7 @@ function exportAgentsCsv(rows: AgentRow[], filename: string, t: (key: string) =>
       row.dogs?.name ?? "",
       t(`gender.${row.gender}`),
       formatMaritalStatusLabel(row.marital_status, t),
+      formatAgentBirthDateDisplay(row.date_naissance) || t("common.none"),
       row.active ? t("common.yes") : t("common.no"),
     ]
       .map((cell) => escape(String(cell)))
@@ -251,7 +279,7 @@ function exportAgentsCsv(rows: AgentRow[], filename: string, t: (key: string) =>
 }
 
 function availabilityLabel(
-  availability: ReturnType<typeof deriveAgentAvailability>,
+  availability: ReturnType<typeof deriveAgentAvailabilityForAgent>,
   t: (key: string) => string,
 ): string {
   if (availability.status === "available") {
@@ -264,6 +292,7 @@ function EmployeesPage() {
   const { t } = useI18n();
   useDocumentTitle("meta.employees.title");
   const agentSchema = useMemo(() => createAgentSchema(t), [t]);
+  const { details: detailsFromSearch } = Route.useSearch();
 
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -279,7 +308,9 @@ function EmployeesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<AgentRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AgentRow | null>(null);
-  const [detailsAgentId, setDetailsAgentId] = useState<string | null>(null);
+  const [detailsAgentId, setDetailsAgentId] = useState<string | null>(
+    detailsFromSearch ?? null,
+  );
   const [form, setForm] = useState<AgentFormValues>(emptyForm);
   const [errors, setErrors] = useState<Partial<Record<keyof AgentFormValues, string>>>({});
   const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
@@ -288,7 +319,13 @@ function EmployeesPage() {
   const [page, setPage] = useState(1);
   const [exportingPdf, setExportingPdf] = useState(false);
 
-  const { data: agents, isLoading, dataUpdatedAt } = useQuery({
+  useEffect(() => {
+    if (detailsFromSearch) {
+      setDetailsAgentId(detailsFromSearch);
+    }
+  }, [detailsFromSearch]);
+
+  const { data: agents, isLoading } = useQuery({
     queryKey: ["agents-full"],
     queryFn: async () => {
       const rows = await getAgents();
@@ -336,7 +373,7 @@ function EmployeesPage() {
   });
 
   const { data: todayExclusions = [] } = useQuery({
-    queryKey: ACTIVE_EXCLUSIONS_TODAY_QUERY_KEY,
+    queryKey: [...ACTIVE_EXCLUSIONS_TODAY_QUERY_KEY, todayISODate()],
     queryFn: () => fetchActiveExclusionsForDate(db, todayISODate()),
   });
 
@@ -352,8 +389,12 @@ function EmployeesPage() {
     const list = agents ?? [];
     const exclusions = todayExclusions as AgentExclusionRecord[];
     const total = list.length;
-    const available = list.filter((a) => deriveAgentOperationalStatus(a, exclusions) === "available").length;
-    const excluded = list.filter((a) => deriveAgentOperationalStatus(a, exclusions) === "excluded").length;
+    const available = list.filter(
+      (a) => deriveAgentAvailabilityForAgent(a, exclusions).status === "available",
+    ).length;
+    const excluded = list.filter(
+      (a) => deriveAgentAvailabilityForAgent(a, exclusions).status === "excluded",
+    ).length;
     const female = list.filter((a) => a.gender === "female").length;
     const male = list.filter((a) => a.gender === "male").length;
     const withDog = list.filter((a) => a.dog_id).length;
@@ -422,7 +463,7 @@ function EmployeesPage() {
     }
     if (statusFilter !== "all") {
       list = list.filter((a) =>
-        personnelMatchesStatusFilter(a.id, exclusions, statusFilter),
+        personnelMatchesStatusFilter(a, exclusions, statusFilter),
       );
     }
     if (maritalFilter !== "all") {
@@ -504,13 +545,9 @@ function EmployeesPage() {
     setPage(1);
   };
 
-  const lastUpdatedLabel = dataUpdatedAt
-    ? new Date(dataUpdatedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
-    : "—";
-
   const handleExport = () => {
     if (filtered.length === 0) return;
-    exportAgentsCsv(filtered, `cynotechniciens-${todayISODate()}.csv`, t);
+    exportAgentsCsv(filtered, `fonctionnaires-${todayISODate()}.csv`, t);
     toast.success(t("employees.export.success"));
   };
 
@@ -583,6 +620,7 @@ function EmployeesPage() {
       gender: a.gender as Gender,
       fonction: normalizePersonnelFonction(a.fonction),
       marital_status: normalizeMaritalStatus(a.marital_status) ?? "",
+      date_naissance: normalizeAgentBirthDate(a.date_naissance) ?? "",
       section_id: a.section_id,
       dog_id: a.dog_id,
       phone: a.phone ?? "",
@@ -602,7 +640,26 @@ function EmployeesPage() {
       if (!maritalStatus) {
         throw new Error(t("validation.maritalStatusRequired"));
       }
-      const writePayload = { ...payload, marital_status: maritalStatus };
+      const birthDate = normalizeAgentBirthDate(payload.date_naissance);
+      const birthCode = validateAgentBirthDate(birthDate);
+      if (!birthDate || birthCode) {
+        const messageKey =
+          birthCode === "future"
+            ? "validation.dateOfBirthFuture"
+            : birthCode === "tooYoung"
+              ? "validation.dateOfBirthTooYoung"
+              : birthCode === "tooOld"
+                ? "validation.dateOfBirthTooOld"
+                : birthCode === "invalid"
+                  ? "validation.dateOfBirthInvalid"
+                  : "validation.dateOfBirthRequired";
+        throw new Error(t(messageKey));
+      }
+      const writePayload = {
+        ...payload,
+        marital_status: maritalStatus,
+        date_naissance: birthDate,
+      };
 
       if (pendingPhotoFile) {
         const validationKey = validateAgentPhotoFile(pendingPhotoFile);
@@ -807,7 +864,7 @@ function EmployeesPage() {
         meta: { width: "11%", align: "center" },
         cell: ({ row }) => {
           const exclusions = todayExclusions as AgentExclusionRecord[];
-          const availability = deriveAgentAvailability(row.original.id, exclusions);
+          const availability = deriveAgentAvailabilityForAgent(row.original, exclusions);
           const label = availabilityLabel(availability, t);
           return (
             <CellTooltip label={label} className="flex justify-center">
@@ -842,26 +899,13 @@ function EmployeesPage() {
         header: () => <span className="sr-only">{t("common.actions")}</span>,
         meta: { width: "10%", sticky: "right", align: "right" },
         cell: ({ row }) => (
-          <div className="flex items-center justify-end gap-0 opacity-90 transition-opacity group-hover:opacity-100">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 rounded-md"
-              onClick={() => openEdit(row.original)}
-              aria-label={t("aria.edit")}
-            >
-              <Pencil className="h-3 w-3" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 rounded-md text-destructive hover:bg-destructive/10 hover:text-destructive"
-              onClick={() => setDeleteTarget(row.original)}
-              aria-label={t("aria.delete")}
-            >
-              <Trash2 className="h-3 w-3" />
-            </Button>
-          </div>
+          <RowActionButtons
+            className="opacity-90 transition-opacity group-hover:opacity-100"
+            editLabel={t("aria.edit")}
+            deleteLabel={t("aria.delete")}
+            onEdit={() => openEdit(row.original)}
+            onDelete={() => setDeleteTarget(row.original)}
+          />
         ),
       },
     ],
@@ -967,12 +1011,10 @@ function EmployeesPage() {
       <AgentsPageHero
         title={t("employees.hero.title")}
         subtitle={t("employees.hero.subtitle")}
-        totalAgents={stats.total}
-        activeToday={stats.available}
-        lastUpdated={lastUpdatedLabel}
-        totalLabel={t("employees.stat.total")}
-        activeTodayLabel={t("employees.hero.activeToday")}
-        lastUpdatedLabel={t("employees.hero.lastUpdated")}
+        breadcrumb={[
+          { label: t("auth.brandName") },
+          { label: t("nav.employees") },
+        ]}
         addLabel={t("employees.addAgent")}
         exportLabel={t("employees.export.label")}
         exportPdfLabel={t("employees.export.pdfLabel")}

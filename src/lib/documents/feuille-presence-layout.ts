@@ -168,13 +168,24 @@ export const FP_REST_ASSIGNMENT = "REPOS" as const;
 export const FP_CHEF_LINE =
   "CHEF DE SECTION .................... GRADE : .................... MLE : ...................." as const;
 
+/** Blank fill-in lines when no available Chef / Adjoint Chef de section. */
+export const FP_CHEF_MANUAL_FILL_DOTS =
+  "............................................................" as const;
+
+export const FP_CHEF_MANUAL_FILL_NAME_LABEL = "Nom et prénom :" as const;
+export const FP_CHEF_MANUAL_FILL_MLE_LABEL = "Matricule :" as const;
+export const FP_CHEF_MANUAL_FILL_GRADE_LABEL = "Grade :" as const;
+
+export const FP_CHEF_TITLE = "CHEF DE SECTION" as const;
+export const FP_CHEF_ADJOINT_REPLACEMENT_TITLE = "CHEF DE SECTION (INTÉRIM)" as const;
+
 export const FP_WORK_TITLE = "SYSTÈME DE TRAVAIL : ROULEMENT (12/24)" as const;
 
 export const FP_SIGNATURE_SECTION = "SIGNATURE CHEF SECTION" as const;
 export const FP_SIGNATURE_BRIGADE = "SIGNATURE CHEF BRIGADE CYNOTECHNIQUE" as const;
 
 /** Official list title — same typographic scale as FEUILLE DE PRESENCE. */
-export const FP_CYNOTECHNICIANS_LIST_TITLE = "LISTE DES CYNOTECHNICIENS" as const;
+export const FP_CYNOTECHNICIANS_LIST_TITLE = "LISTE DES FONCTIONNAIRES" as const;
 
 /**
  * Operational staff (Cynotechnicien) columns — sum equals FP_CONTENT_W (186 mm).
@@ -186,7 +197,7 @@ export const FP_CYNOTECHNICIANS_TABLE_COLS = [
   { key: "prenom", label: "PRÉNOM", w: 22 },
   { key: "matricule", label: "MATRICULE", w: 18 },
   { key: "grade", label: "GRADE", w: 14 },
-  { key: "situation", label: "SITUATION", w: 22 },
+  { key: "situation", label: "STATUT", w: 22 },
   { key: "chien", label: "CHIEN AFFECTÉ", w: 24 },
   { key: "specialite", label: "SPÉCIALITÉ", w: 26 },
   { key: "section", label: "SECTION", w: 28 },
@@ -203,7 +214,7 @@ export const FP_PERSONNEL_ADMIN_TABLE_COLS = [
   { key: "matricule", label: "MATRICULE", w: 18 },
   { key: "grade", label: "GRADE", w: 16 },
   { key: "fonction", label: "FONCTION", w: 50 },
-  { key: "situation", label: "SITUATION", w: 44 },
+  { key: "situation", label: "STATUT", w: 44 },
 ] as const;
 
 /** Official list title — same typographic scale as FEUILLE DE PRESENCE. */

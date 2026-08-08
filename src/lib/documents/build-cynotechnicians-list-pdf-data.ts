@@ -1,7 +1,10 @@
 import type { AgentRow } from "@/integrations/database";
 import type { AgentExclusionRecord } from "@/lib/agent-exclusions";
-import { agentSpecialty } from "@/lib/agent-ui";
-import { formatMaritalStatusPdfLabel } from "@/lib/marital-status";
+import {
+  agentSpecialty,
+  deriveAgentAvailabilityForAgent,
+  type AgentAvailability,
+} from "@/lib/agent-ui";
 import type {
   CynotechnicianListPdfRow,
   CynotechniciansListPdfData,
@@ -21,6 +24,27 @@ const SPECIALTY_LABEL: Record<"narcotics" | "explosives", string> = {
   explosives: "EXPLOSIFS",
 };
 
+/** Official French Statut labels for the personnel list PDF/DOCX. */
+const STATUS_PDF_LABEL: Record<string, string> = {
+  available: "Disponible",
+  sickness: "Malade",
+  annual_leave: "Congé",
+  special_leave: "Congé",
+  administrative_leave: "Congé",
+  absence: "Absence",
+  mission: "Mission",
+  training: "Formation",
+  suspension: "Suspension",
+  other: "Indisponible",
+  dog_sick: "Chien malade",
+  female_dog_heat: "Chienne en chaleur",
+  dog_injured: "Blessé",
+  dog_temporary_retirement: "Chien en repos",
+  dog_vet_visit: "Visite vétérinaire",
+  dog_training: "Dressage",
+  dog_other: "Indisponible",
+};
+
 /** @deprecated Prefer PDF_PERSONNEL_FONCTION_LABELS from personnel-two-tables. */
 export const PDF_PERSONNEL_FONCTION_SECTION_TITLES = PDF_PERSONNEL_FONCTION_LABELS;
 
@@ -35,7 +59,14 @@ export function formatCynotechniciansListDateLine(date = new Date()): string {
 
 export function cynotechniciansListFilename(date = new Date()): string {
   const iso = `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
-  return `Liste_Cynotechniciens_${iso}.pdf`;
+  return `Liste_Fonctionnaires_${iso}.pdf`;
+}
+
+export function formatPersonnelStatusPdfLabel(availability: AgentAvailability): string {
+  if (availability.status === "available") {
+    return STATUS_PDF_LABEL.available;
+  }
+  return STATUS_PDF_LABEL[availability.exclusionType] ?? "Indisponible";
 }
 
 function specialiteLabel(agent: AgentRow): string {
@@ -55,8 +86,11 @@ function mapAgentToPdfRow(
   agent: AgentRow,
   numero: number,
   operational: boolean,
+  exclusions: AgentExclusionRecord[],
+  exportDate: Date,
 ): CynotechnicianListPdfRow {
   const fonction = normalizePersonnelFonction(agent.fonction);
+  const availability = deriveAgentAvailabilityForAgent(agent, exclusions, exportDate);
   return {
     numero,
     nom: (agent.last_name ?? "").trim().toUpperCase(),
@@ -64,7 +98,7 @@ function mapAgentToPdfRow(
     matricule: agent.professional_number?.trim() || "-",
     grade: (agent.grade ?? "").trim() || "-",
     fonction: operational ? "" : PDF_PERSONNEL_FONCTION_LABELS[fonction],
-    situation: formatMaritalStatusPdfLabel(agent.marital_status),
+    situation: formatPersonnelStatusPdfLabel(availability),
     chien: operational ? agent.dogs?.name?.trim() || "-" : "",
     specialite: operational ? specialiteLabel(agent) : "",
     section: operational ? agent.sections?.name?.trim() || "-" : "",
@@ -72,12 +106,12 @@ function mapAgentToPdfRow(
 }
 
 /**
- * Build official Personnel List PDF data — exactly two tables max:
+ * Build official Fonctionnaires List PDF data — exactly two tables max:
  * administrative/command (with Fonction), then Cynotechniciens.
  */
 export function buildCynotechniciansListPdfData(
   agents: AgentRow[],
-  _exclusions: AgentExclusionRecord[],
+  exclusions: AgentExclusionRecord[],
   exportDate = new Date(),
 ): CynotechniciansListPdfData {
   const { administrative, operational } = splitPersonnelIntoTwoTables(agents);
@@ -88,7 +122,7 @@ export function buildCynotechniciansListPdfData(
       title: PDF_ADMIN_TABLE_TITLE,
       layout: "administrative",
       rows: administrative.map((agent, index) =>
-        mapAgentToPdfRow(agent, index + 1, false),
+        mapAgentToPdfRow(agent, index + 1, false, exclusions, exportDate),
       ),
     });
   }
@@ -98,7 +132,7 @@ export function buildCynotechniciansListPdfData(
       title: PDF_OPERATIONAL_TABLE_TITLE,
       layout: "operational",
       rows: operational.map((agent, index) =>
-        mapAgentToPdfRow(agent, index + 1, true),
+        mapAgentToPdfRow(agent, index + 1, true, exclusions, exportDate),
       ),
     });
   }

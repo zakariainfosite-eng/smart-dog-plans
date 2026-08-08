@@ -29,7 +29,7 @@ function NotFoundComponent() {
         <div className="mt-6">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex h-[42px] items-center justify-center rounded-[10px] bg-[#023A84] px-[18px] text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-200 hover:bg-[#0349A5] active:scale-[0.98] active:bg-[#012E68]"
           >
             {t("action.goHome")}
           </Link>
@@ -60,13 +60,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex h-[42px] items-center justify-center rounded-[10px] bg-[#023A84] px-[18px] text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-200 hover:bg-[#0349A5] active:scale-[0.98] active:bg-[#012E68]"
           >
             {t("action.tryAgain")}
           </button>
           <a
             href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            className="inline-flex h-[42px] items-center justify-center rounded-[10px] border border-[#D1D5DB] bg-white px-[18px] text-sm font-semibold text-[#023A84] shadow-sm transition-[background-color,transform] duration-200 hover:bg-[#F8FAFC] active:scale-[0.98]"
           >
             {t("action.goHome")}
           </a>
@@ -81,13 +81,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Smart K9 Planning — Console de gestion K9" },
+      { title: "CynoPlanning — Console de gestion K9" },
       {
         name: "description",
         content:
           "Console d'administration professionnelle pour la gestion des unités K9 et la planification.",
       },
-      { property: "og:title", content: "Smart K9 Planning" },
+      { property: "og:title", content: "CynoPlanning" },
       {
         property: "og:description",
         content: "Console d'administration pour la gestion des unités K9 et la planification.",

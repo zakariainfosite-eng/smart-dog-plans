@@ -1,6 +1,8 @@
 import type { DbClient } from "@/integrations/database/client";
-import { getSections } from "@/integrations/database";
+import { getAgents, getSections } from "@/integrations/database";
 import {
+  expirePastExclusions,
+  fetchActiveExclusionsForDate,
   isDogLevelExclusionType,
   todayISODate,
 } from "@/lib/agent-exclusions";
@@ -9,6 +11,7 @@ import {
   buildSectionRotationSchedule,
   currentOperationalShift,
 } from "@/lib/planning/section-rotation";
+import { resolveSectionCommanderDisplay } from "@/lib/section-commander-display";
 import { parseISO } from "date-fns";
 
 export type OperationalSummary = {
@@ -89,6 +92,8 @@ export async function fetchOperationalSummary(
   db: DbClient,
   referenceDate = new Date(),
 ): Promise<OperationalSummary> {
+  // Dashboard reference date is always today — persist expired flags then evaluate.
+  await expirePastExclusions(db);
   const dateISO = todayISODate();
   const shift = currentOperationalShift(referenceDate);
   const empty = createEmptyOperationalSummary(referenceDate);
@@ -123,15 +128,35 @@ export async function fetchOperationalSummary(
 
   if (planningError) throw planningError;
 
-  const ctx = await loadPlanningContext(
-    db,
-    dateISO,
-    activeSection.id,
-    parseISO(dateISO),
-  );
+  const [ctx, allAgents, exclusions] = await Promise.all([
+    loadPlanningContext(db, dateISO, activeSection.id, parseISO(dateISO)),
+    getAgents(),
+    fetchActiveExclusionsForDate(db, dateISO),
+  ]);
 
   const sectionAgentIds = new Set(ctx.agents.map((agent) => agent.id));
   const exclusionCounts = countOperationalExclusions(ctx.exclusions, sectionAgentIds);
+
+  // Display-only interim replacement — never persists to DB.
+  const commander = resolveSectionCommanderDisplay({
+    sectionId: activeSection.id,
+    agents: allAgents.map((agent) => ({
+      id: agent.id,
+      first_name: agent.first_name,
+      last_name: agent.last_name,
+      grade: agent.grade,
+      professional_number: agent.professional_number,
+      section_id: agent.section_id,
+      fonction: agent.fonction,
+      active: agent.active,
+    })),
+    exclusions,
+    fallback: {
+      fullName: activeSection.commander_full_name,
+      grade: activeSection.commander_grade,
+      mle: activeSection.commander_mle,
+    },
+  });
 
   return {
     dateISO,
@@ -139,9 +164,9 @@ export async function fetchOperationalSummary(
     hasActiveSection: true,
     sectionName: activeSection.name,
     shift,
-    commanderName: activeSection.commander_full_name.trim(),
-    commanderGrade: activeSection.commander_grade.trim(),
-    commanderMle: activeSection.commander_mle.trim(),
+    commanderName: commander.needsManualFill ? "" : commander.fullName.trim(),
+    commanderGrade: commander.needsManualFill ? "" : commander.grade.trim(),
+    commanderMle: commander.needsManualFill ? "" : commander.mle.trim(),
     ...exclusionCounts,
   };
 }

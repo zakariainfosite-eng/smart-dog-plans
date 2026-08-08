@@ -27,7 +27,7 @@ import { useI18n } from "@/hooks/use-i18n";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 
 export const Route = createFileRoute("/_authenticated/history")({
-  head: () => ({ meta: [{ title: "Historique — Smart K9 Planning" }] }),
+  head: () => ({ meta: [{ title: "Historique — CynoPlanning" }] }),
   component: HistoryPage,
 });
 

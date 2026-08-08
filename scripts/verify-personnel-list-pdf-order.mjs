@@ -1,8 +1,9 @@
 /**
- * Personnel List PDF — two tables (admin + Cynotechniciens).
+ * Fonctionnaires List PDF — two tables (admin + Cynotechniciens).
  * Run: npx --yes tsx scripts/verify-personnel-list-pdf-order.mjs
  */
 import { buildCynotechniciansListPdfData } from "../src/lib/documents/build-cynotechnicians-list-pdf-data.ts";
+import { FP_CYNOTECHNICIANS_LIST_TITLE } from "../src/lib/documents/feuille-presence-layout.ts";
 import {
   PDF_ADMIN_TABLE_TITLE,
   PDF_OPERATIONAL_TABLE_TITLE,
@@ -32,7 +33,7 @@ function agent(partial) {
     fonction: partial.fonction,
     marital_status: "single",
     section_id: null,
-    dog_id: null,
+    dog_id: partial.dog_id ?? null,
     is_section_chief: false,
     active: true,
     phone: null,
@@ -58,6 +59,7 @@ const shuffled = [
     grade: "Brigadier",
     last_name: "Zidane",
     first_name: "Karim",
+    dog_id: "d1",
     dogs: { id: "d1", name: "Rex", specialty: "narcotics", status: "available" },
   }),
   agent({
@@ -97,12 +99,36 @@ const shuffled = [
   }),
 ];
 
+assert(
+  FP_CYNOTECHNICIANS_LIST_TITLE === "LISTE DES FONCTIONNAIRES",
+  "PDF document title is Liste des fonctionnaires",
+);
+
 const data = buildCynotechniciansListPdfData(shuffled, []);
 assert(data.tables.length === 2, "exactly two tables when both groups present");
 assert(data.tables[0].layout === "administrative", "table 1 is administrative");
 assert(data.tables[0].title === PDF_ADMIN_TABLE_TITLE, "admin title");
 assert(data.tables[1].layout === "operational", "table 2 is operational");
 assert(data.tables[1].title === PDF_OPERATIONAL_TABLE_TITLE, "cyno title only");
+assert(
+  data.tables.every((table) => table.rows.every((row) => row.situation === "Disponible")),
+  "default Statut is Disponible without exclusions",
+);
+
+const withDogExclusion = buildCynotechniciansListPdfData(shuffled, [
+  {
+    agent_id: null,
+    dog_id: "d1",
+    exclusion_type: "female_dog_heat",
+    start_date: "2020-01-01",
+    end_date: "2099-12-31",
+    active: true,
+  },
+]);
+const heatRow = withDogExclusion.tables
+  .flatMap((table) => table.rows)
+  .find((row) => row.matricule === "300");
+assert(heatRow?.situation === "Chienne en chaleur", "dog exclusion appears as Statut on PDF");
 
 const admin = data.tables[0];
 assert(admin.rows.length === 4, "all admin functions in one table");

@@ -16,6 +16,12 @@ import {
   type FeuillePresenceLogoSources,
 } from "@/lib/documents/feuille-presence-logo";
 import {
+  FP_CHEF_ADJOINT_REPLACEMENT_TITLE,
+  FP_CHEF_MANUAL_FILL_DOTS,
+  FP_CHEF_MANUAL_FILL_GRADE_LABEL,
+  FP_CHEF_MANUAL_FILL_MLE_LABEL,
+  FP_CHEF_MANUAL_FILL_NAME_LABEL,
+  FP_CHEF_TITLE,
   FP_CONTENT_W,
   FP_CYNOTECHNICIANS_LIST_TITLE,
   FP_CYNOTECHNICIANS_TABLE_COLS,
@@ -163,21 +169,27 @@ const FP_CHEF_PLACEHOLDER = "....................";
 
 type ChefLineSegment = { text: string; bold: boolean };
 
-function buildChefLineSegments(data?: FeuillePresenceData): ChefLineSegment[] {
-  const name = data?.chefName.trim() || FP_CHEF_PLACEHOLDER;
-  const grade = data?.chefGrade.trim() || FP_CHEF_PLACEHOLDER;
-  const mle = data?.chefMle.trim() || FP_CHEF_PLACEHOLDER;
-  return [
-    { text: "CHEF DE SECTION ", bold: true },
-    { text: name, bold: false },
-    { text: "   GRADE : ", bold: true },
-    { text: grade, bold: false },
-    { text: "   MLE : ", bold: true },
-    { text: mle, bold: false },
-  ];
+function chefTitleForData(data?: FeuillePresenceData): string {
+  return data?.chefMode === "adjoint_replacement"
+    ? FP_CHEF_ADJOINT_REPLACEMENT_TITLE
+    : FP_CHEF_TITLE;
 }
 
-function drawMixedLineCentered(
+function measureChefSegmentsWidth(
+  doc: jsPDF,
+  segments: ChefLineSegment[],
+  family: "times" | "helvetica",
+  size: number,
+): number {
+  let totalW = 0;
+  for (const segment of segments) {
+    setTypo(doc, family, segment.bold ? "bold" : "normal", size);
+    totalW += doc.getTextWidth(segment.text);
+  }
+  return totalW;
+}
+
+function drawChefSegmentsCentered(
   doc: jsPDF,
   segments: ChefLineSegment[],
   centerX: number,
@@ -185,21 +197,68 @@ function drawMixedLineCentered(
   family: "times" | "helvetica",
   size: number,
 ) {
-  const parts: ChefLineSegment[] = [];
-  let totalW = 0;
-  for (const segment of segments) {
-    setTypo(doc, family, segment.bold ? "bold" : "normal", size);
-    const w = doc.getTextWidth(segment.text);
-    parts.push(segment);
-    totalW += w;
-  }
-
+  const totalW = measureChefSegmentsWidth(doc, segments, family, size);
   let x = centerX - totalW / 2;
-  for (const segment of parts) {
+  for (const segment of segments) {
     setTypo(doc, family, segment.bold ? "bold" : "normal", size);
     doc.text(segment.text, x, y);
     x += doc.getTextWidth(segment.text);
   }
+}
+
+/**
+ * Single-line leadership header when possible:
+ *   CHEF DE SECTION : Nom Prénom    Grade : XXX    MLE : XXXXX
+ * Falls back to two lines if the full line exceeds content width:
+ *   CHEF DE SECTION : Nom Prénom
+ *   Grade : XXX    MLE : XXXXX
+ */
+function drawChefIdentityLine(
+  doc: jsPDF,
+  data: FeuillePresenceData,
+  startY: number,
+): number {
+  const title = chefTitleForData(data);
+  const name = data.chefName.trim() || FP_CHEF_PLACEHOLDER;
+  const grade = data.chefGrade.trim() || FP_CHEF_PLACEHOLDER;
+  const mle = data.chefMle.trim() || FP_CHEF_PLACEHOLDER;
+  const family = FP_TYPO.chefLine.family;
+  const size = FP_TYPO.chefLine.size;
+  const maxW = FP_CONTENT_W;
+
+  const titleNameSegments: ChefLineSegment[] = [
+    { text: `${title} : `, bold: true },
+    { text: name, bold: false },
+  ];
+  const gradeMleSegments: ChefLineSegment[] = [
+    { text: "Grade : ", bold: true },
+    { text: grade, bold: false },
+    { text: "    MLE : ", bold: true },
+    { text: mle, bold: false },
+  ];
+  const singleLineSegments: ChefLineSegment[] = [
+    ...titleNameSegments,
+    { text: "    ", bold: false },
+    ...gradeMleSegments,
+  ];
+
+  const singleW = measureChefSegmentsWidth(doc, singleLineSegments, family, size);
+  if (singleW <= maxW) {
+    drawChefSegmentsCentered(doc, singleLineSegments, FP_PAGE.w / 2, startY, family, size);
+    return startY + FP_LAYOUT.chefLineGap;
+  }
+
+  const lineLeading = 3.6;
+  drawChefSegmentsCentered(doc, titleNameSegments, FP_PAGE.w / 2, startY, family, size);
+  drawChefSegmentsCentered(
+    doc,
+    gradeMleSegments,
+    FP_PAGE.w / 2,
+    startY + lineLeading,
+    family,
+    size,
+  );
+  return startY + lineLeading + FP_LAYOUT.chefLineGap;
 }
 
 export function drawFeuillePresenceTitleBlock(doc: jsPDF, startY: number, data?: FeuillePresenceData): number {
@@ -213,17 +272,49 @@ export function drawFeuillePresenceTitleBlock(doc: jsPDF, startY: number, data?:
   drawCentered(doc, data?.sectionName ?? "SECTION", FP_PAGE.w / 2, y);
   y += FP_LAYOUT.titleSectionGap;
 
-  drawMixedLineCentered(
-    doc,
-    buildChefLineSegments(data),
-    FP_PAGE.w / 2,
-    y,
-    FP_TYPO.chefLine.family,
-    FP_TYPO.chefLine.size,
-  );
-  y += FP_LAYOUT.chefLineGap;
+  if (data?.chefNeedsReplacement || data?.chefMode === "manual_fill") {
+    const lineLeading = 3.6;
+    setTypo(doc, FP_TYPO.chefLine.family, "bold", FP_TYPO.chefLine.size);
+    drawCentered(doc, FP_CHEF_TITLE, FP_PAGE.w / 2, y);
+    y += lineLeading;
 
-  return y;
+    const manualRows: Array<{ label: string }> = [
+      { label: FP_CHEF_MANUAL_FILL_NAME_LABEL },
+      { label: FP_CHEF_MANUAL_FILL_GRADE_LABEL },
+      { label: FP_CHEF_MANUAL_FILL_MLE_LABEL },
+    ];
+    for (const row of manualRows) {
+      setTypo(doc, FP_TYPO.chefLine.family, "bold", FP_TYPO.chefLine.size);
+      drawCentered(doc, row.label, FP_PAGE.w / 2, y);
+      y += lineLeading * 0.85;
+      setTypo(doc, FP_TYPO.chefLine.family, "normal", FP_TYPO.chefLine.size);
+      drawCentered(doc, FP_CHEF_MANUAL_FILL_DOTS, FP_PAGE.w / 2, y);
+      y += lineLeading;
+    }
+    y += FP_LAYOUT.chefLineGap;
+    return y;
+  }
+
+  if (!data) {
+    drawChefSegmentsCentered(
+      doc,
+      [
+        { text: `${FP_CHEF_TITLE} : `, bold: true },
+        { text: FP_CHEF_PLACEHOLDER, bold: false },
+        { text: "    Grade : ", bold: true },
+        { text: FP_CHEF_PLACEHOLDER, bold: false },
+        { text: "    MLE : ", bold: true },
+        { text: FP_CHEF_PLACEHOLDER, bold: false },
+      ],
+      FP_PAGE.w / 2,
+      y,
+      FP_TYPO.chefLine.family,
+      FP_TYPO.chefLine.size,
+    );
+    return y + FP_LAYOUT.chefLineGap;
+  }
+
+  return drawChefIdentityLine(doc, data, y);
 }
 
 export function drawFeuillePresenceWorkSystem(doc: jsPDF, startY: number): number {

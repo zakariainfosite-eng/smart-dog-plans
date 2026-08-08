@@ -1,0 +1,148 @@
+{
+  "stages": {
+    "1-generate": {
+      "ok": true,
+      "message": "594141 bytes",
+      "path": "/Users/mac/Desktop/smart-dog-plans-main/tmp-docx-investigation/01-generated-dev.docx",
+      "sha256": "e38cfb4b47663e7e0cff92744d6bbe7218ae4d02fcb56ebb0101ba1b86717e1c",
+      "head": "504b0304"
+    },
+    "2-jszip-reopen": {
+      "ok": true,
+      "message": "24 entries, CRC32 OK",
+      "entries": [
+        "[Content_Types].xml",
+        "_rels/",
+        "_rels/.rels",
+        "docProps/",
+        "docProps/app.xml",
+        "docProps/core.xml",
+        "docProps/custom.xml",
+        "word/",
+        "word/_rels/",
+        "word/_rels/comments.xml.rels",
+        "word/_rels/document.xml.rels",
+        "word/_rels/endnotes.xml.rels",
+        "word/_rels/fontTable.xml.rels",
+        "word/_rels/footnotes.xml.rels",
+        "word/comments.xml",
+        "word/document.xml",
+        "word/endnotes.xml",
+        "word/fontTable.xml",
+        "word/footnotes.xml",
+        "word/media/",
+        "word/media/ce96c6bb0bbab2b0263e902efa7056dd08f329be.png",
+        "word/numbering.xml",
+        "word/settings.xml",
+        "word/styles.xml"
+      ]
+    },
+    "3-required-parts": {
+      "ok": true,
+      "message": "all present",
+      "missing": []
+    },
+    "4-xml-validate": {
+      "ok": true,
+      "message": "all XML/rels parse",
+      "xmlIssues": []
+    },
+    "5-rels-content-types-document": {
+      "ok": true,
+      "message": "embeds=2 imageRels=1 uniqueDocPr=true",
+      "embeds": [
+        "rId7",
+        "rId7"
+      ],
+      "imageRels": [
+        {
+          "id": "rId7",
+          "target": "media/ce96c6bb0bbab2b0263e902efa7056dd08f329be.png"
+        }
+      ],
+      "docPrIds": [
+        "1",
+        "2"
+      ],
+      "uniqueDocPr": true,
+      "hasPngOverride": true,
+      "missingEmbeds": [],
+      "rootRelsHasDocument": true,
+      "hasNaN": false
+    },
+    "6-media-png": {
+      "ok": true,
+      "message": "1 media file(s)",
+      "mediaFiles": [
+        "word/media/ce96c6bb0bbab2b0263e902efa7056dd08f329be.png"
+      ],
+      "mediaIssues": []
+    },
+    "7-ipc-base64-roundtrip": {
+      "ok": true,
+      "message": "byte-identical after IPC encode/decode",
+      "generatedLen": 594141,
+      "decodedLen": 594141,
+      "generatedSha": "e38cfb4b47663e7e0cff92744d6bbe7218ae4d02fcb56ebb0101ba1b86717e1c",
+      "decodedSha": "e38cfb4b47663e7e0cff92744d6bbe7218ae4d02fcb56ebb0101ba1b86717e1c"
+    },
+    "8-polyfill-base64-roundtrip": {
+      "ok": true,
+      "message": "polyfill base64 still round-trips in Node (may differ in Chromium)",
+      "match": true
+    },
+    "9-atomic-write": {
+      "ok": true,
+      "message": "wrote 594141 bytes",
+      "path": "/Users/mac/Desktop/smart-dog-plans-main/tmp-docx-investigation/09-after-atomic-write.docx",
+      "match": true,
+      "sha256": "e38cfb4b47663e7e0cff92744d6bbe7218ae4d02fcb56ebb0101ba1b86717e1c"
+    },
+    "10-jszip-after-write": {
+      "ok": true,
+      "message": "24 entries CRC32 OK"
+    },
+    "11-compare-prior-sample": {
+      "ok": true,
+      "message": "sizes differ expected (content/date); both must be valid ZIP",
+      "priorLen": 594140,
+      "currentLen": 594141,
+      "priorIsZip": true,
+      "currentIsZip": true,
+      "byteIdentical": false
+    },
+    "12-corrupt-artifact-analysis": {
+      "ok": false,
+      "message": "tmp-export-ipc file is NOT a DOCX — sequential test pattern (i&0xff), not a real export",
+      "len": 593879,
+      "head": "0001020304050607",
+      "sequential": true,
+      "isZip": false
+    },
+    "13-zip-safe-copy": {
+      "ok": true,
+      "message": "toZipSafeUint8Array preserves PNG bytes"
+    }
+  },
+  "failures": [
+    {
+      "stage": "12-corrupt-artifact-analysis",
+      "message": "tmp-export-ipc file is NOT a DOCX — sequential test pattern (i&0xff), not a real export",
+      "len": 593879,
+      "head": "0001020304050607",
+      "sequential": true,
+      "isZip": false
+    }
+  ],
+  "notes": [
+    "tmp-export-ipc/Planning_2026-07-27.docx is a synthetic sequential byte file from an IPC repro, not evidence of generation corruption.",
+    "LibreOffice/soffice not available in this environment for open-test.",
+    "Windows .exe cannot be executed on this macOS host; packaged path simulated via Buffer polyfill + IPC + atomic write."
+  ],
+  "summary": {
+    "ok": true,
+    "failingStages": [],
+    "generatedPath": "/Users/mac/Desktop/smart-dog-plans-main/tmp-docx-investigation/01-generated-dev.docx",
+    "writtenPath": "/Users/mac/Desktop/smart-dog-plans-main/tmp-docx-investigation/09-after-atomic-write.docx"
+  }
+}

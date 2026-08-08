@@ -63,42 +63,45 @@
   --card-foreground: #111827;
   --popover: #ffffff;
   --popover-foreground: #111827;
-  --primary: #0b5fff;
+  /* CynoPlanning brand — keep in sync with Button primary */
+  --primary: #023a84;
   --primary-foreground: #ffffff;
+  --primary-hover: #0349a5;
+  --primary-active: #012e68;
   --secondary: #ffffff;
-  --secondary-foreground: #111827;
+  --secondary-foreground: #023a84;
   --muted: #f3f4f6;
   --muted-foreground: #6b7280;
-  --accent: #eff4ff;
-  --accent-foreground: #0b5fff;
+  --accent: #f0f5fb;
+  --accent-foreground: #023a84;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
   --success: #16a34a;
   --success-foreground: #ffffff;
   --warning: #f59e0b;
   --warning-foreground: #ffffff;
-  --info: #0b5fff;
+  --info: #023a84;
   --info-foreground: #ffffff;
   --border: #e5e7eb;
-  --input: #e5e7eb;
-  --ring: #0b5fff;
+  --input: #d1d5db;
+  --ring: #023a84;
   --sidebar: #ffffff;
-  --sidebar-foreground: #374151;
-  --sidebar-primary: #0b5fff;
+  --sidebar-foreground: #334155;
+  --sidebar-primary: #023a84;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #eff4ff;
-  --sidebar-accent-foreground: #0b5fff;
+  --sidebar-accent: #f1f5f9;
+  --sidebar-accent-foreground: #023a84;
   --sidebar-border: #e5e7eb;
-  --sidebar-ring: #0b5fff;
-  --chart-1: #0b5fff;
-  --chart-2: #6366f1;
+  --sidebar-ring: #023a84;
+  --chart-1: #023a84;
+  --chart-2: #0a4ea8;
   --chart-3: #16a34a;
   --chart-4: #f59e0b;
   --chart-5: #6b7280;
   --shadow-soft-value: 0 1px 2px 0 rgb(17 24 39 / 0.04);
-  --shadow-card-value: 0 1px 3px 0 rgb(17 24 39 / 0.05), 0 4px 16px -2px rgb(11 95 255 / 0.06);
-  --shadow-elevated-value: 0 4px 12px -2px rgb(17 24 39 / 0.08), 0 12px 32px -4px rgb(11 95 255 / 0.08);
-  --shadow-search-value: 0 1px 2px 0 rgb(17 24 39 / 0.04), 0 2px 8px rgb(11 95 255 / 0.05);
+  --shadow-card-value: 0 1px 3px 0 rgb(17 24 39 / 0.05), 0 4px 16px -2px rgb(2 58 132 / 0.08);
+  --shadow-elevated-value: 0 4px 12px -2px rgb(17 24 39 / 0.08), 0 12px 32px -4px rgb(2 58 132 / 0.1);
+  --shadow-search-value: 0 1px 2px 0 rgb(17 24 39 / 0.04), 0 2px 8px rgb(2 58 132 / 0.06);
 }
 
 .dark {
@@ -108,33 +111,35 @@
   --card-foreground: #f3f4f6;
   --popover: #111827;
   --popover-foreground: #f3f4f6;
-  --primary: #3b82f6;
+  --primary: #023a84;
   --primary-foreground: #ffffff;
+  --primary-hover: #0349a5;
+  --primary-active: #012e68;
   --secondary: #1f2937;
-  --secondary-foreground: #f3f4f6;
+  --secondary-foreground: #e5e7eb;
   --muted: #1f2937;
   --muted-foreground: #9ca3af;
   --accent: #1e3a5f;
   --accent-foreground: #e5e7eb;
-  --destructive: #ef4444;
+  --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  --success: #22c55e;
+  --success: #16a34a;
   --success-foreground: #ffffff;
-  --warning: #fbbf24;
-  --warning-foreground: #111827;
-  --info: #3b82f6;
+  --warning: #f59e0b;
+  --warning-foreground: #ffffff;
+  --info: #023a84;
   --info-foreground: #ffffff;
   --border: #1f2937;
-  --input: #1f2937;
-  --ring: #3b82f6;
+  --input: #374151;
+  --ring: #023a84;
   --sidebar: #0f172a;
   --sidebar-foreground: #e5e7eb;
-  --sidebar-primary: #3b82f6;
+  --sidebar-primary: #023a84;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #1e293b;
   --sidebar-accent-foreground: #e5e7eb;
   --sidebar-border: #1f2937;
-  --sidebar-ring: #3b82f6;
+  --sidebar-ring: #023a84;
   --shadow-soft-value: 0 1px 2px 0 rgb(0 0 0 / 0.3);
   --shadow-card-value: 0 2px 8px -2px rgb(0 0 0 / 0.35);
   --shadow-elevated-value: 0 8px 24px -4px rgb(0 0 0 / 0.45);
@@ -204,8 +209,25 @@
     transform: translateY(-1px);
   }
 
+  /* Opacity-only: a persistent transform on this wrapper would break position:sticky. */
   .page-enter {
     animation: page-enter 0.3s ease-out both;
+  }
+
+  .cyno-page-hero {
+    position: sticky;
+    top: 3.5rem; /* sit below the app Header (h-14) */
+    z-index: 20;
+    background: rgb(255 255 255 / 0.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid #e5e7eb;
+    box-shadow: 0 4px 16px -6px rgb(15 23 42 / 0.1);
+  }
+
+  .dark .cyno-page-hero {
+    background: rgb(15 23 42 / 0.92);
+    border-bottom-color: var(--color-border);
   }
 
   .stagger-1 { animation-delay: 40ms; }
@@ -267,11 +289,9 @@
 @keyframes page-enter {
   from {
     opacity: 0;
-    transform: translateY(6px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -327,21 +347,50 @@ html[dir="rtl"] .text-right {
   text-align: left;
 }
 
-[data-sidebar="menu-button"][data-active="true"] {
-  background: var(--sidebar-accent) !important;
-  color: var(--sidebar-accent-foreground) !important;
-  font-weight: 600;
+.cyno-app-sidebar {
+  border: none !important;
+  border-right: 1px solid #f1f5f9 !important;
+  box-shadow: none !important;
 }
 
-[data-sidebar="menu-button"][data-active="true"]::before {
-  display: none;
+.cyno-app-sidebar [data-sidebar="sidebar"] {
+  border: none !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
 }
 
-[data-sidebar="menu-button"] {
-  border-radius: calc(var(--radius) - 2px) !important;
-  transition: background 150ms ease, color 150ms ease !important;
+.dark .cyno-app-sidebar {
+  border-right-color: var(--color-border) !important;
 }
 
-[data-sidebar="menu-button"]:hover:not([data-active="true"]) {
-  background: var(--muted) !important;
+.dark .cyno-app-sidebar [data-sidebar="sidebar"] {
+  background: var(--color-card);
+}
+
+[data-sidebar="menu-button"].cyno-nav-item {
+  border-radius: 10px !important;
+  font-family: var(--font-sans) !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+  transition: background-color 0.15s ease, color 0.15s ease !important;
+}
+
+[data-sidebar="menu-button"].cyno-nav-item[data-active="true"] {
+  background: #eaf3ff !important;
+  color: #023a84 !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+}
+
+[data-sidebar="menu-button"].cyno-nav-item[data-active="true"]::before {
+  display: none !important;
+}
+
+[data-sidebar="menu-button"].cyno-nav-item:hover:not([data-active="true"]) {
+  background: #f8fafc !important;
+  color: #023a84 !important;
+}
+
+[data-sidebar="menu-button"].cyno-nav-item:hover:not([data-active="true"]) svg {
+  color: #023a84 !important;
 }

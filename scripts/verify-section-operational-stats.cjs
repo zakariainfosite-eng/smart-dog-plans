@@ -22,37 +22,103 @@ const AGENT_LEVEL = new Set([
   "other",
 ]);
 
+const AGENT_PRIORITY = {
+  suspension: 0,
+  sickness: 1,
+  administrative_leave: 2,
+  annual_leave: 3,
+  special_leave: 4,
+  absence: 5,
+  mission: 6,
+  training: 7,
+  other: 8,
+};
+
+const DOG_PRIORITY = {
+  female_dog_heat: 0,
+  dog_sick: 1,
+  dog_injured: 2,
+  dog_vet_visit: 3,
+  dog_training: 4,
+  dog_temporary_retirement: 5,
+  dog_other: 6,
+};
+
+function isActive(e, day) {
+  return (
+    (e.active === 1 || e.active === true) &&
+    e.start_date <= day &&
+    day <= e.end_date
+  );
+}
+
+function pickTop(types) {
+  const agentTypes = types.filter((t) => AGENT_LEVEL.has(t));
+  if (agentTypes.length > 0) {
+    return [...agentTypes].sort(
+      (a, b) => (AGENT_PRIORITY[a] ?? 100) - (AGENT_PRIORITY[b] ?? 100),
+    )[0];
+  }
+  const dogTypes = types.filter((t) => t in DOG_PRIORITY || String(t).startsWith("dog_") || t === "female_dog_heat");
+  if (dogTypes.length === 0) return null;
+  return [...dogTypes].sort(
+    (a, b) => (DOG_PRIORITY[a] ?? 100) - (DOG_PRIORITY[b] ?? 100),
+  )[0];
+}
+
+function bucket(type) {
+  if (type === "sickness") return "sickness";
+  if (type === "annual_leave" || type === "special_leave" || type === "administrative_leave") {
+    return "leave";
+  }
+  if (type === "training") return "training";
+  if (type === "mission") return "mission";
+  if (type === "absence") return "absence";
+  if (type === "dog_sick") return "dog_sick";
+  if (type === "female_dog_heat") return "female_dog_heat";
+  if (type === "dog_temporary_retirement") return "dog_temporary_retirement";
+  return "other";
+}
+
 function compute(sectionId, agents, exclusions, day) {
   const members = agents.filter((a) => a.section_id === sectionId);
-  const memberIds = new Set(members.map((a) => a.id));
+  const byReason = {
+    sickness: 0,
+    leave: 0,
+    training: 0,
+    mission: 0,
+    absence: 0,
+    dog_sick: 0,
+    female_dog_heat: 0,
+    dog_temporary_retirement: 0,
+    other: 0,
+  };
   let available = 0;
-  let unavailable = 0;
+  let activeExclusions = 0;
+
   for (const agent of members) {
-    const excluded = exclusions.some(
-      (e) =>
-        e.agent_id === agent.id &&
-        AGENT_LEVEL.has(e.exclusion_type) &&
-        (e.active === 1 || e.active === true) &&
-        e.start_date <= day &&
-        day <= e.end_date,
-    );
-    if (excluded) unavailable += 1;
-    else available += 1;
+    const types = exclusions
+      .filter((e) => {
+        if (!isActive(e, day)) return false;
+        if (e.agent_id === agent.id) return true;
+        if (agent.dog_id && e.dog_id === agent.dog_id) return true;
+        return false;
+      })
+      .map((e) => e.exclusion_type);
+    const top = pickTop(types);
+    if (!top) {
+      available += 1;
+      continue;
+    }
+    activeExclusions += 1;
+    byReason[bucket(top)] += 1;
   }
-  const activeExclusions = exclusions.filter(
-    (e) =>
-      e.agent_id &&
-      memberIds.has(e.agent_id) &&
-      AGENT_LEVEL.has(e.exclusion_type) &&
-      (e.active === 1 || e.active === true) &&
-      e.start_date <= day &&
-      day <= e.end_date,
-  ).length;
+
   return {
     assigned: members.length,
     available,
-    unavailable,
     activeExclusions,
+    byReason,
   };
 }
 
@@ -65,7 +131,7 @@ app.whenReady().then(() => {
 
     const sections = db.prepare("SELECT id, name FROM sections ORDER BY name").all();
     const agents = db
-      .prepare("SELECT id, section_id, first_name, last_name, active FROM agents")
+      .prepare("SELECT id, section_id, dog_id, first_name, last_name, active FROM agents")
       .all();
     const exclusions = db
       .prepare(
@@ -77,8 +143,14 @@ app.whenReady().then(() => {
 
     const report = sections.map((section) => {
       const stats = compute(section.id, agents, exclusions, day);
-      if (stats.available + stats.unavailable !== stats.assigned) {
-        throw new Error(`${section.name}: available+unavailable != assigned`);
+      const reasonSum = Object.values(stats.byReason).reduce((a, b) => a + b, 0);
+      if (stats.available + reasonSum !== stats.assigned) {
+        throw new Error(
+          `${section.name}: available+reasons (${stats.available}+${reasonSum}) != assigned (${stats.assigned})`,
+        );
+      }
+      if (reasonSum !== stats.activeExclusions) {
+        throw new Error(`${section.name}: reasonSum != activeExclusions`);
       }
       return { name: section.name, ...stats };
     });

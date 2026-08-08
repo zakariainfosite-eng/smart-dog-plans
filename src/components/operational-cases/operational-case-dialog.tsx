@@ -26,7 +26,7 @@ import { toast } from "sonner";
 
 import { db } from "@/integrations/database/client";
 import { getAgents } from "@/integrations/database";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -641,7 +641,7 @@ export function OperationalCaseDialog({
                 <Trash2 className="mr-2 h-4 w-4" />
                 {t("action.delete")}
               </Button>
-              <Button onClick={() => onModeChange?.("edit")} className="min-w-[140px] rounded-xl">
+              <Button onClick={() => onModeChange?.("edit")} className="min-w-[140px]">
                 <Pencil className="mr-2 h-4 w-4" />
                 {t("action.edit")}
               </Button>
@@ -669,7 +669,7 @@ export function OperationalCaseDialog({
           <AlertDialogFooter>
             <AlertDialogCancel>{t("action.cancel")}</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className={buttonVariants({ variant: "danger" })}
               onClick={() => caseRow && remove.mutate(caseRow)}
             >
               {t("action.delete")}

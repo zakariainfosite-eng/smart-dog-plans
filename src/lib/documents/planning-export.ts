@@ -6,7 +6,7 @@ import {
 import { generateFeuillePresenceDocx } from "@/lib/documents/feuille-presence-docx";
 import { FP_OFFICIAL_LOGO_URL } from "@/lib/documents/feuille-presence-layout";
 import {
-  assertDocxZipMagic,
+  assertDocxZipIntegrity,
   uint8ArrayToBase64,
 } from "@/lib/documents/docx-binary";
 import { wrapExportError } from "@/lib/documents/export-error";
@@ -57,18 +57,19 @@ async function saveViaElectron(files: PlanningExportFile[]): Promise<PlanningExp
   try {
     return await bridge.saveExportFiles({
       defaultBasename: files[0]?.filename.replace(/\.(pdf|docx)$/i, "") ?? "Planning",
-      files: files.map((file) => {
-        // Chunked btoa — avoid Buffer polyfill corruption on Windows packaged builds.
-        const dataBase64 = uint8ArrayToBase64(file.bytes);
-        if (file.filename.toLowerCase().endsWith(".docx")) {
-          assertDocxZipMagic(file.bytes, `IPC encode ${file.filename}`);
-        }
-        return {
-          filename: file.filename,
-          dataBase64,
-          byteLength: file.bytes.byteLength,
-        };
-      }),
+      files: await Promise.all(
+        files.map(async (file) => {
+          // Never send number[] — large Array IPC corrupts DOCX on Windows Electron.
+          if (file.filename.toLowerCase().endsWith(".docx")) {
+            await assertDocxZipIntegrity(file.bytes, `IPC encode ${file.filename}`);
+          }
+          return {
+            filename: file.filename,
+            dataBase64: uint8ArrayToBase64(file.bytes),
+            byteLength: file.bytes.byteLength,
+          };
+        }),
+      ),
     });
   } catch (error) {
     throw wrapExportError("ipc-save", error);
@@ -117,7 +118,6 @@ export async function generateFeuillePresenceExportFiles(
         logoUrl: FP_OFFICIAL_LOGO_URL,
         logoBytes,
       });
-      assertDocxZipMagic(bytes, "docx-generate");
       files.push({
         filename: `${basename}.docx`,
         mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",

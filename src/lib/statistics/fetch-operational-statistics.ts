@@ -10,7 +10,7 @@ import {
   endOfYear,
 } from "date-fns";
 import type { Database } from "@/integrations/database/schema-types";
-import { exclusionCalendarStatus } from "@/lib/agent-exclusions";
+import { exclusionCalendarStatus, expirePastExclusions } from "@/lib/agent-exclusions";
 import { filterNotDeleted, isMissingSoftDeleteColumn } from "@/lib/soft-delete";
 import { countBy, topN } from "@/lib/statistics/aggregate";
 import { rangesOverlap, toISODate } from "@/lib/statistics/date-range";
@@ -188,6 +188,7 @@ export async function fetchOperationalStatistics(
     unknown: string;
   },
 ): Promise<OperationalStatisticsPayload> {
+  await expirePastExclusions(db);
   const now = new Date();
   const year = now.getFullYear();
   const yearFrom = toISODate(startOfYear(now));

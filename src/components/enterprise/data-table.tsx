@@ -18,8 +18,8 @@ export type EnterpriseDataTableProps<TData> = {
   emptyState?: ReactNode;
   /** auto = content-sized columns; fixed = shared CSS grid columns via meta.width */
   layout?: "auto" | "fixed";
-  /** compact = 56px rows; comfortable = 64–72px rows with generous padding */
-  density?: "default" | "compact" | "comfortable";
+  /** dense = 48px; compact = 56px; comfortable = 64–72px */
+  density?: "default" | "dense" | "compact" | "comfortable";
   /** Horizontal scroll only below 1200px viewport */
   responsiveScroll?: boolean;
   /** card = spaced rounded rows with soft shadow */
@@ -78,12 +78,25 @@ export function EnterpriseDataTable<TData>({
     return <>{emptyState}</>;
   }
 
+  const dense = density === "dense";
   const compact = density === "compact";
   const comfortable = density === "comfortable";
-  const cellPad = comfortable ? "px-4 py-3" : compact ? "px-2 py-2" : "px-3 py-2.5";
-  const rowH = comfortable ? "min-h-[68px]" : compact ? "h-14" : "h-[68px]";
-  const headH = comfortable ? "h-11" : compact ? "h-9" : "h-11";
-  const headBg = comfortable ? "bg-muted/50" : "bg-card/95";
+  const cellPad = comfortable
+    ? "px-4 py-3"
+    : dense
+      ? "px-3 py-0"
+      : compact
+        ? "px-2 py-2"
+        : "px-3 py-2.5";
+  const rowH = comfortable
+    ? "min-h-[68px]"
+    : dense
+      ? "h-12"
+      : compact
+        ? "h-14"
+        : "h-[68px]";
+  const headH = comfortable ? "h-11" : dense ? "h-10" : compact ? "h-9" : "h-11";
+  const headBg = comfortable ? "bg-muted/50" : dense ? "bg-[#F8FAFC]" : "bg-card/95";
 
   const scrollClass = responsiveScroll
     ? "max-[1199px]:overflow-x-auto min-[1200px]:overflow-x-hidden"
@@ -147,9 +160,9 @@ export function EnterpriseDataTable<TData>({
                           zebraStriping && rowIndex % 2 === 1 && "bg-muted/30",
                         )
                       : cn(
-                          "border-b border-border/40",
-                          comfortable ? "hover:bg-muted/40" : "hover:bg-primary/[0.04]",
-                          zebraStriping && rowIndex % 2 === 1 && "bg-muted/20",
+                          "border-b border-[#F1F5F9]",
+                          comfortable ? "hover:bg-muted/40" : "hover:bg-[#F8FAFC]",
+                          zebraStriping && rowIndex % 2 === 1 && "bg-[#F8FAFC]/80",
                         ),
                     onRowClick && "cursor-pointer",
                   )}

@@ -3,7 +3,7 @@ import type { Database } from "@/integrations/database/schema-types";
 import { fetchDogOperationalCases, type OperationalCaseWithRelations } from "@/lib/operational-case-api";
 import { formatPgError } from "@/lib/soft-delete";
 import type { AgentExclusionHistoryItem } from "@/lib/agent-details";
-import { isAgentExclusionActive } from "@/lib/agent-exclusions";
+import { expirePastExclusions, isAgentExclusionActive } from "@/lib/agent-exclusions";
 
 type Db = DbClient;
 
@@ -60,6 +60,7 @@ type SectionRow = {
  * (Invalid column). Assignment is stored as agents.dog_id → dogs.id.
  */
 export async function fetchDogDetails(db: Db, dogId: string): Promise<DogDetailsPayload> {
+  await expirePastExclusions(db);
   const sectionErrors: DogDetailsSectionErrors = {};
 
   const dogRes = await db.from("dogs").select("*").eq("id", dogId).single();

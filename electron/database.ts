@@ -5,6 +5,7 @@
 export {
   closeDatabase,
   ensureSchemaIndexes,
+  expirePastExclusionsInSqlite,
   getDatabase,
   getDatabasePath,
   getUserDataPath,

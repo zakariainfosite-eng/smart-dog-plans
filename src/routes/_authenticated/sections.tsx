@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
-import { Layers, Plus } from "lucide-react";
+import { Activity, Layers, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { db } from "@/integrations/database/client";
@@ -21,7 +21,7 @@ import {
   pageHeroLastUpdatedMeta,
 } from "@/components/enterprise/page-layout";
 import { formatPageLastUpdated } from "@/lib/page-ui";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -49,12 +49,34 @@ import {
   todayISODate,
   type AgentExclusionRecord,
 } from "@/lib/agent-exclusions";
-import { computeSectionOperationalStats } from "@/lib/section-operational-stats";
+import {
+  SECTION_EXCLUSION_BREAKDOWN_KEYS,
+  computeSectionOperationalStats,
+  type SectionExclusionBreakdown,
+  type SectionExclusionBreakdownKey,
+} from "@/lib/section-operational-stats";
+import {
+  resolveSectionCommanderDisplay,
+  SECTION_COMMANDER_MANUAL_FILL_DOTS,
+  type SectionCommanderDisplay,
+} from "@/lib/section-commander-display";
 import { useI18n } from "@/hooks/use-i18n";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 
+const EMPTY_SECTION_BREAKDOWN: SectionExclusionBreakdown = {
+  sickness: 0,
+  leave: 0,
+  training: 0,
+  mission: 0,
+  absence: 0,
+  dog_sick: 0,
+  female_dog_heat: 0,
+  dog_temporary_retirement: 0,
+  other: 0,
+};
+
 export const Route = createFileRoute("/_authenticated/sections")({
-  head: () => ({ meta: [{ title: "Sections — Smart K9 Planning" }] }),
+  head: () => ({ meta: [{ title: "Sections — CynoPlanning" }] }),
   component: SectionsPage,
 });
 
@@ -89,6 +111,8 @@ function SectionsPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [assignmentsOpen, setAssignmentsOpen] = useState(false);
   const [exclusionsSectionId, setExclusionsSectionId] = useState<string | null>(null);
+  const [exclusionsBreakdownKey, setExclusionsBreakdownKey] =
+    useState<SectionExclusionBreakdownKey | null>(null);
 
   const statusReferenceISO = todayISODate();
 
@@ -123,6 +147,26 @@ function SectionsPage() {
     return map;
   }, [data, agents, exclusions, statusReferenceISO]);
 
+  const commanderBySectionId = useMemo(() => {
+    const map = new Map<string, SectionCommanderDisplay>();
+    for (const section of data ?? []) {
+      map.set(
+        section.id,
+        resolveSectionCommanderDisplay({
+          sectionId: section.id,
+          agents,
+          exclusions,
+          fallback: {
+            fullName: section.commander_full_name,
+            grade: section.commander_grade,
+            mle: section.commander_mle,
+          },
+        }),
+      );
+    }
+    return map;
+  }, [data, agents, exclusions]);
+
   const selectedSection = useMemo(() => {
     if (!selectedSectionId) return null;
     return (data ?? []).find((s) => s.id === selectedSectionId) ?? null;
@@ -146,6 +190,10 @@ function SectionsPage() {
   }, [data, search, filter]);
 
   const sectionCount = useMemo(() => (data ?? []).length, [data]);
+  const activeSectionCount = useMemo(
+    () => (data ?? []).filter((s) => s.active).length,
+    [data],
+  );
 
   const hasActiveFilters = !!search || filter !== "all";
 
@@ -220,7 +268,11 @@ function SectionsPage() {
     }
   }, [detailOpen, assignmentsOpen]);
 
-  const openSectionExclusions = (sectionId: string) => {
+  const openSectionExclusions = (
+    sectionId: string,
+    breakdownKey: SectionExclusionBreakdownKey | null = null,
+  ) => {
+    setExclusionsBreakdownKey(breakdownKey);
     setExclusionsSectionId(sectionId);
   };
 
@@ -231,13 +283,27 @@ function SectionsPage() {
         title={t("sections.title")}
         description={t("sections.description")}
         loading={isLoading}
+        breadcrumb={[
+          { label: t("auth.brandName") },
+          { label: t("nav.sections") },
+        ]}
         meta={[
+          {
+            label: t("sections.hero.totalSections"),
+            value: sectionCount,
+            icon: Layers,
+          },
           pageHeroLastUpdatedMeta(t("common.page.lastUpdated"), lastUpdated),
-          { label: t("nav.sections"), value: sectionCount },
+          {
+            label: t("sections.hero.activeSections"),
+            value: activeSectionCount,
+            icon: Activity,
+            valueClassName: "text-emerald-700",
+          },
         ]}
         actions={
           <Button onClick={openCreate}>
-            <Plus className="mr-2 h-4 w-4" /> {t("sections.new")}
+            <Plus className="h-4 w-4" /> {t("sections.new")}
           </Button>
         }
       />
@@ -269,9 +335,9 @@ function SectionsPage() {
 
       <PageContentShell>
         {isLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3 lg:gap-3.5">
             {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-52 rounded-2xl" />
+              <Skeleton key={i} className="h-[320px] rounded-[18px]" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
@@ -285,14 +351,22 @@ function SectionsPage() {
             }
           />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3 lg:gap-3.5">
             {filtered.map((s) => {
               const stats = statsBySectionId.get(s.id) ?? {
                 assigned: s.agent_count,
                 available: s.agent_count,
                 unavailable: 0,
                 activeExclusions: 0,
+                byReason: EMPTY_SECTION_BREAKDOWN,
+                narcotics: 0,
+                narcoticsTotal: 0,
+                explosives: 0,
+                explosivesTotal: 0,
               };
+              const commander = commanderBySectionId.get(s.id);
+              const commanderManualFill = commander?.needsManualFill ?? false;
+              const commanderMode = commander?.mode ?? "chief";
               return (
                 <SectionManagementCard
                   key={s.id}
@@ -301,20 +375,47 @@ function SectionsPage() {
                   active={s.active}
                   agentCount={stats.assigned}
                   availableCount={stats.available}
-                  unavailableCount={stats.unavailable}
-                  activeExclusionsCount={stats.activeExclusions}
-                  commanderFullName={s.commander_full_name}
-                  commanderGrade={s.commander_grade}
-                  commanderMle={s.commander_mle}
+                  exclusionBreakdown={stats.byReason}
+                  breakdownLabels={SECTION_EXCLUSION_BREAKDOWN_KEYS.map((key) => ({
+                    key,
+                    label: t(`sections.stat.breakdown.${key}`),
+                  }))}
+                  narcoticsOperational={stats.narcotics}
+                  narcoticsTotal={stats.narcoticsTotal}
+                  explosivesOperational={stats.explosives}
+                  explosivesTotal={stats.explosivesTotal}
+                  narcoticsLabel={t("sections.stat.narcotics")}
+                  explosivesLabel={t("sections.stat.explosives")}
+                  operationalLabel={t("sections.stat.operational")}
+                  totalLabel={t("sections.stat.total")}
+                  commanderFullName={
+                    commanderManualFill
+                      ? SECTION_COMMANDER_MANUAL_FILL_DOTS
+                      : commander?.fullName || s.commander_full_name
+                  }
+                  commanderGrade={
+                    commanderManualFill
+                      ? SECTION_COMMANDER_MANUAL_FILL_DOTS
+                      : commander?.grade || s.commander_grade
+                  }
+                  commanderMle={
+                    commanderManualFill
+                      ? SECTION_COMMANDER_MANUAL_FILL_DOTS
+                      : commander?.mle || s.commander_mle
+                  }
+                  commanderManualFill={commanderManualFill}
                   shiftDayLabel={t("shift.dayShort")}
                   shiftNightLabel={t("shift.nightShort")}
                   activeLabel={t("common.active")}
                   inactiveLabel={t("common.inactive")}
                   agentsLabel={t("sections.stat.assigned")}
                   availableLabel={t("sections.stat.available")}
-                  unavailableLabel={t("sections.stat.unavailable")}
-                  exclusionsLabel={t("sections.stat.activeExclusions")}
-                  commanderLabel={t("sections.field.commanderFullName")}
+                  exclusionsDetailLabel={t("sections.stat.exclusionsDetail")}
+                  commanderLabel={
+                    commanderMode === "adjoint_replacement"
+                      ? t("sections.commander.adjointReplacement")
+                      : t("sections.field.commanderFullName")
+                  }
                   gradeLabel={t("sections.field.commanderGrade")}
                   mleLabel={t("sections.field.commanderMle")}
                   editLabel={t("action.edit")}
@@ -322,6 +423,7 @@ function SectionsPage() {
                   openLabel={t("sections.detail.open")}
                   onOpen={() => openDetail(s)}
                   onExclusionsClick={() => openSectionExclusions(s.id)}
+                  onExclusionTypeClick={(key) => openSectionExclusions(s.id, key)}
                   onEdit={() => openEdit(s)}
                   onDelete={() => setDeleteTarget(s)}
                 />
@@ -354,13 +456,22 @@ function SectionsPage() {
       <SectionExclusionsSheet
         open={!!exclusionsSection}
         onOpenChange={(open) => {
-          if (!open) setExclusionsSectionId(null);
+          if (!open) {
+            setExclusionsSectionId(null);
+            setExclusionsBreakdownKey(null);
+          }
         }}
         sectionName={exclusionsSection?.name ?? null}
         sectionId={exclusionsSection?.id ?? null}
         agents={agents}
         exclusions={exclusions}
         referenceISO={statusReferenceISO}
+        breakdownKey={exclusionsBreakdownKey}
+        breakdownLabel={
+          exclusionsBreakdownKey
+            ? t(`sections.stat.breakdown.${exclusionsBreakdownKey}`)
+            : null
+        }
       />
 
       <SectionDialog
@@ -394,7 +505,7 @@ function SectionsPage() {
                 e.preventDefault();
                 if (deleteTarget) remove.mutate(deleteTarget);
               }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className={buttonVariants({ variant: "danger" })}
             >
               {t("action.delete")}
             </AlertDialogAction>

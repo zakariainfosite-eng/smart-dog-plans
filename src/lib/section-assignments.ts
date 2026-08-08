@@ -1,10 +1,7 @@
 import type { TFunction } from "i18next";
 import type { AgentRow, AgentWriteInput } from "@/integrations/database";
-import {
-  isAgentExclusionActive,
-  isAgentLevelExclusionType,
-  type AgentExclusionRecord,
-} from "@/lib/agent-exclusions";
+import type { AgentExclusionRecord } from "@/lib/agent-exclusions";
+import { deriveAgentAvailabilityForAgent } from "@/lib/agent-ui";
 import {
   isChefDeSectionFonction,
   isCynotechnicienFonction,
@@ -23,6 +20,7 @@ export function agentWriteWithSection(
     grade: agent.grade,
     gender: agent.gender,
     marital_status: agent.marital_status,
+    date_naissance: agent.date_naissance,
     fonction: normalizePersonnelFonction(agent.fonction),
     section_id: sectionId,
     dog_id: agent.dog_id,
@@ -50,21 +48,16 @@ export function isActiveCynotechnicien(agent: Pick<AgentRow, "fonction" | "gende
 }
 
 export function personnelStatusLabel(
-  agent: Pick<AgentRow, "id" | "active">,
+  agent: Pick<AgentRow, "id" | "active" | "dog_id">,
   exclusions: AgentExclusionRecord[],
   referenceISO: string,
   t: TFunction,
 ): string {
   if (!agent.active) return t("common.inactive");
 
-  const activeExclusion = exclusions.find(
-    (row) =>
-      row.agent_id === agent.id &&
-      isAgentLevelExclusionType(row.exclusion_type) &&
-      isAgentExclusionActive(row, referenceISO),
-  );
-  if (activeExclusion) {
-    return t(`exclusions.type.${activeExclusion.exclusion_type}`);
+  const availability = deriveAgentAvailabilityForAgent(agent, exclusions, referenceISO);
+  if (availability.status === "available") {
+    return t("employees.operationalStatus.available");
   }
-  return t("employees.operationalStatus.available");
+  return t(`exclusions.type.${availability.exclusionType}`);
 }

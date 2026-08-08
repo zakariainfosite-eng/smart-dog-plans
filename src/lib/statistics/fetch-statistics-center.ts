@@ -10,7 +10,7 @@ import {
   startOfYear,
 } from "date-fns";
 import type { Database } from "@/integrations/database/schema-types";
-import { DOG_LEVEL_EXCLUSION_TYPES, exclusionCalendarStatus } from "@/lib/agent-exclusions";
+import { DOG_LEVEL_EXCLUSION_TYPES, exclusionCalendarStatus, expirePastExclusions } from "@/lib/agent-exclusions";
 import { filterNotDeleted, isMissingSoftDeleteColumn } from "@/lib/soft-delete";
 import { rangesOverlap, toISODate } from "@/lib/statistics/date-range";
 import type {
@@ -688,6 +688,7 @@ export async function fetchStatisticsCenterRaw(
   db: Db,
   year: number,
 ): Promise<StatisticsCenterRaw> {
+  await expirePastExclusions(db);
   const yearStart = new Date(year, 0, 1);
   const from = toISODate(startOfYear(yearStart));
   const to = toISODate(endOfYear(yearStart));

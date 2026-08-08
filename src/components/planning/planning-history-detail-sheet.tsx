@@ -14,7 +14,7 @@ import {
 import { toast } from "sonner";
 
 import { db } from "@/integrations/database/client";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { KpiCard } from "@/components/enterprise/kpi-card";
 import { StatusBadge } from "@/components/enterprise/status-badge";
@@ -300,7 +300,7 @@ export function PlanningHistoryDetailSheet({
             <AlertDialogCancel disabled={deleting}>{t("action.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               disabled={deleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className={buttonVariants({ variant: "danger" })}
               onClick={(event) => {
                 event.preventDefault();
                 void handleDelete();

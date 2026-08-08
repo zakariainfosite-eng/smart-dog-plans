@@ -53,6 +53,8 @@ export type AgentFormValues = {
   gender: Gender;
   fonction: PersonnelFonction;
   marital_status: MaritalStatus | "";
+  /** ISO `yyyy-MM-dd` for `<input type="date">`. */
+  date_naissance: string;
   section_id: string | null;
   dog_id: string | null;
   phone: string;
@@ -320,6 +322,21 @@ export function AgentFormDialog({
                       ))}
                     </SelectContent>
                   </Select>
+                </FormField>
+                <FormField
+                  label={`${t("employees.field.dateOfBirth")} *`}
+                  error={errors.date_naissance}
+                >
+                  <Input
+                    type="date"
+                    lang="fr"
+                    max={new Date().toISOString().slice(0, 10)}
+                    value={form.date_naissance}
+                    onChange={(event) =>
+                      patchForm({ date_naissance: event.target.value })
+                    }
+                    className="transition-shadow hover:shadow-sm"
+                  />
                 </FormField>
               </div>
 

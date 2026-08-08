@@ -1,13 +1,18 @@
 {
   "app": {
-    "name": "التخطيط الذكي للكلاب البوليسية",
+    "name": "CynoPlanning",
     "subtitle": "وحدة تحكم الإدارة",
-    "brandShort": "Smart K9",
+    "brandShort": "CynoPlanning",
     "brandTagline": "التخطيط",
     "description": "وحدة تحكم احترافية لإدارة وحدات الكلاب والتخطيط."
   },
   "nav": {
     "group": "التنقل",
+    "groups": {
+      "personnel": "الأفراد",
+      "operations": "العمليات",
+      "analysis": "التحليل"
+    },
     "dashboard": "لوحة القيادة",
     "sections": "الأقسام",
     "employees": "الأفراد",
@@ -15,6 +20,7 @@
     "checkpoints": "نقاط المراقبة",
     "exclusions": "الاستثناءات",
     "operationalCases": "القضايا التشغيلية",
+    "planning": "التخطيط",
     "dailyPlanning": "التخطيط اليومي",
     "history": "السجل",
     "statistics": "الإحصائيات",
@@ -128,49 +134,49 @@
     "togglePosts": "تبديل المناصب"
   },
   "meta": {
-    "appTitle": "التخطيط الذكي — وحدة إدارة الكلاب",
+    "appTitle": "CynoPlanning — وحدة إدارة الكلاب",
     "auth": {
-      "title": "تسجيل الدخول — التخطيط الذكي",
+      "title": "تسجيل الدخول — CynoPlanning",
       "description": "سجّل الدخول إلى وحدة التحكم."
     },
     "dashboard": {
-      "title": "لوحة القيادة — التخطيط الذكي"
+      "title": "لوحة القيادة — CynoPlanning"
     },
     "employees": {
-      "title": "الأفراد — التخطيط الذكي"
+      "title": "الأفراد — CynoPlanning"
     },
     "dogs": {
-      "title": "الكلاب — التخطيط الذكي"
+      "title": "الكلاب — CynoPlanning"
     },
     "dogProfile": {
-      "title": "ملف الكلب — التخطيط الذكي"
+      "title": "ملف الكلب — CynoPlanning"
     },
     "agentProfile": {
-      "title": "ملف Cynotechnicien — التخطيط الذكي"
+      "title": "ملف Cynotechnicien — CynoPlanning"
     },
     "checkpoints": {
-      "title": "نقاط المراقبة — التخطيط الذكي"
+      "title": "نقاط المراقبة — CynoPlanning"
     },
     "exclusions": {
-      "title": "الاستثناءات — التخطيط الذكي"
+      "title": "الاستثناءات — CynoPlanning"
     },
     "operationalCases": {
-      "title": "القضايا التشغيلية — التخطيط الذكي"
+      "title": "القضايا التشغيلية — CynoPlanning"
     },
     "dailyPlanning": {
-      "title": "التخطيط اليومي — التخطيط الذكي"
+      "title": "التخطيط اليومي — CynoPlanning"
     },
     "sections": {
-      "title": "الأقسام — التخطيط الذكي"
+      "title": "الأقسام — CynoPlanning"
     },
     "settings": {
-      "title": "الإعدادات — التخطيط الذكي"
+      "title": "الإعدادات — CynoPlanning"
     },
     "statistics": {
-      "title": "الإحصائيات — التخطيط الذكي"
+      "title": "الإحصائيات — CynoPlanning"
     },
     "history": {
-      "title": "السجل — التخطيط الذكي"
+      "title": "السجل — CynoPlanning"
     }
   },
   "error": {
@@ -212,6 +218,14 @@
       "activeCheckpoints": "نقاط مراقبة نشطة",
       "todayPlannings": "تخطيطات اليوم"
     },
+    "kpi": {
+      "hint": {
+        "active": "نشط",
+        "today": "اليوم",
+        "operational": "تشغيلي",
+        "updated": "محدّث"
+      }
+    },
     "todayPlanning": "تخطيط اليوم",
     "noPlanningToday": "لا يوجد تخطيط لليوم.",
     "sectionFallback": "قسم",
@@ -229,22 +243,66 @@
       "activeSection": "القسم النشط",
       "currentShift": "الوردية الحالية",
       "sectionChief": "رئيس القسم",
+      "availabilityTitle": "التوفر",
       "agentsMaladie": "مرض",
       "agentsFormation": "تكوين",
       "agentsConge": "إجازة",
       "unavailableDogs": "كلاب غير متاحة"
     }
   },
+  "notifications": {
+    "title": "مركز التنبيهات",
+    "subtitle": "عودة من الاستثناءات القادمة",
+    "empty": "لا توجد إشعارات حالياً.",
+    "markAllRead": "تعليم الكل كمقروء",
+    "filter": {
+      "all": "الكل",
+      "personnel": "الأفراد",
+      "dogs": "الكلاب",
+      "unread": "غير مقروء",
+      "read": "مقروء"
+    },
+    "kind": {
+      "personnel": "أفراد",
+      "dog": "كلب"
+    },
+    "severity": {
+      "info": "معلومة",
+      "warning": "خلال 3 أيام",
+      "success": "متاح اليوم"
+    },
+    "message": {
+      "personnel": {
+        "inDays": "{{name}} سيعود متاحاً خلال {{count}} أيام ({{date}}).",
+        "tomorrow": "{{name}} يعود للخدمة غداً.",
+        "today": "{{name}} متاح مجدداً اليوم."
+      },
+      "dog": {
+        "inDays": "الكلب {{name}} ({{type}}) سيعود للعمل خلال {{count}} أيام.",
+        "tomorrow": "الكلب {{name}} ينهي {{type}} غداً.",
+        "today": "الكلب {{name}} متاح للعمل مجدداً اليوم."
+      }
+    },
+    "imminent": {
+      "title": "عوائد وشيكة",
+      "subtitle": "أقرب حالات التوفر بعد الاستثناء",
+      "empty": "لا توجد عوائد متوقعة قريباً.",
+      "inDays": "{{name}} — يعود خلال {{count}} أيام",
+      "tomorrow": "{{name}} — ينتهي {{type}} غداً",
+      "heatEndsTomorrow": "{{name}} — تنتهي فترة الحرارة غداً",
+      "availableToday": "{{name}} — متاح اليوم"
+    }
+  },
   "personnelFonction": {
     "chef_brigadier": "رئيس الرقباء",
-    "chef_brigadier_pi": "رئيس الرقباء PI",
+    "chef_brigadier_pi": "نائب رئيس الرقباء",
     "chef_brigade": "رئيس الرقباء",
-    "chef_brigade_pi": "رئيس الرقباء PI",
+    "chef_brigade_pi": "نائب رئيس الرقباء",
     "chef_secretariat": "رئيس الأمانة",
     "secretaire": "سكرتير",
-    "assistant_technique": "مساعد تقني",
+    "assistant_technique": "مساعد تقني للكلاب",
     "chef_de_section": "رئيس القسم",
-    "chef_de_section_pi": "رئيس القسم PI",
+    "chef_de_section_pi": "نائب رئيس القسم",
     "chef_materiel": "رئيس العتاد",
     "aide_soignant_veterinaire": "مساعد بيطري",
     "cynotechnicien": "Cynotechnicien"
@@ -358,6 +416,7 @@
       "professionalNumber": "الرقم المهني",
       "fonction": "الوظيفة",
       "maritalStatus": "الحالة الاجتماعية",
+      "dateOfBirth": "تاريخ الميلاد",
       "sectionResponsible": "القسم المسؤول عنه",
       "assignedDog": "الكلب المعيّن",
       "phone": "الهاتف",
@@ -421,11 +480,14 @@
   },
   "agentDetails": {
     "title": "ملف Cynotechnicien",
+    "titleFonctionnaire": "ملف الموظف",
     "error": {
-      "loadFailed": "تعذّر تحميل ملف Cynotechnicien."
+      "loadFailed": "تعذّر تحميل ملف Cynotechnicien.",
+      "loadFailedFonctionnaire": "تعذّر تحميل ملف الموظف."
     },
     "action": {
       "edit": "تعديل Cynotechnicien",
+      "editFonctionnaire": "تعديل الموظف",
       "exportPdf": "تصدير PDF",
       "print": "طباعة الملف"
     },
@@ -694,7 +756,7 @@
       "emptyCases": "لا قضايا تشغيلية مسجلة لهذا الكلب."
     },
     "exclusions": {
-      "noAgent": "لا Cynotechnicien معيّن — الاستثناءات مرتبطة بـ Cynotechnicien."
+      "noAgent": "لا موظف معيّن — الاستثناءات مرتبطة بالموظف."
     },
     "cases": {
       "card": {
@@ -869,7 +931,7 @@
     "new": "استثناء جديد",
     "stat": {
       "active": "استثناءات نشطة",
-      "sickAgents": "Cynotechniciens مرضيون",
+      "sickAgents": "موظفون مرضى",
       "dogsInHeat": "كلاب في حرارة",
       "sickDogs": "كلاب مرضى"
     },
@@ -882,17 +944,17 @@
       "dogs": "الكلاب"
     },
     "sections": {
-      "personnel": "استثناءات Cynotechniciens",
+      "personnel": "استثناءات الموظفين",
       "dogs": "استثناءات الكلاب"
     },
     "filter": {
       "reason": "نوع الاستثناء",
       "allReasons": "كل الأنواع",
-      "allAgents": "جميع Cynotechniciens",
+      "allAgents": "جميع الموظفين",
       "date": "التاريخ"
     },
     "table": {
-      "agent": "Cynotechnicien",
+      "agent": "الموظف",
       "photo": "الصورة",
       "fullName": "الاسم الكامل",
       "profNumber": "الرقم المهني",
@@ -900,7 +962,7 @@
       "dogPhoto": "صورة الكلب",
       "dogName": "اسم الكلب",
       "dogId": "المعرّف",
-      "assignedAgent": "Cynotechnicien المعيّن",
+      "assignedAgent": "الموظف المعيّن",
       "type": "نوع الاستثناء",
       "start": "تاريخ البداية",
       "end": "تاريخ النهاية",
@@ -928,34 +990,42 @@
     "empty": {
       "noMatch": "لا استثناءات تطابق التصفية",
       "none": "لا استثناءات",
+      "noneActive": "لا توجد استثناءات نشطة.",
       "nonePersonnel": "لا استثناءات للأفراد",
       "noneDogs": "لا استثناءات للكلاب",
-      "recordFirst": "سجّل استثناءً للفرد أو الكلب."
+      "recordFirst": "أضف استثناءً لبدء المتابعة."
     },
     "dialog": {
       "newTitle": "استثناء جديد",
       "editTitle": "تعديل الاستثناء",
-      "newDesc": "تسجيل غياب لـ Cynotechnicien أو كلب.",
+      "newDesc": "تسجيل غياب لموظف أو كلب.",
       "editDesc": "تحديث التفاصيل."
     },
     "field": {
-      "agent": "Cynotechnicien",
+      "agent": "الموظف",
       "dog": "الكلب",
       "applyTo": "تطبيق على",
       "exclusionType": "نوع الاستثناء",
       "durationDays": "المدة (أيام)",
-      "endDateCalculated": "تاريخ النهاية (محسوب)"
+      "endDateCalculated": "تاريخ النهاية (محسوب)",
+      "section": "القسم",
+      "dogSection": "قسم الكلب",
+      "noSection": "لا يوجد قسم"
     },
     "applyTo": {
-      "agent": "Cynotechnicien",
+      "agent": "موظف",
       "dog": "كلب"
     },
-    "selectAgent": "اختر Cynotechnicien",
+    "selectAgent": "اختر موظفاً",
     "selectDog": "اختر كلباً",
-    "searchAgent": "ابحث بالاسم أو الرقم…",
+    "searchAgent": "ابحث عن موظف…",
     "searchDog": "ابحث باسم الكلب أو الرقم…",
-    "noAgentMatch": "لا Cynotechnicien مطابق",
+    "noAgentMatch": "لا يوجد موظف مطابق",
     "noDogMatch": "لا كلب مطابق",
+    "noFemaleDogAvailable": "لا توجد كلاب إناث متاحة.",
+    "selector": {
+      "noFonction": "بدون وظيفة"
+    },
     "placeholder": {
       "notes": "سياق أو مرجع اختياري…"
     },
@@ -997,7 +1067,7 @@
       "deleted": "تم حذف الاستثناء"
     },
     "error": {
-      "overlap": "يوجد استثناء متداخل لهذا Cynotechnicien."
+      "overlap": "يوجد استثناء متداخل لهذا الموظف."
     }
   },
   "operationalCases": {
@@ -1192,11 +1262,12 @@
     "description": "إنشاء وحفظ تعيينات نقاط المراقبة تلقائياً.",
     "create": {
       "title": "إنشاء التخطيط اليومي",
-      "description": "اختر التاريخ والوردية. القسم يُحدد بالتناوب 12/24."
+      "description": "اختر التاريخ والوردية ثم عيّن يدوياً النهار والليل والراحة لكل قسم. الزر ينشئ ويحفظ ويؤرشف."
     },
     "field": {
       "planningDate": "تاريخ التخطيط",
-      "shift": "الوردية"
+      "shift": "الوردية",
+      "sectionRole": "دور القسم"
     },
     "generating": "جارٍ الإنشاء…",
     "createButton": "إنشاء التخطيط اليومي",
@@ -1223,8 +1294,10 @@
       "noPlanning": "قم أولاً بإنشاء وتصديق التخطيط اليومي."
     },
     "alert": {
-      "rotationUnavailable": "التناوب غير متاح",
-      "needThreeSections": "التناوب 12/24 يتطلب 3 أقسام نشطة. وُجد: {{count}}."
+      "rotationUnavailable": "الإعداد غير متاح",
+      "needThreeSections": "التخطيط يتطلب 3 أقسام نشطة بالضبط. وُجد: {{count}}.",
+      "invalidSectionRolesTitle": "تعيين الأقسام غير صالح",
+      "invalidSectionRoles": "عيّن قسماً واحداً للنهار وقسماً واحداً لليل وقسماً واحداً للراحة. التكرار غير مسموح."
     },
     "error": {
       "title": "فشل الإنشاء",
@@ -1366,6 +1439,10 @@
   "sections": {
     "title": "الأقسام",
     "description": "إدارة الأقسام التشغيلية.",
+    "hero": {
+      "totalSections": "إجمالي الأقسام",
+      "activeSections": "الأقسام النشطة"
+    },
     "new": "قسم جديد",
     "filter": {
       "dayShift": "وردية نهار",
@@ -1380,16 +1457,57 @@
       "assigned": "الموظفون المعيّنون",
       "available": "متاح",
       "unavailable": "غير متاح",
-      "activeExclusions": "الاستثناءات النشطة"
+      "activeExclusions": "الاستثناءات النشطة",
+      "exclusionsDetail": "تفاصيل استثناءات القسم",
+      "narcotics": "مخدرات",
+      "explosives": "متفجرات",
+      "operational": "تشغيلي",
+      "total": "الإجمالي",
+      "breakdown": {
+        "sickness": "مرض",
+        "leave": "إجازة",
+        "training": "تكوين",
+        "mission": "مهمة",
+        "absence": "إذن",
+        "dog_sick": "كلب مريض",
+        "female_dog_heat": "كلبة في حرارة",
+        "dog_temporary_retirement": "كلب في راحة",
+        "other": "أخرى"
+      }
     },
     "exclusionsSheet": {
       "title": "الاستثناءات النشطة",
-      "description": "الاستثناءات النشطة لموظفي « {{name}} ».",
-      "descriptionFallback": "الاستثناءات النشطة للقسم.",
+      "titleFiltered": "الاستثناءات — {{type}}",
+      "description": "جميع الاستثناءات النشطة (الأفراد والكلاب) لـ « {{name}} ».",
+      "descriptionFallback": "جميع الاستثناءات النشطة لهذا القسم.",
+      "descriptionFiltered": "الاستثناءات النشطة « {{type}} » لـ « {{name}} ».",
+      "descriptionFilteredFallback": "الاستثناءات النشطة « {{type}} » لهذا القسم.",
       "empty": "لا استثناءات نشطة لهذا القسم.",
+      "emptyPersonnel": "لا استثناءات للأفراد.",
+      "emptyDogs": "لا استثناءات للكلاب.",
+      "groupPersonnel": "الأفراد",
+      "groupDogs": "الكلاب",
       "personnel": "الموظف",
+      "personnelFallback": "موظف",
+      "dogFallback": "كلب",
       "type": "النوع",
-      "period": "الفترة"
+      "period": "الفترة",
+      "start": "البداية",
+      "end": "النهاية",
+      "remainingLabel": "المتبقي",
+      "matricule": "الرقم {{value}}",
+      "dogId": "معرف الكلب {{value}}",
+      "handler": "المدرب: {{name}}",
+      "status": {
+        "active": "نشط",
+        "expiringSoon": "ينتهي قريباً",
+        "endsToday": "ينتهي اليوم"
+      },
+      "remaining": {
+        "today": "اليوم",
+        "one": "يوم واحد",
+        "other": "{{count}} أيام"
+      }
     },
     "empty": {
       "noMatch": "لا أقسام تطابق التصفية",
@@ -1411,6 +1529,7 @@
     },
     "commander": {
       "title": "رئيس القسم",
+      "adjointReplacement": "رئيس القسم (بالنيابة)",
       "linkedFromPersonnel": "لا يوجد رئيس قسم معيّن.",
       "autoHint": "عيّن فرداً بوظيفة «رئيس القسم» لربطه تلقائياً. رئيس واحد فقط لكل قسم."
     },
@@ -1990,6 +2109,11 @@
     "gradeRequired": "الرتبة مطلوبة",
     "fonctionRequired": "الوظيفة مطلوبة",
     "maritalStatusRequired": "الحالة الاجتماعية مطلوبة",
+    "dateOfBirthRequired": "تاريخ الميلاد مطلوب",
+    "dateOfBirthInvalid": "تاريخ الميلاد غير صالح",
+    "dateOfBirthFuture": "لا يمكن أن يكون تاريخ الميلاد في المستقبل",
+    "dateOfBirthTooYoung": "يجب أن يكون العمر 18 سنة على الأقل",
+    "dateOfBirthTooOld": "لا يمكن أن يتجاوز العمر 70 سنة",
     "sectionResponsibleRequired": "القسم المسؤول عنه مطلوب",
     "profNumberUsed": "الرقم مستخدم",
     "dogAlreadyAssigned": "الكلب معيّن",
@@ -1998,7 +2122,7 @@
     "heatFemaleOnly": "الحرارة للإناث فقط",
     "minZero": "يجب ≥ 0",
     "atLeastOne": "على الأقل 1",
-    "agentRequired": "Cynotechnicien مطلوب",
+    "agentRequired": "الموظف مطلوب",
     "dogRequired": "الكلب مطلوب",
     "startDateRequired": "تاريخ البداية مطلوب",
     "dateRequired": "التاريخ مطلوب",

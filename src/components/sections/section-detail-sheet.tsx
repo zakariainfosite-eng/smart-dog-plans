@@ -8,6 +8,10 @@ import {
   personnelStatusLabel,
 } from "@/lib/section-assignments";
 import { normalizePersonnelFonction } from "@/lib/personnel-fonction";
+import {
+  resolveSectionCommanderDisplay,
+  SECTION_COMMANDER_MANUAL_FILL_DOTS,
+} from "@/lib/section-commander-display";
 import { useI18n } from "@/hooks/use-i18n";
 import { AgentAvatar } from "@/components/agents/agent-avatar";
 import { Button } from "@/components/ui/button";
@@ -64,6 +68,20 @@ export function SectionDetailSheet({
   const activeCynoCount = members.filter(isActiveCynotechnicien).length;
   const isDay = section?.shift_type === "day";
 
+  const commanderDisplay = useMemo(() => {
+    if (!section) return null;
+    return resolveSectionCommanderDisplay({
+      sectionId: section.id,
+      agents,
+      exclusions,
+      fallback: {
+        fullName: section.commander_full_name,
+        grade: section.commander_grade,
+        mle: section.commander_mle,
+      },
+    });
+  }, [section, agents, exclusions]);
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -111,11 +129,45 @@ export function SectionDetailSheet({
               </div>
               <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                  {t("sections.field.commanderFullName")}
+                  {commanderDisplay?.mode === "adjoint_replacement"
+                    ? t("sections.commander.adjointReplacement")
+                    : t("sections.field.commanderFullName")}
                 </p>
-                <p className="mt-1.5 truncate text-sm font-semibold text-foreground">
-                  {section.commander_full_name.trim() || "—"}
-                </p>
+                {commanderDisplay?.needsManualFill ? (
+                  <div className="mt-1.5 space-y-1">
+                    <p className="truncate text-sm font-semibold tracking-widest text-muted-foreground">
+                      {SECTION_COMMANDER_MANUAL_FILL_DOTS}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("sections.field.commanderGrade")} :{" "}
+                      <span className="tracking-widest">{SECTION_COMMANDER_MANUAL_FILL_DOTS}</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("sections.field.commanderMle")} :{" "}
+                      <span className="tracking-widest">{SECTION_COMMANDER_MANUAL_FILL_DOTS}</span>
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-1.5 space-y-1">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {commanderDisplay?.fullName.trim() ||
+                        section.commander_full_name.trim() ||
+                        "—"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("sections.field.commanderGrade")} :{" "}
+                      <span className="font-medium text-foreground">
+                        {commanderDisplay?.grade || "—"}
+                      </span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("sections.field.commanderMle")} :{" "}
+                      <span className="font-medium text-foreground">
+                        {commanderDisplay?.mle || "—"}
+                      </span>
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
                 <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">

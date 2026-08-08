@@ -41,6 +41,10 @@ async function loadPlanningAgents(
   );
 }
 
+/**
+ * Load agents + checkpoints + exclusions for automatic planning.
+ * Exclusion effectiveness uses `dateISO` (the planning form date), not wall-clock today.
+ */
 export async function loadPlanningContext(
   db: DbClient,
   dateISO: string,

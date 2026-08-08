@@ -13,7 +13,7 @@ import { toast } from "sonner";
 
 import { PageTitle } from "@/components/layout/PageTitle";
 import { EmptyState } from "@/components/layout/EmptyState";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { KpiCard } from "@/components/enterprise/kpi-card";
 import { FilterBar, FilterPills } from "@/components/enterprise/filter-bar";
@@ -69,7 +69,7 @@ import type { Database } from "@/integrations/database/schema-types";
 type OperationalCaseSpecialty = Database["public"]["Enums"]["operational_case_specialty"];
 
 export const Route = createFileRoute("/_authenticated/operational-cases")({
-  head: () => ({ meta: [{ title: "Cas opérationnels — Smart K9 Planning" }] }),
+  head: () => ({ meta: [{ title: "Cas opérationnels — CynoPlanning" }] }),
   component: OperationalCasesPage,
 });
 
@@ -219,7 +219,7 @@ function OperationalCasesPage() {
           { label: t("operationalCases.stat.total"), value: stats.total },
         ]}
         actions={
-          <Button size="lg" className="shrink-0 shadow-soft" onClick={openCreate}>
+          <Button className="shrink-0" onClick={openCreate}>
             <Plus className="mr-2 h-5 w-5" />
             {t("operationalCases.newAffair")}
           </Button>
@@ -342,7 +342,7 @@ function OperationalCasesPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>{t("action.cancel")}</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className={buttonVariants({ variant: "danger" })}
               onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
             >
               {t("action.delete")}

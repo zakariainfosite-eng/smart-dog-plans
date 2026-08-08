@@ -19,10 +19,16 @@ import {
   convertMillimetersToTwip,
 } from "docx";
 import {
-  assertDocxZipMagic,
+  assertDocxZipIntegrity,
   toZipSafeUint8Array,
 } from "@/lib/documents/docx-binary";
 import {
+  FP_CHEF_ADJOINT_REPLACEMENT_TITLE,
+  FP_CHEF_MANUAL_FILL_DOTS,
+  FP_CHEF_MANUAL_FILL_GRADE_LABEL,
+  FP_CHEF_MANUAL_FILL_MLE_LABEL,
+  FP_CHEF_MANUAL_FILL_NAME_LABEL,
+  FP_CHEF_TITLE,
   FP_CONTENT_W,
   FP_LAYOUT,
   FP_MARGIN,
@@ -102,11 +108,14 @@ function computeDocxTableRegionHeightMm(data: FeuillePresenceData): number {
 
 /** PDF-calibrated Y bounds for the narcotics+explosives table block (mm from page top). */
 function computeDocxTableRegionBoundsMm(data: FeuillePresenceData): { topMm: number; bottomMm: number } {
+  const chefBlockExtraMm =
+    data.chefNeedsReplacement || data.chefMode === "manual_fill" ? 22 : 0;
   const topMm =
     FP_LAYOUT.titleStartY
     + FP_LAYOUT.titleMainGap
     + FP_LAYOUT.titleSectionGap
     + FP_LAYOUT.chefLineGap
+    + chefBlockExtraMm
     + FP_LAYOUT.workBoxTopGap
     + FP_LAYOUT.workBoxH
     + FP_LAYOUT.workBoxBottomGap
@@ -370,22 +379,55 @@ function attendanceTable(
   });
 }
 
-function chefLine(data: FeuillePresenceData): Paragraph {
+function chefBlock(data: FeuillePresenceData): Paragraph[] {
+  if (data.chefNeedsReplacement || data.chefMode === "manual_fill") {
+    const field = (label: string, last = false) => [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 20 },
+        children: [textRun(label, { bold: true, size: 18 })],
+      }),
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: last ? 120 : 40 },
+        children: [textRun(FP_CHEF_MANUAL_FILL_DOTS, { size: 18 })],
+      }),
+    ];
+    return [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 40 },
+        children: [textRun(FP_CHEF_TITLE, { bold: true, size: 18 })],
+      }),
+      ...field(FP_CHEF_MANUAL_FILL_NAME_LABEL),
+      ...field(FP_CHEF_MANUAL_FILL_GRADE_LABEL),
+      ...field(FP_CHEF_MANUAL_FILL_MLE_LABEL, true),
+    ];
+  }
+
+  const title =
+    data.chefMode === "adjoint_replacement"
+      ? FP_CHEF_ADJOINT_REPLACEMENT_TITLE
+      : FP_CHEF_TITLE;
   const name = data.chefName.trim() || "....................";
   const grade = data.chefGrade.trim() || "....................";
   const mle = data.chefMle.trim() || "....................";
-  return new Paragraph({
-    alignment: AlignmentType.CENTER,
-    spacing: { after: 120 },
-    children: [
-      textRun("CHEF DE SECTION ", { bold: true, size: 18 }),
-      textRun(name, { size: 18 }),
-      textRun("   GRADE : ", { bold: true, size: 18 }),
-      textRun(grade, { size: 18 }),
-      textRun("   MLE : ", { bold: true, size: 18 }),
-      textRun(mle, { size: 18 }),
-    ],
-  });
+
+  // Single centered line: TITLE : Nom Prénom    Grade : XXX    MLE : XXXXX
+  return [
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 120 },
+      children: [
+        textRun(`${title} : `, { bold: true, size: 18 }),
+        textRun(name, { size: 18 }),
+        textRun("    Grade : ", { bold: true, size: 18 }),
+        textRun(grade, { size: 18 }),
+        textRun("    MLE : ", { bold: true, size: 18 }),
+        textRun(mle, { size: 18 }),
+      ],
+    }),
+  ];
 }
 
 function workSystemBox(): Table {
@@ -596,7 +638,7 @@ export async function generateFeuillePresenceDocx(
           para([textRun(data.sectionName || "SECTION", { bold: true, size: 24 })], {
             spacingAfter: 100,
           }),
-          chefLine(data),
+          ...chefBlock(data),
           workSystemBox(),
           new Paragraph({ spacing: { after: 100 }, children: [] }),
           ...(watermarkAnchorParagraph ? [watermarkAnchorParagraph] : []),
@@ -629,7 +671,8 @@ export async function generateFeuillePresenceDocx(
     } else {
       packed = toZipSafeUint8Array(await Packer.toArrayBuffer(doc));
     }
-    assertDocxZipMagic(packed, "DOCX Packer output");
+    // Re-open with JSZip before any IPC/save — fail here if Packer output is corrupt.
+    await assertDocxZipIntegrity(packed, "docx-generate");
     return packed;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

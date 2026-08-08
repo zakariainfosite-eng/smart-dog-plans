@@ -20,10 +20,11 @@ function resolveSpecialty(specialty: string | null | undefined): TeamSpecialty {
 }
 
 /**
- * Female presence rows for the existing specialty tables.
+ * Female presence rows for the existing specialty tables (DAY attendance only).
  * Same columns as male rows; Affectation left empty — no checkpoint / reserve.
  *
- * PRESERVE — Appended after the last male row in Stupéfiants / Explosifs.
+ * PRESERVE — Appended after the last male row in Stupéfiants / Explosifs on DAY
+ * sheets. Night sheets must omit these rows (see buildFeuillePresenceData).
  * Rotation Engine must never remove or overwrite this PDF customization.
  */
 export function buildCynotechniciennesTableRows(agents: FeuillePresenceAgentMeta[]): {

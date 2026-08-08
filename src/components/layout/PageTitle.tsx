@@ -5,6 +5,7 @@ import { LayoutGrid } from "lucide-react";
 import {
   PageHero,
   type PageHeroAction,
+  type PageHeroBreadcrumbItem,
   type PageHeroMetaItem,
 } from "@/components/enterprise/page-layout";
 
@@ -12,6 +13,7 @@ interface PageTitleProps {
   title: string;
   description?: string;
   icon?: LucideIcon;
+  breadcrumb?: PageHeroBreadcrumbItem[];
   meta?: PageHeroMetaItem[];
   actions?: ReactNode;
   heroActions?: PageHeroAction[];
@@ -22,6 +24,7 @@ export function PageTitle({
   title,
   description,
   icon = LayoutGrid,
+  breadcrumb,
   meta,
   actions,
   heroActions,
@@ -32,6 +35,7 @@ export function PageTitle({
       icon={icon}
       title={title}
       subtitle={description}
+      breadcrumb={breadcrumb}
       meta={meta}
       actions={heroActions}
       actionsSlot={actions}
@@ -40,4 +44,4 @@ export function PageTitle({
   );
 }
 
-export type { PageHeroMetaItem, PageHeroAction };
+export type { PageHeroMetaItem, PageHeroAction, PageHeroBreadcrumbItem };

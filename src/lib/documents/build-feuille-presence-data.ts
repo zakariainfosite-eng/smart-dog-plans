@@ -29,6 +29,13 @@ export type SectionCommanderInfo = {
   fullName: string;
   grade: string;
   mle: string;
+  /**
+   * True when the attendance-sheet resolver could not print a chief
+   * (excluded Chef de section and no available Adjoint in the same section).
+   */
+  needsManualFill?: boolean;
+  /** chief | adjoint_replacement | manual_fill — drives the PDF title. */
+  mode?: "chief" | "adjoint_replacement" | "manual_fill";
 };
 
 export type BuildFeuillePresenceInput = {
@@ -42,8 +49,8 @@ export type BuildFeuillePresenceInput = {
   /** Grade/MLE/dog metadata — only for agents referenced by the current planning. */
   agents: FeuillePresenceAgentMeta[];
   /**
-   * Active female agents (never planned) — inserted after male rows
-   * inside each existing specialty table (Affectation empty).
+   * Active female agents (never planned) — DAY sheets only: inserted after male
+   * rows inside each specialty table (Affectation empty). Ignored for night.
    */
   femaleAgents?: FeuillePresenceAgentMeta[];
   /** Active agent-level exclusion types from the database, keyed by agent id. */
@@ -390,11 +397,16 @@ export function buildFeuillePresenceData(input: BuildFeuillePresenceInput): Feui
     excludedDraft.push(buildExcludedRowBestEffort(agent, exclusion, exclusionTypesByAgent));
   }
 
-  const femaleRows = buildCynotechniciennesTableRows(input.femaleAgents ?? []);
+  // DAY only: reserved female presence lines (Stupéfiants + Explosifs).
+  // NIGHT: omit entirely — sheet lists only personnel assigned to that shift.
+  const femaleRows =
+    input.shift === "day"
+      ? buildCynotechniciennesTableRows(input.femaleAgents ?? [])
+      : { narcoticsRows: [] as FeuillePresenceTableRow[], explosivesRows: [] as FeuillePresenceTableRow[] };
 
-  // PRESERVE — Men first (matricule), then women of the same specialty (matricule).
+  // PRESERVE (day) — Men first (matricule), then women of the same specialty (matricule).
   // Females: personnel info only, empty Affectation; never operationally assigned.
-  // Rotation Engine updates must not remove this append.
+  // Rotation Engine updates must not remove this day-only append.
   const narcoticsRows = [
     ...sortAttendanceRowsByMatricule(
       [
@@ -419,12 +431,19 @@ export function buildFeuillePresenceData(input: BuildFeuillePresenceInput): Feui
     ...femaleRows.explosivesRows,
   ];
 
+  const chefNeedsReplacement = Boolean(input.sectionCommander.needsManualFill);
+  const chefMode =
+    input.sectionCommander.mode ??
+    (chefNeedsReplacement ? "manual_fill" : "chief");
   const data: FeuillePresenceData = {
     dateLine: formatFeuillePresenceDateLine(input.planningDate, input.shift),
     sectionName: input.sectionName.trim().toUpperCase(),
-    chefName: input.sectionCommander.fullName.trim().toUpperCase(),
-    chefGrade: input.sectionCommander.grade.trim().toUpperCase(),
-    chefMle: input.sectionCommander.mle.trim(),
+    // Leadership name: preserve natural casing (never GRADE-prefixed / ALL CAPS).
+    chefName: chefNeedsReplacement ? "" : input.sectionCommander.fullName.trim(),
+    chefGrade: chefNeedsReplacement ? "" : input.sectionCommander.grade.trim(),
+    chefMle: chefNeedsReplacement ? "" : input.sectionCommander.mle.trim(),
+    chefNeedsReplacement,
+    chefMode,
     narcoticsRows,
     explosivesRows,
   };

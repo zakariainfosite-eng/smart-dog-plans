@@ -5,7 +5,7 @@ import {
   quantityToKg,
 } from "@/lib/operational-case-stats";
 import { EXCLUSION_LEAVE_TYPES } from "@/lib/agent-career";
-import { exclusionCalendarStatus } from "@/lib/agent-exclusions";
+import { exclusionCalendarStatus, expirePastExclusions } from "@/lib/agent-exclusions";
 import { filterNotDeleted, isMissingSoftDeleteColumn } from "@/lib/soft-delete";
 import {
   breakdownByMonth,
@@ -204,6 +204,7 @@ export async function fetchStatistics(
     unassigned: string;
   },
 ): Promise<StatisticsPayload> {
+  await expirePastExclusions(db);
   const monthStart = toISODate(startOfMonth(new Date()));
 
   const [

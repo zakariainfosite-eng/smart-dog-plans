@@ -68,9 +68,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  buildSectionRotationSchedule,
-} from "@/lib/planning/section-rotation";
+import type { RotationShift } from "@/lib/planning/section-rotation";
 import { loadPlanningContext } from "@/lib/planning/load-planning-context";
 import {
   runPlanningEngine,
@@ -84,12 +82,58 @@ import {
   type FeuillePresenceAgentMeta,
 } from "@/lib/documents/build-feuille-presence-data";
 import { loadActiveFemaleAgentsForPresence } from "@/lib/documents/build-cynotechniciennes-presence-data";
+import { resolveAttendanceSheetCommander } from "@/lib/documents/resolve-attendance-sheet-commander";
 import { compareMatriculeAsc } from "@/lib/documents/sort-attendance-by-matricule";
 
 export const Route = createFileRoute("/_authenticated/daily-planning")({
-  head: () => ({ meta: [{ title: "Planification quotidienne — Smart K9 Planning" }] }),
+  head: () => ({ meta: [{ title: "Planification quotidienne — CynoPlanning" }] }),
   component: DailyPlanningPage,
 });
+
+const SECTION_ROLE_STORAGE_KEY = "cynoplanning.daily-planning.section-shift-roles";
+const ALL_SECTION_ROLES: RotationShift[] = ["day", "night", "rest"];
+
+type SectionRoleMap = Record<string, RotationShift>;
+
+function isSectionRole(value: unknown): value is RotationShift {
+  return value === "day" || value === "night" || value === "rest";
+}
+
+function isValidSectionRoleMap(map: SectionRoleMap, sectionIds: string[]): boolean {
+  if (sectionIds.length !== 3) return false;
+  const roles = sectionIds.map((id) => map[id]);
+  if (!roles.every(isSectionRole)) return false;
+  return new Set(roles).size === 3;
+}
+
+function defaultSectionRoleMap(sectionIds: string[]): SectionRoleMap {
+  return Object.fromEntries(
+    sectionIds.map((id, index) => [id, ALL_SECTION_ROLES[index] ?? "rest"]),
+  );
+}
+
+function loadStoredSectionRoleMap(sectionIds: string[]): SectionRoleMap {
+  if (typeof window === "undefined") return defaultSectionRoleMap(sectionIds);
+  try {
+    const raw = window.localStorage.getItem(SECTION_ROLE_STORAGE_KEY);
+    if (!raw) return defaultSectionRoleMap(sectionIds);
+    const parsed = JSON.parse(raw) as SectionRoleMap;
+    if (isValidSectionRoleMap(parsed, sectionIds)) return parsed;
+  } catch {
+    // Ignore corrupt storage and fall back to defaults.
+  }
+  return defaultSectionRoleMap(sectionIds);
+}
+
+function persistSectionRoleMap(map: SectionRoleMap, sectionIds: string[]) {
+  if (typeof window === "undefined") return;
+  if (!isValidSectionRoleMap(map, sectionIds)) return;
+  try {
+    window.localStorage.setItem(SECTION_ROLE_STORAGE_KEY, JSON.stringify(map));
+  } catch {
+    // Ignore quota / private-mode failures.
+  }
+}
 
 type PlanningErrorDisplay =
   | {
@@ -129,6 +173,7 @@ function DailyPlanningPage() {
   useDocumentTitle("meta.dailyPlanning.title");
   const [shiftChoice, setShiftChoice] = useState<"day" | "night">("day");
   const [planningDate, setPlanningDate] = useState<Date>(new Date());
+  const [roleBySectionId, setRoleBySectionId] = useState<SectionRoleMap>({});
   const [result, setResult] = useState<PlanningEngineResult | null>(null);
   /** Section id that produced `result` — used so UI never shows another section's warnings. */
   const [resultSectionId, setResultSectionId] = useState<string | null>(null);
@@ -166,17 +211,76 @@ function DailyPlanningPage() {
     setPlanningError(formatPlanningError(sectionsQueryError));
   }, [sectionsQueryError]);
 
-  const schedule = useMemo(() => {
-    if (!sections) return null;
-    return buildSectionRotationSchedule(sections, planningDate);
-  }, [sections, planningDate]);
+  const orderedSections = useMemo(() => {
+    if (!sections) return [];
+    // Keep stable 1ère / 2ème / 3ème order by name (same as former rotation slots).
+    return [...sections]
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+      .slice(0, 3)
+      .map((section, index) => ({
+        id: section.id,
+        name: section.name,
+        commander_full_name: section.commander_full_name ?? "",
+        commander_grade: section.commander_grade ?? "",
+        commander_mle: section.commander_mle ?? "",
+        index,
+      }));
+  }, [sections]);
 
-  const selectedSection = useMemo(
-    () => (shiftChoice === "day" ? schedule?.day : schedule?.night),
-    [schedule, shiftChoice],
+  const orderedSectionIds = useMemo(
+    () => orderedSections.map((section) => section.id),
+    [orderedSections],
   );
+
+  useEffect(() => {
+    if (orderedSectionIds.length !== 3) {
+      setRoleBySectionId({});
+      return;
+    }
+    setRoleBySectionId((prev) => {
+      if (isValidSectionRoleMap(prev, orderedSectionIds)) return prev;
+      return loadStoredSectionRoleMap(orderedSectionIds);
+    });
+  }, [orderedSectionIds]);
+
+  useEffect(() => {
+    if (orderedSectionIds.length !== 3) return;
+    persistSectionRoleMap(roleBySectionId, orderedSectionIds);
+  }, [roleBySectionId, orderedSectionIds]);
+
+  const rolesValid = isValidSectionRoleMap(roleBySectionId, orderedSectionIds);
+
+  const scheduleList = useMemo(
+    () =>
+      orderedSections.map((section) => ({
+        ...section,
+        rotationShift: roleBySectionId[section.id] as RotationShift | undefined,
+      })),
+    [orderedSections, roleBySectionId],
+  );
+
+  const selectedSection = useMemo(() => {
+    if (!rolesValid) return undefined;
+    return scheduleList.find((section) => section.rotationShift === shiftChoice);
+  }, [rolesValid, scheduleList, shiftChoice]);
+
   const sectionId = selectedSection?.id ?? "";
   const shift = selectedSection ? shiftChoice : undefined;
+
+  const handleSectionRoleChange = (sectionIdToChange: string, nextRole: RotationShift) => {
+    setRoleBySectionId((prev) => {
+      const currentRole = prev[sectionIdToChange];
+      if (!currentRole || currentRole === nextRole) {
+        return { ...prev, [sectionIdToChange]: nextRole };
+      }
+      const next: SectionRoleMap = { ...prev, [sectionIdToChange]: nextRole };
+      const otherId = Object.keys(prev).find(
+        (id) => id !== sectionIdToChange && prev[id] === nextRole,
+      );
+      if (otherId) next[otherId] = currentRole;
+      return next;
+    });
+  };
 
   // Drop stale results when the selected section / date / shift changes so
   // warnings from 2ème / 3ème never linger while viewing 1ère (and vice versa).
@@ -190,16 +294,16 @@ function DailyPlanningPage() {
 
   const displayWarnings = useMemo(() => {
     if (!sectionScopedResult || !selectedSection) return [];
-    const otherSectionNames = (schedule?.list ?? [])
-      .filter((row: any) => row.id !== selectedSection.id)
-      .map((row: any) => row.name);
+    const otherSectionNames = scheduleList
+      .filter((row) => row.id !== selectedSection.id)
+      .map((row) => row.name);
     return filterPlanningWarningsForSelectedSection(sectionScopedResult.summary.warnings, {
       sectionId: selectedSection.id,
       sectionName: selectedSection.name,
       otherSectionNames,
       sectionAgentNames: collectPlanningResultAgentNames(sectionScopedResult),
     });
-  }, [sectionScopedResult, selectedSection, schedule]);
+  }, [sectionScopedResult, selectedSection, scheduleList]);
 
   const persistPlanning = async (
     engineResult: PlanningEngineResult,
@@ -368,9 +472,9 @@ function DailyPlanningPage() {
       await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       await queryClient.invalidateQueries({ queryKey: OPERATIONAL_SUMMARY_QUERY_KEY });
 
-      const otherSectionNames = (schedule?.list ?? [])
-        .filter((row: any) => row.id !== selectedSection.id)
-        .map((row: any) => row.name);
+      const otherSectionNames = scheduleList
+        .filter((row) => row.id !== selectedSection.id)
+        .map((row) => row.name);
       const scopedWarnings = filterPlanningWarningsForSelectedSection(engineResult.summary.warnings, {
         sectionId: selectedSection.id,
         sectionName: selectedSection.name,
@@ -409,13 +513,20 @@ function DailyPlanningPage() {
     });
 
     try {
+      if (!rolesValid) {
+        const message = t("dailyPlanning.alert.invalidSectionRoles");
+        setPlanningError({ kind: "other", stack: message });
+        toast.error(message);
+        return;
+      }
+
       if (!selectedSection || !shift) {
         const message =
-          "No active section for the selected shift. Button should stay disabled until rotation resolves 3 active sections.";
+          "No active section for the selected shift. Assign exactly one section to Jour and one to Nuit.";
         console.error("[daily-planning] 3.validation SILENT-WOULD-RETURN → exposing error", {
           selectedSection,
           shift,
-          schedule,
+          roleBySectionId,
         });
         setPlanningError({ kind: "other", stack: message });
         toast.error(message);
@@ -522,6 +633,7 @@ function DailyPlanningPage() {
       });
     }
 
+    // Attendance PDF: exclusion effectiveness uses the selected planning date.
     const exclusionsRaw = await fetchActiveExclusionsForDate(
       db,
       format(planningDate, "yyyy-MM-dd"),
@@ -533,6 +645,17 @@ function DailyPlanningPage() {
       exclusionTypesByAgent[exclusion.agent_id] = exclusion.exclusion_type;
     }
 
+    const resolvedCommander = await resolveAttendanceSheetCommander(
+      db,
+      selectedSection.id,
+      {
+        fullName: commanderFullName,
+        grade: commanderGrade,
+        mle: commanderMle,
+      },
+      exclusionsRaw,
+    );
+
     const femaleAgents = await loadActiveFemaleAgentsForPresence(db);
 
     const buildResult = buildFeuillePresenceData({
@@ -541,9 +664,11 @@ function DailyPlanningPage() {
       sectionName: selectedSection.name,
       sectionIndex: selectedSection.index,
       sectionCommander: {
-        fullName: commanderFullName,
-        grade: commanderGrade,
-        mle: commanderMle,
+        fullName: resolvedCommander.fullName,
+        grade: resolvedCommander.grade,
+        mle: resolvedCommander.mle,
+        needsManualFill: resolvedCommander.needsManualFill,
+        mode: resolvedCommander.mode,
       },
       agents: agentsMeta,
       femaleAgents,
@@ -712,7 +837,7 @@ function DailyPlanningPage() {
             <Button
               type="button"
               onClick={() => void handleCreatePlanning()}
-              disabled={!sectionId || running || sectionsLoading}
+              disabled={!sectionId || !rolesValid || running || sectionsLoading}
             >
               {running ? (
                 <>
@@ -725,38 +850,57 @@ function DailyPlanningPage() {
             </Button>
           </div>
 
-          {schedule && schedule.list.length === 3 && (
-            <div className="grid gap-2 rounded-md border bg-muted/30 p-3 sm:grid-cols-3">
-              {schedule.list.map((s: any) => {
-                const isSelected = s.id === sectionId;
-                return (
-                  <div
-                    key={s.id}
-                    className={`flex items-center justify-between rounded-md border px-3 py-2 text-sm ${
-                      isSelected ? "border-primary bg-primary/5" : "border-transparent"
-                    }`}
-                  >
-                    <span className="font-medium">{s.name}</span>
-                    <Badge
-                      variant={
-                        s.rotationShift === "night"
-                          ? "secondary"
-                          : s.rotationShift === "rest"
-                            ? "outline"
-                            : "default"
-                      }
-                      className="gap-1"
+          {orderedSections.length === 3 && (
+            <div className="space-y-2">
+              <div className="grid gap-2 rounded-md border bg-muted/30 p-3 sm:grid-cols-3">
+                {scheduleList.map((s) => {
+                  const isSelected = s.id === sectionId;
+                  const role = roleBySectionId[s.id];
+                  return (
+                    <div
+                      key={s.id}
+                      className={`flex flex-col gap-2 rounded-md border px-3 py-2 text-sm ${
+                        isSelected ? "border-primary bg-primary/5" : "border-transparent"
+                      }`}
                     >
-                      {s.rotationShift === "night" ? (
-                        <Moon className="h-3 w-3" />
-                      ) : s.rotationShift === "day" ? (
-                        <Sun className="h-3 w-3" />
-                      ) : null}
-                      {t(`shift.${s.rotationShift}`)}
-                    </Badge>
-                  </div>
-                );
-              })}
+                      <span className="font-medium">{s.name}</span>
+                      <Select
+                        value={role ?? ""}
+                        onValueChange={(v) =>
+                          handleSectionRoleChange(s.id, v as RotationShift)
+                        }
+                      >
+                        <SelectTrigger className="h-9 bg-background">
+                          <SelectValue placeholder={t("dailyPlanning.field.sectionRole")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ALL_SECTION_ROLES.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              <span className="inline-flex items-center gap-1.5">
+                                {option === "night" ? (
+                                  <Moon className="h-3.5 w-3.5" />
+                                ) : option === "day" ? (
+                                  <Sun className="h-3.5 w-3.5" />
+                                ) : null}
+                                {t(`shift.${option}`)}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                })}
+              </div>
+              {!rolesValid && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>{t("dailyPlanning.alert.invalidSectionRolesTitle")}</AlertTitle>
+                  <AlertDescription>
+                    {t("dailyPlanning.alert.invalidSectionRoles")}
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
           )}
           {sections && sections.length < 3 && (

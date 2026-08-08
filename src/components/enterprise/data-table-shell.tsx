@@ -19,9 +19,9 @@ export function DataTableShell({
 }: DataTableShellProps) {
   if (isLoading) {
     return (
-      <div className={cn("space-y-2 p-6", className)}>
+      <div className={cn("space-y-2 p-4", className)}>
         {Array.from({ length: loadingRows }).map((_, i) => (
-          <Skeleton key={i} className="h-[68px] w-full rounded-xl" />
+          <Skeleton key={i} className="h-12 w-full rounded-lg" />
         ))}
       </div>
     );

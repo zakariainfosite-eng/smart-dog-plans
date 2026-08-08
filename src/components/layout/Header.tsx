@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Bell, LogOut, User as UserIcon } from "lucide-react";
+import { LogOut, User as UserIcon } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -17,6 +17,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useI18n } from "@/hooks/use-i18n";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
+import { NotificationCenter } from "@/components/notifications/notification-center";
 import { getAuthProvider } from "@/integrations/auth";
 
 export function Header() {
@@ -46,12 +47,10 @@ export function Header() {
 
       <div className="ml-auto flex items-center gap-1">
         <LanguageSwitcher />
-        <Button variant="ghost" size="icon" className="rounded-[calc(var(--radius)-2px)]" aria-label={t("action.notifications")}>
-          <Bell className="h-4 w-4" />
-        </Button>
+        <NotificationCenter />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="gap-2 rounded-[calc(var(--radius)-2px)] px-2">
+            <Button variant="ghost" className="gap-2 px-3">
               <Avatar className="h-8 w-8 shadow-soft">
                 <AvatarFallback className="bg-primary text-xs font-semibold text-primary-foreground">
                   {initials}

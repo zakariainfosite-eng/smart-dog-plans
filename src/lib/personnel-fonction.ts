@@ -73,6 +73,13 @@ export function isChefDeSectionFonction(
   return normalized === "chef_de_section" || normalized === "chef_de_section_pi";
 }
 
+/** Permanent Chef de section only (never the Adjoint / PI variant). */
+export function isPrimaryChefDeSectionFonction(
+  fonction: string | null | undefined,
+): boolean {
+  return normalizePersonnelFonction(fonction) === "chef_de_section";
+}
+
 /** Roles that may keep a section_id (operational cynotechnicien or section chief). */
 export function mayHaveSectionFonction(
   fonction: string | null | undefined,

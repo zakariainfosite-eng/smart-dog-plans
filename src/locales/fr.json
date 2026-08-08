@@ -1,20 +1,26 @@
 {
   "app": {
-    "name": "Smart K9 Planning",
+    "name": "CynoPlanning",
     "subtitle": "Console d'administration",
-    "brandShort": "Smart K9",
+    "brandShort": "CynoPlanning",
     "brandTagline": "Planning",
     "description": "Console d'administration professionnelle pour la gestion des unités K9 et la planification."
   },
   "nav": {
     "group": "Navigation",
+    "groups": {
+      "personnel": "Personnel",
+      "operations": "Opérations",
+      "analysis": "Analyse"
+    },
     "dashboard": "Tableau de bord",
     "sections": "Sections",
-    "employees": "Personnel",
+    "employees": "Fonctionnaires",
     "dogs": "Chiens",
     "checkpoints": "Points de contrôle",
     "exclusions": "Exclusions",
     "operationalCases": "Cas opérationnels",
+    "planning": "Planification",
     "dailyPlanning": "Planification quotidienne",
     "history": "Historique",
     "statistics": "Statistiques",
@@ -128,49 +134,49 @@
     "togglePosts": "Afficher/masquer les postes"
   },
   "meta": {
-    "appTitle": "Smart K9 Planning — Console de gestion K9",
+    "appTitle": "CynoPlanning — Console de gestion K9",
     "auth": {
-      "title": "Connexion — Smart K9 Planning",
-      "description": "Connectez-vous à la console d'administration Smart K9 Planning."
+      "title": "Connexion — CynoPlanning",
+      "description": "Connectez-vous à la console d'administration CynoPlanning."
     },
     "dashboard": {
-      "title": "Tableau de bord — Smart K9 Planning"
+      "title": "Tableau de bord — CynoPlanning"
     },
     "employees": {
-      "title": "Personnel — Smart K9 Planning"
+      "title": "Fonctionnaires — CynoPlanning"
     },
     "dogs": {
-      "title": "Chiens — Smart K9 Planning"
+      "title": "Chiens — CynoPlanning"
     },
     "dogProfile": {
-      "title": "Profil chien — Smart K9 Planning"
+      "title": "Profil chien — CynoPlanning"
     },
     "agentProfile": {
-      "title": "Profil cynotechnicien — Smart K9 Planning"
+      "title": "Profil cynotechnicien — CynoPlanning"
     },
     "checkpoints": {
-      "title": "Points de contrôle — Smart K9 Planning"
+      "title": "Points de contrôle — CynoPlanning"
     },
     "exclusions": {
-      "title": "Exclusions — Smart K9 Planning"
+      "title": "Exclusions — CynoPlanning"
     },
     "operationalCases": {
-      "title": "Cas opérationnels — Smart K9 Planning"
+      "title": "Cas opérationnels — CynoPlanning"
     },
     "dailyPlanning": {
-      "title": "Planification quotidienne — Smart K9 Planning"
+      "title": "Planification quotidienne — CynoPlanning"
     },
     "sections": {
-      "title": "Sections — Smart K9 Planning"
+      "title": "Sections — CynoPlanning"
     },
     "settings": {
-      "title": "Paramètres — Smart K9 Planning"
+      "title": "Paramètres — CynoPlanning"
     },
     "statistics": {
-      "title": "Statistiques — Smart K9 Planning"
+      "title": "Statistiques — CynoPlanning"
     },
     "history": {
-      "title": "Historique — Smart K9 Planning"
+      "title": "Historique — CynoPlanning"
     }
   },
   "error": {
@@ -212,6 +218,14 @@
       "activeCheckpoints": "Points de contrôle actifs",
       "todayPlannings": "Planifications du jour"
     },
+    "kpi": {
+      "hint": {
+        "active": "Actifs",
+        "today": "Aujourd'hui",
+        "operational": "Opérationnel",
+        "updated": "Mis à jour"
+      }
+    },
     "todayPlanning": "Planification du jour",
     "noPlanningToday": "Aucune planification pour aujourd'hui.",
     "sectionFallback": "Section",
@@ -220,7 +234,7 @@
     "deploymentsPlaceholder": "Les déploiements programmés apparaîtront ici.",
     "validationProgress": "{{validated}} sur {{total}} planifications validées",
     "operationalSummary": {
-      "title": "RÉSUMÉ OPÉRATIONNEL",
+      "title": "Résumé opérationnel",
       "subtitle": "Situation de la section en service aujourd'hui",
       "noSection": "Aucune section active disponible pour le quart en cours.",
       "noPlanning": "Aucune planification validée pour la section et le quart en cours.",
@@ -229,34 +243,78 @@
       "activeSection": "Section active",
       "currentShift": "Quart en cours",
       "sectionChief": "Chef de section",
+      "availabilityTitle": "Disponibilité",
       "agentsMaladie": "Maladie",
       "agentsFormation": "Formation",
       "agentsConge": "Congé",
       "unavailableDogs": "Chiens indisponibles"
     }
   },
+  "notifications": {
+    "title": "Centre d'alertes",
+    "subtitle": "Retours d'exclusion à venir",
+    "empty": "Aucune notification pour le moment.",
+    "markAllRead": "Tout marquer comme lu",
+    "filter": {
+      "all": "Tous",
+      "personnel": "Personnel",
+      "dogs": "Chiens",
+      "unread": "Non lus",
+      "read": "Lus"
+    },
+    "kind": {
+      "personnel": "Personnel",
+      "dog": "Chien"
+    },
+    "severity": {
+      "info": "Information",
+      "warning": "Sous 3 jours",
+      "success": "Disponible aujourd'hui"
+    },
+    "message": {
+      "personnel": {
+        "inDays": "{{name}} redevient disponible dans {{count}} jours ({{date}}).",
+        "tomorrow": "{{name}} reprend le service demain.",
+        "today": "{{name}} est de nouveau disponible aujourd'hui."
+      },
+      "dog": {
+        "inDays": "Chien {{name}} ({{type}}) sera de nouveau opérationnel dans {{count}} jours.",
+        "tomorrow": "Chien {{name}} termine {{type}} demain.",
+        "today": "Chien {{name}} est de nouveau opérationnel aujourd'hui."
+      }
+    },
+    "imminent": {
+      "title": "Retours imminents",
+      "subtitle": "Prochaines disponibilités après exclusion",
+      "empty": "Aucun retour prévu prochainement.",
+      "inDays": "{{name}} — retour dans {{count}} jours",
+      "tomorrow": "{{name}} — {{type}} se termine demain",
+      "heatEndsTomorrow": "{{name}} — période de chaleur se termine demain",
+      "availableToday": "{{name}} — Disponible aujourd'hui"
+    }
+  },
   "personnelFonction": {
     "chef_brigadier": "Chef Brigade",
-    "chef_brigadier_pi": "Chef Brigade PI",
+    "chef_brigadier_pi": "Adjoint Chef Brigade",
     "chef_brigade": "Chef Brigade",
-    "chef_brigade_pi": "Chef Brigade PI",
+    "chef_brigade_pi": "Adjoint Chef Brigade",
     "chef_secretariat": "Chef Secrétariat",
     "secretaire": "Secrétaire",
-    "assistant_technique": "Assistant technique",
+    "assistant_technique": "Assistant cynotechnique",
     "chef_de_section": "Chef de section",
-    "chef_de_section_pi": "Chef de section PI",
+    "chef_de_section_pi": "Adjoint Chef de section",
     "chef_materiel": "Chef matériel",
     "aide_soignant_veterinaire": "Aide-soignant vétérinaire",
     "cynotechnicien": "Cynotechnicien"
   },
   "employees": {
-    "title": "Personnel",
-    "description": "Personnel de la brigade cynotechnique.",
-    "addAgent": "Ajouter un personnel",
+    "title": "Fonctionnaires",
+    "description": "Fonctionnaires de la brigade cynotechnique.",
+    "addAgent": "Ajouter un fonctionnaire",
     "hero": {
-      "title": "Gestion du personnel",
+      "title": "Gestion des fonctionnaires",
       "subtitle": "Gestion des cynotechniciens et du personnel de soutien.",
-      "activeToday": "Personnel disponible aujourd'hui",
+      "activeToday": "Fonctionnaires disponibles aujourd'hui",
       "lastUpdated": "Dernière mise à jour"
     },
     "export": {
@@ -267,7 +325,7 @@
       "pdfError": "Échec de l'export PDF"
     },
     "stat": {
-      "total": "Total personnel",
+      "total": "Total fonctionnaires",
       "withDog": "Maîtres avec chien",
       "available": "Disponibles",
       "excluded": "Exclus",
@@ -289,7 +347,7 @@
       "fonction": "Fonction",
       "section": "Section",
       "specialty": "Spécialité",
-      "availability": "Disponibilité (Disponible → Indisponible)",
+      "availability": "Statut (Disponible → Indisponible)",
       "marital": "Situation familiale",
       "gender": "Sexe",
       "seniorityAsc": "Ancienneté (plus ancien)",
@@ -325,17 +383,17 @@
       "name": "Nom",
       "profNumber": "Matricule",
       "fonction": "Fonction",
-      "disponibilite": "Disponibilité",
+      "disponibilite": "Statut",
       "assignedDog": "Chien assigné",
-      "showing": "{{displayed}} personnel affiché(s) sur {{total}} au total",
+      "showing": "{{displayed}} fonctionnaire(s) affiché(s) sur {{total}} au total",
       "pagination": "Affichage {{from}}–{{to}} sur {{total}}",
       "adminTitle": "Personnel administratif / de commandement",
       "operationalTitle": "Cynotechniciens"
     },
     "dialog": {
-      "addTitle": "Ajouter un personnel",
-      "editTitle": "Modifier le personnel",
-      "addDesc": "Créer un nouveau membre du personnel.",
+      "addTitle": "Ajouter un fonctionnaire",
+      "editTitle": "Modifier le fonctionnaire",
+      "addDesc": "Créer une nouvelle fiche fonctionnaire.",
       "editDesc": "Mettre à jour les informations et l'affectation.",
       "section": {
         "identity": "Identité",
@@ -358,6 +416,7 @@
       "professionalNumber": "Matricule",
       "fonction": "Fonction",
       "maritalStatus": "Situation familiale",
+      "dateOfBirth": "Date de naissance",
       "sectionResponsible": "Section responsable",
       "assignedDog": "Chien assigné",
       "phone": "Téléphone",
@@ -387,21 +446,21 @@
     },
     "hint": {
       "specialtyInherited": "La spécialité est héritée du chien assigné.",
-      "inactiveExcluded": "Le personnel inactif et les fonctions hors cynotechnicien sont exclus de la planification.",
+      "inactiveExcluded": "Les fonctionnaires inactifs et les fonctions hors cynotechnicien sont exclus de la planification.",
       "femaleNoSection": "Rotation féminine indépendante — pas de section A/B/C."
     },
     "empty": {
-      "title": "Aucun personnel",
-      "description": "Ajoutez du personnel pour constituer votre effectif."
+      "title": "Aucun fonctionnaire",
+      "description": "Ajoutez des fonctionnaires pour constituer votre effectif."
     },
     "delete": {
-      "title": "Supprimer ce personnel ?",
+      "title": "Supprimer ce fonctionnaire ?",
       "description": "Cela supprimera définitivement {{name}}. Action irréversible."
     },
     "toast": {
-      "updated": "Personnel mis à jour",
-      "created": "Personnel créé",
-      "deleted": "Personnel supprimé",
+      "updated": "Fonctionnaire mis à jour",
+      "created": "Fonctionnaire créé",
+      "deleted": "Fonctionnaire supprimé",
       "profNumberUnique": "Le matricule doit être unique",
       "dogAlreadyAssigned": "Ce chien est déjà assigné à un autre cynotechnicien"
     },
@@ -413,19 +472,22 @@
   },
   "agentProfile": {
     "notFound": "Cynotechnicien introuvable.",
-    "backToAgents": "Retour aux cynotechniciens",
-    "allAgents": "Tous les cynotechniciens",
+    "backToAgents": "Retour aux fonctionnaires",
+    "allAgents": "Tous les fonctionnaires",
     "generalInfo": "Informations générales",
     "assignment": "Affectation",
     "contact": "Coordonnées"
   },
   "agentDetails": {
     "title": "Profil du cynotechnicien",
+    "titleFonctionnaire": "Profil du fonctionnaire",
     "error": {
-      "loadFailed": "Impossible de charger le profil du cynotechnicien."
+      "loadFailed": "Impossible de charger le profil du cynotechnicien.",
+      "loadFailedFonctionnaire": "Impossible de charger le profil du fonctionnaire."
     },
     "action": {
       "edit": "Modifier le cynotechnicien",
+      "editFonctionnaire": "Modifier le fonctionnaire",
       "exportPdf": "Exporter PDF",
       "print": "Imprimer le profil"
     },
@@ -678,7 +740,7 @@
       "emptyCases": "Aucun cas opérationnel enregistré pour ce chien."
     },
     "exclusions": {
-      "noAgent": "Aucun cynotechnicien assigné — les exclusions sont liées au cynotechnicien."
+      "noAgent": "Aucun fonctionnaire assigné — les exclusions sont liées au fonctionnaire."
     },
     "cases": {
       "card": {
@@ -853,7 +915,7 @@
     "new": "Nouvelle exclusion",
     "stat": {
       "active": "Exclusions actives",
-      "sickAgents": "Cynotechniciens malades",
+      "sickAgents": "Fonctionnaires malades",
       "dogsInHeat": "Chiennes en chaleur",
       "sickDogs": "Chiens malades"
     },
@@ -866,17 +928,17 @@
       "dogs": "Chiens"
     },
     "sections": {
-      "personnel": "Exclusions des Cynotechniciens",
+      "personnel": "Exclusions des Fonctionnaires",
       "dogs": "Exclusions des Chiens"
     },
     "filter": {
       "reason": "Type d'exclusion",
       "allReasons": "Tous les types",
-      "allAgents": "Tous les cynotechniciens",
+      "allAgents": "Tous les fonctionnaires",
       "date": "Date"
     },
     "table": {
-      "agent": "Cynotechnicien",
+      "agent": "Fonctionnaire",
       "photo": "Photo",
       "fullName": "Nom complet",
       "profNumber": "Matricule",
@@ -884,7 +946,7 @@
       "dogPhoto": "Photo du chien",
       "dogName": "Nom du chien",
       "dogId": "ID",
-      "assignedAgent": "Cynotechnicien assigné",
+      "assignedAgent": "Fonctionnaire assigné",
       "type": "Type d'exclusion",
       "start": "Date début",
       "end": "Date fin",
@@ -892,54 +954,62 @@
       "target": "Cible"
     },
     "type": {
-      "sickness": "Maladie",
-      "annual_leave": "Congé annuel",
-      "administrative_leave": "Congé administratif",
+      "sickness": "Malade",
+      "annual_leave": "Congé",
+      "administrative_leave": "Congé",
       "mission": "Mission",
       "training": "Formation",
-      "dog_sick": "Malade",
-      "female_dog_heat": "En chaleur",
-      "other": "Autre",
+      "dog_sick": "Chien malade",
+      "female_dog_heat": "Chienne en chaleur",
+      "other": "Indisponible",
       "absence": "Absence",
-      "special_leave": "Congé exceptionnel",
+      "special_leave": "Congé",
       "suspension": "Suspension",
       "dog_injured": "Blessé",
-      "dog_temporary_retirement": "Retraité temporairement",
+      "dog_temporary_retirement": "Chien en repos",
       "dog_vet_visit": "Visite vétérinaire",
       "dog_training": "Dressage",
-      "dog_other": "Autre"
+      "dog_other": "Indisponible"
     },
     "empty": {
       "noMatch": "Aucune exclusion ne correspond",
       "none": "Aucune exclusion",
+      "noneActive": "Aucune exclusion active.",
       "nonePersonnel": "Aucune exclusion personnel",
       "noneDogs": "Aucune exclusion chien",
-      "recordFirst": "Enregistrez une exclusion pour le personnel ou un chien."
+      "recordFirst": "Ajoutez une exclusion pour commencer le suivi."
     },
     "dialog": {
       "newTitle": "Nouvelle exclusion",
       "editTitle": "Modifier l'exclusion",
-      "newDesc": "Enregistrer une indisponibilité pour un cynotechnicien ou un chien.",
+      "newDesc": "Enregistrer une indisponibilité pour un fonctionnaire ou un chien.",
       "editDesc": "Mettre à jour les détails."
     },
     "field": {
-      "agent": "Cynotechnicien",
+      "agent": "Fonctionnaire",
       "dog": "Chien",
       "applyTo": "Appliquer à",
       "exclusionType": "Type d'exclusion",
       "durationDays": "Durée (jours)",
-      "endDateCalculated": "Date de fin (calculée)"
+      "endDateCalculated": "Date de fin (calculée)",
+      "section": "Section",
+      "dogSection": "Section du chien",
+      "noSection": "Aucune section"
     },
     "applyTo": {
-      "agent": "Cynotechnicien",
+      "agent": "Fonctionnaire",
       "dog": "Chien"
     },
-    "selectAgent": "Sélectionner un cynotechnicien",
+    "selectAgent": "Sélectionner un fonctionnaire",
     "selectDog": "Sélectionner un chien",
-    "searchAgent": "Rechercher nom, prénom ou matricule…",
+    "searchAgent": "Rechercher un fonctionnaire…",
     "searchDog": "Rechercher nom du chien ou matricule…",
-    "noAgentMatch": "Aucun cynotechnicien trouvé",
+    "noAgentMatch": "Aucun fonctionnaire trouvé",
     "noDogMatch": "Aucun chien trouvé",
+    "noFemaleDogAvailable": "Aucune chienne disponible.",
+    "selector": {
+      "noFonction": "Aucune fonction"
+    },
     "placeholder": {
       "notes": "Contexte ou référence facultatif…"
     },
@@ -977,7 +1047,7 @@
       "deleted": "Exclusion supprimée"
     },
     "error": {
-      "overlap": "Ce cynotechnicien a déjà une exclusion sur cette période."
+      "overlap": "Ce fonctionnaire a déjà une exclusion sur cette période."
     }
   },
   "operationalCases": {
@@ -1172,11 +1242,12 @@
     "description": "Générer et enregistrer automatiquement les affectations quotidiennes.",
     "create": {
       "title": "Créer la planification quotidienne",
-      "description": "Choisissez date et quart. La section active suit la rotation 12/24. Le bouton génère, enregistre et historise."
+      "description": "Choisissez la date, le quart, puis assignez manuellement Jour, Nuit et Repos à chaque section. Le bouton génère, enregistre et historise."
     },
     "field": {
       "planningDate": "Date de planification",
-      "shift": "Quart"
+      "shift": "Quart",
+      "sectionRole": "Rôle de la section"
     },
     "generating": "Génération…",
     "createButton": "Créer la planification quotidienne",
@@ -1203,8 +1274,10 @@
       "noPlanning": "Générez et validez d'abord une planification quotidienne."
     },
     "alert": {
-      "rotationUnavailable": "Rotation indisponible",
-      "needThreeSections": "La rotation 12/24 exige exactement 3 sections actives. Trouvé : {{count}}."
+      "rotationUnavailable": "Configuration indisponible",
+      "needThreeSections": "La planification exige exactement 3 sections actives. Trouvé : {{count}}.",
+      "invalidSectionRolesTitle": "Affectation des sections invalide",
+      "invalidSectionRoles": "Attribuez exactement une section à Jour, une à Nuit et une à Repos. Les doublons ne sont pas autorisés."
     },
     "error": {
       "title": "Échec de la génération",
@@ -1346,6 +1419,10 @@
   "sections": {
     "title": "Sections",
     "description": "Gérer les sections opérationnelles et leurs affectations.",
+    "hero": {
+      "totalSections": "Total sections",
+      "activeSections": "Sections actives"
+    },
     "new": "Nouvelle section",
     "filter": {
       "dayShift": "Quart de jour",
@@ -1360,16 +1437,57 @@
       "assigned": "Personnel assigné",
       "available": "Disponible",
       "unavailable": "Indisponible",
-      "activeExclusions": "Exclusions actives"
+      "activeExclusions": "Exclusions actives",
+      "exclusionsDetail": "Détail des exclusions de la section",
+      "narcotics": "Stupéfiants",
+      "explosives": "Explosifs",
+      "operational": "Opérationnel",
+      "total": "Total",
+      "breakdown": {
+        "sickness": "Maladie",
+        "leave": "Congé",
+        "training": "Formation",
+        "mission": "Mission",
+        "absence": "Permission",
+        "dog_sick": "Chien malade",
+        "female_dog_heat": "Chienne en chaleur",
+        "dog_temporary_retirement": "Chien en repos",
+        "other": "Autre"
+      }
     },
     "exclusionsSheet": {
       "title": "Exclusions actives",
-      "description": "Exclusions actives du personnel de « {{name}} ».",
-      "descriptionFallback": "Exclusions actives de la section.",
+      "titleFiltered": "Exclusions — {{type}}",
+      "description": "Toutes les exclusions actives (personnel et chiens) de « {{name}} ».",
+      "descriptionFallback": "Toutes les exclusions actives de la section.",
+      "descriptionFiltered": "Exclusions actives « {{type}} » pour « {{name}} ».",
+      "descriptionFilteredFallback": "Exclusions actives « {{type}} » pour cette section.",
       "empty": "Aucune exclusion active pour cette section.",
+      "emptyPersonnel": "Aucune exclusion personnel.",
+      "emptyDogs": "Aucune exclusion chien.",
+      "groupPersonnel": "Personnel",
+      "groupDogs": "Chiens",
       "personnel": "Personnel",
+      "personnelFallback": "Fonctionnaire",
+      "dogFallback": "Chien",
       "type": "Type",
-      "period": "Période"
+      "period": "Période",
+      "start": "Début",
+      "end": "Fin",
+      "remainingLabel": "Restant",
+      "matricule": "Matricule {{value}}",
+      "dogId": "ID {{value}}",
+      "handler": "Maître-chien : {{name}}",
+      "status": {
+        "active": "Actif",
+        "expiringSoon": "Expire bientôt",
+        "endsToday": "Termine aujourd'hui"
+      },
+      "remaining": {
+        "today": "Aujourd'hui",
+        "one": "1 jour",
+        "other": "{{count}} jours"
+      }
     },
     "empty": {
       "noMatch": "Aucune section ne correspond",
@@ -1391,6 +1509,7 @@
     },
     "commander": {
       "title": "Chef de section",
+      "adjointReplacement": "Chef de section (intérim)",
       "linkedFromPersonnel": "Aucun chef de section assigné.",
       "autoHint": "Assignez un personnel « Chef de section » pour lier automatiquement ce chef. Un seul chef par section."
     },
@@ -1969,6 +2088,11 @@
     "gradeRequired": "Le grade est requis",
     "fonctionRequired": "La fonction est requise",
     "maritalStatusRequired": "La situation familiale est requise",
+    "dateOfBirthRequired": "La date de naissance est requise",
+    "dateOfBirthInvalid": "La date de naissance est invalide",
+    "dateOfBirthFuture": "La date de naissance ne peut pas être dans le futur",
+    "dateOfBirthTooYoung": "L'âge doit être d'au moins 18 ans",
+    "dateOfBirthTooOld": "L'âge ne peut pas dépasser 70 ans",
     "sectionResponsibleRequired": "La section responsable est requise",
     "profNumberUsed": "Ce matricule est déjà utilisé",
     "dogAlreadyAssigned": "Ce chien est déjà assigné",
@@ -1977,7 +2101,7 @@
     "heatFemaleOnly": "Le statut chaleur s'applique aux femelles uniquement",
     "minZero": "Doit être ≥ 0",
     "atLeastOne": "Au moins 1",
-    "agentRequired": "Le cynotechnicien est requis",
+    "agentRequired": "Le fonctionnaire est requis",
     "dogRequired": "Le chien est requis",
     "startDateRequired": "La date de début est requise",
     "dateRequired": "La date est requise",

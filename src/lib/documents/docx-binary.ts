@@ -6,6 +6,9 @@
 /** ZIP local-file header — every valid .docx starts with these bytes. */
 export const DOCX_ZIP_MAGIC = [0x50, 0x4b, 0x03, 0x04] as const;
 
+/** ZIP end-of-central-directory signature. */
+export const DOCX_ZIP_EOCD = [0x50, 0x4b, 0x05, 0x06] as const;
+
 /**
  * Copy into a fresh same-realm Uint8Array.
  * JSZip (bundled inside `docx`) uses `instanceof Uint8Array`; bytes from fetch/canvas
@@ -39,8 +42,85 @@ export function assertDocxZipMagic(bytes: Uint8Array, context: string): void {
 }
 
 /**
+ * Structural ZIP checks beyond the local-file magic.
+ * Catches truncated IPC payloads that still begin with PK\\x03\\x04.
+ */
+export function assertDocxZipArchive(bytes: Uint8Array, context: string): void {
+  assertDocxZipMagic(bytes, context);
+  if (bytes.byteLength < 22) {
+    throw new Error(`${context}: DOCX shorter than ZIP EOCD minimum (${bytes.byteLength} bytes)`);
+  }
+
+  // Scan backwards for EOCD (comment may follow; max comment 65535).
+  const maxScan = Math.min(bytes.byteLength - 22, 0xffff);
+  let eocd = -1;
+  for (let i = bytes.byteLength - 22; i >= bytes.byteLength - 22 - maxScan; i -= 1) {
+    if (
+      bytes[i] === DOCX_ZIP_EOCD[0]
+      && bytes[i + 1] === DOCX_ZIP_EOCD[1]
+      && bytes[i + 2] === DOCX_ZIP_EOCD[2]
+      && bytes[i + 3] === DOCX_ZIP_EOCD[3]
+    ) {
+      eocd = i;
+      break;
+    }
+  }
+  if (eocd < 0) {
+    throw new Error(
+      `${context}: missing ZIP end-of-central-directory (PK\\x05\\x06). Archive is truncated or corrupt.`,
+    );
+  }
+
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const cdSize = view.getUint32(eocd + 12, true);
+  const cdOffset = view.getUint32(eocd + 16, true);
+  if (cdOffset + cdSize !== eocd) {
+    throw new Error(
+      `${context}: ZIP central-directory mismatch `
+        + `(offset=${cdOffset}, size=${cdSize}, eocd=${eocd}, len=${bytes.byteLength}). `
+        + "Archive is truncated or corrupt.",
+    );
+  }
+  if (cdOffset < 4 || bytes[cdOffset] !== 0x50 || bytes[cdOffset + 1] !== 0x4b) {
+    throw new Error(`${context}: ZIP central-directory offset does not point at a PK signature`);
+  }
+}
+
+/**
+ * Full integrity check: structural ZIP + CRC32 of every entry via JSZip.
+ * Call before IPC save (renderer) and after IPC decode (main).
+ */
+export async function assertDocxZipIntegrity(
+  bytes: Uint8Array,
+  context: string,
+): Promise<void> {
+  assertDocxZipArchive(bytes, context);
+  const { default: JSZip } = await import("jszip");
+  try {
+    const zip = await JSZip.loadAsync(bytes, { checkCRC32: true });
+    const names = Object.keys(zip.files);
+    if (names.length === 0) {
+      throw new Error(`${context}: ZIP has no entries`);
+    }
+    const required = ["[Content_Types].xml", "_rels/.rels", "word/document.xml"];
+    for (const name of required) {
+      if (!zip.file(name)) {
+        throw new Error(`${context}: missing required OOXML part ${name}`);
+      }
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.startsWith(context)) throw error;
+    throw new Error(`${context}: JSZip CRC/load failed — ${message}`);
+  }
+}
+
+/**
  * Base64 encode without the npm `buffer` polyfill.
  * Chunked to avoid call-stack limits on large DOCX payloads in Chromium.
+ *
+ * Root cause note: transferring ~600k DOCX bytes as `number[]` over Electron IPC
+ * corrupts the payload on Windows packaged builds. Always use this + dataBase64.
  */
 export function uint8ArrayToBase64(bytes: Uint8Array): string {
   // 8 KiB chunks — larger spreads can exceed Chromium's apply/arg limits.
@@ -48,7 +128,8 @@ export function uint8ArrayToBase64(bytes: Uint8Array): string {
   let binary = "";
   for (let i = 0; i < bytes.length; i += CHUNK) {
     const slice = bytes.subarray(i, i + CHUNK);
-    binary += String.fromCharCode.apply(null, slice as unknown as number[]);
+    // Real Array — `apply` on TypedArray is unreliable across Chromium/Electron builds.
+    binary += String.fromCharCode.apply(null, Array.from(slice));
   }
   if (typeof btoa === "function") {
     return btoa(binary);

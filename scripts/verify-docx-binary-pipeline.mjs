@@ -7,6 +7,8 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   assertDocxZipMagic,
+  assertDocxZipArchive,
+  assertDocxZipIntegrity,
   toZipSafeUint8Array,
   uint8ArrayToBase64,
   DOCX_ZIP_MAGIC,
@@ -62,6 +64,26 @@ const bigB64 = uint8ArrayToBase64(big);
 const bigDecoded = Buffer.from(bigB64, "base64");
 assert(bigDecoded.length === big.length, "large base64 length");
 assert(bigDecoded[0] === 0x50 && bigDecoded[3] === 0x04, "large base64 preserves ZIP magic");
+
+// Truncated ZIP (magic OK, EOCD missing) must be rejected
+const truncated = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0, 1, 2, 3, 4, 5, 6, 7]);
+let eocdThrew = false;
+try {
+  assertDocxZipArchive(truncated, "truncated");
+} catch {
+  eocdThrew = true;
+}
+assert(eocdThrew, "truncated ZIP without EOCD is rejected");
+
+// Real DOCX sample if present
+import { existsSync } from "node:fs";
+const samplePath = join(root, "tmp-docx-investigation/01-generated-dev.docx");
+if (existsSync(samplePath)) {
+  const sample = new Uint8Array(readFileSync(samplePath));
+  assertDocxZipArchive(sample, "sample-archive");
+  await assertDocxZipIntegrity(sample, "sample-integrity");
+  assert(true, "sample DOCX passes archive + JSZip CRC integrity");
+}
 
 if (failed > 0) {
   console.error(`\n${failed} assertion(s) failed`);

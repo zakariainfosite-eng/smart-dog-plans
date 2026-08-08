@@ -5,12 +5,16 @@ import {
   isAgentLevelExclusionType,
   type AgentExclusionRecord,
 } from "@/lib/agent-exclusions";
+import {
+  getActiveExclusionsForDog,
+  pickHighestPriorityDogExclusionTypeName,
+} from "@/lib/dog-operational-status";
 
 type Gender = Database["public"]["Enums"]["gender_type"];
 
 export type AgentOperationalStatus = "available" | "excluded";
 
-/** Dynamic availability for the Personnel table — never persisted. */
+/** Dynamic availability for the Fonctionnaires table — never persisted. */
 export type AgentAvailability =
   | { status: "available" }
   | { status: "excluded"; exclusionType: string };
@@ -19,12 +23,81 @@ export type AgentListRow = {
   id: string;
   active: boolean;
   gender: Gender;
+  dog_id?: string | null;
   dogs: { specialty: string; status: string } | null;
 };
 
 /**
- * Operational status driven solely by active agent exclusions on the reference date.
- * Active exclusion → excluded ("Hors service"); otherwise → available ("Disponible").
+ * Agent-level exclusion priority when several are active the same day.
+ * Lower number = higher priority (aligned with operational severity).
+ */
+export const AGENT_EXCLUSION_STATUS_PRIORITY: Record<string, number> = {
+  suspension: 0,
+  sickness: 1,
+  administrative_leave: 2,
+  annual_leave: 3,
+  special_leave: 4,
+  absence: 5,
+  mission: 6,
+  training: 7,
+  other: 8,
+};
+
+export function agentExclusionStatusPriority(type: string): number {
+  return AGENT_EXCLUSION_STATUS_PRIORITY[type] ?? 100;
+}
+
+/**
+ * Highest-priority exclusion type among agent + dog exclusions.
+ * Agent-level reasons win over dog-level (existing personnel status rule);
+ * within each group, use the typed priority maps.
+ */
+export function pickHighestPriorityPersonnelExclusionType(
+  types: string[],
+): string | null {
+  if (types.length === 0) return null;
+
+  const agentTypes = types.filter((type) => isAgentLevelExclusionType(type));
+  if (agentTypes.length > 0) {
+    return (
+      [...agentTypes].sort(
+        (a, b) => agentExclusionStatusPriority(a) - agentExclusionStatusPriority(b),
+      )[0] ?? null
+    );
+  }
+
+  return pickHighestPriorityDogExclusionTypeName(types);
+}
+
+/** Active exclusions affecting a fonctionnaire: own agent rows + assigned dog rows. */
+export function getActiveExclusionsAffectingAgent(
+  agentId: string,
+  exclusions: AgentExclusionRecord[],
+  reference: Date | string = new Date(),
+  dogId?: string | null,
+): AgentExclusionRecord[] {
+  const byAgent = getActiveExclusionsForAgent(exclusions, agentId, reference);
+  if (!dogId) return byAgent;
+
+  const byDog = getActiveExclusionsForDog(exclusions, dogId, reference);
+  const merged = [...byAgent];
+  for (const row of byDog) {
+    const already = merged.some(
+      (existing) =>
+        existing.exclusion_type === row.exclusion_type &&
+        existing.start_date === row.start_date &&
+        existing.end_date === row.end_date &&
+        existing.dog_id === row.dog_id &&
+        existing.agent_id === row.agent_id,
+    );
+    if (!already) merged.push(row);
+  }
+  return merged;
+}
+
+/**
+ * Operational status: any agent-level exclusion → excluded; otherwise available.
+ * (Stats / night-eligibility — dog exclusions do not mark the agent personally excluded.)
  */
 export function deriveAgentOperationalStatus(
   agent: AgentListRow,
@@ -38,27 +111,55 @@ export function deriveAgentOperationalStatus(
 }
 
 /**
- * Current availability for the Personnel "Disponibilité" column.
- * Computed from active exclusions covering the reference day (default: today).
+ * Current Statut for the Fonctionnaires table / PDF.
+ * Agent exclusion OR assigned-dog exclusion → that reason; else Disponible.
+ * One reason only — highest priority per the existing exclusion rules.
  */
 export function deriveAgentAvailability(
   agentId: string,
   exclusions: AgentExclusionRecord[],
   reference: Date | string = new Date(),
+  dogId?: string | null,
 ): AgentAvailability {
-  const active = getActiveExclusionsForAgent(exclusions, agentId, reference);
-  if (active.length === 0) {
+  const active = getActiveExclusionsAffectingAgent(
+    agentId,
+    exclusions,
+    reference,
+    dogId,
+  );
+  const exclusionType = pickHighestPriorityPersonnelExclusionType(
+    active.map((row) => row.exclusion_type),
+  );
+  if (!exclusionType) {
     return { status: "available" };
   }
-
-  // Prefer agent-level exclusions when dog-level ones overlap the same day.
-  const preferred =
-    active.find((row) => isAgentLevelExclusionType(row.exclusion_type)) ?? active[0]!;
-
-  return { status: "excluded", exclusionType: preferred.exclusion_type };
+  return { status: "excluded", exclusionType };
 }
 
-/** Badge tone for Disponibilité — green available, typed colors for exclusions. */
+/** Resolve assigned dog id from dog_id or nested dogs relation. */
+export function resolveAgentDogId(
+  agent: Pick<AgentListRow, "dog_id"> & { dogs?: { id?: string } | null },
+): string | null {
+  if (agent.dog_id) return agent.dog_id;
+  const nestedId = agent.dogs && "id" in agent.dogs ? agent.dogs.id : undefined;
+  return nestedId ?? null;
+}
+
+/** Convenience when the caller has a full agent row. */
+export function deriveAgentAvailabilityForAgent(
+  agent: Pick<AgentListRow, "id" | "dog_id"> & { dogs?: { id?: string } | null },
+  exclusions: AgentExclusionRecord[],
+  reference: Date | string = new Date(),
+): AgentAvailability {
+  return deriveAgentAvailability(
+    agent.id,
+    exclusions,
+    reference,
+    resolveAgentDogId(agent),
+  );
+}
+
+/** Badge tone for Statut — green available, typed colors for exclusions. */
 export function availabilityBadgeTone(
   availability: AgentAvailability,
 ): "success" | "warning" | "danger" | "neutral" | "primary" | "info" | "purple" {

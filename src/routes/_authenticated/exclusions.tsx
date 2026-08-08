@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -21,6 +21,7 @@ import {
   deleteAgentExclusion,
   exclusionApplyTarget,
   exclusionCalendarStatus,
+  expirePastExclusions,
   fetchAgentExclusionHistory,
   isAgentExclusionActive,
   isAgentLevelExclusionType,
@@ -31,13 +32,26 @@ import {
 } from "@/lib/agent-exclusions";
 import { normalizePersonnelFonction } from "@/lib/personnel-fonction";
 import {
-  UserX, Plus, Pencil, Trash2, Activity, HeartPulse,
-  CalendarOff, Flame, Stethoscope, CalendarRange, ChevronsUpDown, Check, Dog as DogIcon, Users,
+  UserX,
+  Plus,
+  Activity,
+  HeartPulse,
+  CalendarOff,
+  Flame,
+  Stethoscope,
+  CalendarRange,
+  ChevronsUpDown,
+  Check,
+  Dog as DogIcon,
+  Users,
+  type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { RowActionButtons } from "@/components/enterprise/row-action-buttons";
 
 import { db } from "@/integrations/database/client";
 import { getAgents, getDogs } from "@/integrations/database";
+import type { Gender } from "@/integrations/database/types";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Command,
@@ -50,19 +64,18 @@ import {
 import { PageTitle } from "@/components/layout/PageTitle";
 import { EmptyState } from "@/components/layout/EmptyState";
 import {
-  PageTableShell,
   PageTablePagination,
   pageHeroLastUpdatedMeta,
 } from "@/components/enterprise/page-layout";
 import { formatPageLastUpdated, paginate, totalPages as calcTotalPages } from "@/lib/page-ui";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import { KpiCard } from "@/components/enterprise/kpi-card";
-import { FilterBar, FilterPills } from "@/components/enterprise/filter-bar";
 import { SearchField } from "@/components/enterprise/search-field";
 import { FilterSelectTrigger } from "@/components/enterprise/filter-select";
 import { DataTableShell } from "@/components/enterprise/data-table-shell";
@@ -81,19 +94,15 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/database/schema-types";
 
 type ExclusionType = Database["public"]["Enums"]["exclusion_type"];
 type ExclusionRow = Database["public"]["Tables"]["agent_exclusions"]["Row"];
 type DogSpecialty = Database["public"]["Enums"]["dog_specialty"];
-
-type ExclusionTab = "all" | "personnel" | "dogs";
 
 type ExclusionWithAgent = ExclusionRow & {
   agent: {
@@ -120,6 +129,7 @@ type DogOption = {
   name: string;
   microchip_number: string | null;
   specialty: DogSpecialty | null;
+  gender: Gender | null;
   photo_url: string | null;
   active: boolean;
   agent_id: string | null;
@@ -145,25 +155,21 @@ function isDogExclusionRow(row: Pick<ExclusionRow, "exclusion_type">): boolean {
   return isDogLevelExclusionType(row.exclusion_type);
 }
 
-/** Status label for the personnel combobox — never hides anyone. */
-function personnelSelectorStatus(
-  agent: Pick<AgentOption, "id" | "active">,
-  exclusions: ExclusionRow[],
-  referenceISO: string,
+/** Fonction label for the personnel combobox (never availability status). */
+function personnelSelectorFonctionLabel(
+  agent: Pick<AgentOption, "fonction">,
   t: TFunction,
 ): string {
-  if (!agent.active) return t("common.inactive");
+  const raw = agent.fonction?.trim();
+  if (!raw) return t("exclusions.selector.noFonction");
+  return t(`personnelFonction.${normalizePersonnelFonction(raw)}`);
+}
 
-  const activeExclusion = exclusions.find(
-    (row) =>
-      row.agent_id === agent.id &&
-      isAgentLevelExclusionType(row.exclusion_type) &&
-      isAgentExclusionActive(row, referenceISO),
-  );
-  if (activeExclusion) {
-    return exclusionLabel(activeExclusion.exclusion_type, t);
-  }
-  return t("employees.operationalStatus.available");
+function personnelSelectorDisplayLabel(
+  agent: Pick<AgentOption, "first_name" | "last_name" | "fonction">,
+  t: TFunction,
+): string {
+  return `${agent.first_name} ${agent.last_name} — ${personnelSelectorFonctionLabel(agent, t)}`;
 }
 
 function findReplaceablePersonnelExclusion(
@@ -191,7 +197,7 @@ function findReplaceablePersonnelExclusion(
 }
 
 export const Route = createFileRoute("/_authenticated/exclusions")({
-  head: () => ({ meta: [{ title: "Exclusions — Smart K9 Planning" }] }),
+  head: () => ({ meta: [{ title: "Exclusions — CynoPlanning" }] }),
   component: ExclusionsPage,
 });
 
@@ -270,7 +276,6 @@ function ExclusionsPage() {
   const { t, locale } = useI18n();
   useDocumentTitle("meta.exclusions.title");
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<ExclusionTab>("all");
   const [personnelPage, setPersonnelPage] = useState(1);
   const [dogsPage, setDogsPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -287,6 +292,13 @@ function ExclusionsPage() {
   const { data, isLoading, dataUpdatedAt } = useQuery({
     queryKey: ["exclusions-with-agent"],
     queryFn: async (): Promise<ExclusionWithAgent[]> => {
+      const expiredCount = await expirePastExclusions(db);
+      if (expiredCount > 0) {
+        void queryClient.invalidateQueries({ queryKey: ACTIVE_EXCLUSIONS_TODAY_QUERY_KEY });
+        void queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+        void queryClient.invalidateQueries({ queryKey: ["operational-summary"] });
+      }
+
       const mapRows = (rows: ExclusionRow[]) =>
         rows.map((row: any) => {
           const rawAgent = (row as unknown as { agent: unknown }).agent;
@@ -341,6 +353,7 @@ function ExclusionsPage() {
         name: row.name,
         microchip_number: row.microchip_number,
         specialty: row.specialty,
+        gender: row.gender ?? null,
         photo_url: row.photo_url,
         active: row.active,
         agent_id: row.agent?.id ?? null,
@@ -350,13 +363,13 @@ function ExclusionsPage() {
 
   const { data: sections } = useQuery({
     queryKey: ["sections-basic"],
-    queryFn: async () => {
+    queryFn: async (): Promise<Array<{ id: string; name: string }>> => {
       const { data, error } = await db
         .from("sections")
         .select("id, name")
         .order("name");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as Array<{ id: string; name: string }>;
     },
   });
 
@@ -386,15 +399,7 @@ function ExclusionsPage() {
     };
   }, [data]);
 
-  const typeOptions = useMemo(() => {
-    if (tab === "personnel") {
-      return ALL_EXCLUSION_TYPES.filter((type) => isAgentLevelExclusionType(type));
-    }
-    if (tab === "dogs") {
-      return ALL_EXCLUSION_TYPES.filter((type) => isDogLevelExclusionType(type));
-    }
-    return ALL_EXCLUSION_TYPES;
-  }, [tab]);
+  const typeOptions = ALL_EXCLUSION_TYPES;
 
   const matchesSharedFilters = (e: ExclusionWithAgent) => {
     if (typeFilter !== "all" && e.exclusion_type !== typeFilter) return false;
@@ -465,14 +470,7 @@ function ExclusionsPage() {
   useEffect(() => {
     setPersonnelPage(1);
     setDogsPage(1);
-  }, [search, typeFilter, sectionFilter, specialtyFilter, dateFilter, statusFilter, tab]);
-
-  useEffect(() => {
-    // Drop type filter if it doesn't belong to the active tab's type list.
-    if (typeFilter !== "all" && !typeOptions.includes(typeFilter)) {
-      setTypeFilter("all");
-    }
-  }, [tab, typeFilter, typeOptions]);
+  }, [search, typeFilter, sectionFilter, specialtyFilter, dateFilter, statusFilter]);
 
   const personnelRows = useMemo(
     () => paginate(personnelFiltered, personnelPage, PAGE_SIZE),
@@ -485,8 +483,6 @@ function ExclusionsPage() {
   const personnelPageCount = calcTotalPages(personnelFiltered.length, PAGE_SIZE);
   const dogsPageCount = calcTotalPages(dogsFiltered.length, PAGE_SIZE);
   const lastUpdated = formatPageLastUpdated(dataUpdatedAt, locale);
-  const showPersonnel = tab === "all" || tab === "personnel";
-  const showDogs = tab === "all" || tab === "dogs";
 
   const statusLabel = (status: ExclusionCalendarStatus) => {
     if (status === "active") return t("status.active");
@@ -585,9 +581,9 @@ function ExclusionsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const openCreate = () => {
+  const openCreate = (target: ExclusionApplyTarget = "agent") => {
     setEditing(null);
-    setCreateTarget(tab === "dogs" ? "dog" : "agent");
+    setCreateTarget(target);
     setDialogOpen(true);
   };
   const openEdit = (e: ExclusionRow) => {
@@ -604,26 +600,12 @@ function ExclusionsPage() {
       cell: ({ row }) => {
         const e = row.original;
         return (
-          <div className="flex justify-end gap-0.5">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => openEdit(e)}
-              aria-label={t("aria.edit")}
-            >
-              <Pencil className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-destructive hover:text-destructive"
-              onClick={() => setDeleteTarget(e)}
-              aria-label={t("aria.delete")}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </div>
+          <RowActionButtons
+            editLabel={t("aria.edit")}
+            deleteLabel={t("aria.delete")}
+            onEdit={() => openEdit(e)}
+            onDelete={() => setDeleteTarget(e)}
+          />
         );
       },
     }),
@@ -933,67 +915,85 @@ function ExclusionsPage() {
     [t, agentById, actionsColumn],
   );
 
-  const searchPlaceholder =
-    tab === "dogs"
-      ? t("exclusions.searchDogs")
-      : tab === "personnel"
-        ? t("exclusions.searchPersonnel")
-        : t("exclusions.search");
+  const filterTriggerClass =
+    "h-10 min-w-[140px] rounded-xl border-[#E5E7EB] bg-white px-3 text-[13px] shadow-none";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageTitle
         icon={UserX}
         title={t("exclusions.title")}
         description={t("exclusions.description")}
         loading={isLoading}
-        meta={[
-          pageHeroLastUpdatedMeta(t("common.page.lastUpdated"), lastUpdated),
-          { label: t("exclusions.stat.active"), value: stats.total },
-          { label: t("exclusions.tabs.personnel"), value: stats.personnel },
-          { label: t("exclusions.tabs.dogs"), value: stats.dogs },
-        ]}
-        actions={
-          <Button onClick={openCreate}>
-            <Plus className="mr-2 h-4 w-4" /> {t("exclusions.new")}
-          </Button>
-        }
+        meta={[pageHeroLastUpdatedMeta(t("common.page.lastUpdated"), lastUpdated)]}
       />
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-        <KpiCard icon={Activity} label={t("exclusions.stat.active")} value={stats.total} accent="primary" loading={isLoading} />
-        <KpiCard icon={CalendarOff} label={t("status.upcoming")} value={stats.upcoming} accent="warning" loading={isLoading} />
-        <KpiCard icon={HeartPulse} label={t("exclusions.stat.sickAgents")} value={stats.sick} accent="danger" loading={isLoading} />
-        <KpiCard icon={Flame} label={t("exclusions.stat.dogsInHeat")} value={stats.dogHeat} accent="warning" loading={isLoading} />
-        <KpiCard icon={Stethoscope} label={t("exclusions.stat.sickDogs")} value={stats.dogSick} accent="danger" loading={isLoading} />
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+        <KpiCard
+          variant="minimal"
+          icon={Activity}
+          label={t("exclusions.stat.active")}
+          value={stats.total}
+          accent="primary"
+          loading={isLoading}
+        />
+        <KpiCard
+          variant="minimal"
+          icon={CalendarOff}
+          label={t("status.upcoming")}
+          value={stats.upcoming}
+          accent="primary"
+          loading={isLoading}
+        />
+        <KpiCard
+          variant="minimal"
+          icon={HeartPulse}
+          label={t("exclusions.stat.sickAgents")}
+          value={stats.sick}
+          accent="primary"
+          loading={isLoading}
+        />
+        <KpiCard
+          variant="minimal"
+          icon={Flame}
+          label={t("exclusions.stat.dogsInHeat")}
+          value={stats.dogHeat}
+          accent="primary"
+          loading={isLoading}
+        />
+        <KpiCard
+          variant="minimal"
+          icon={Stethoscope}
+          label={t("exclusions.stat.sickDogs")}
+          value={stats.dogSick}
+          accent="primary"
+          loading={isLoading}
+        />
       </div>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as ExclusionTab)}>
-        <TabsList>
-          <TabsTrigger value="all">{t("exclusions.tabs.all")}</TabsTrigger>
-          <TabsTrigger value="personnel">{t("exclusions.tabs.personnel")}</TabsTrigger>
-          <TabsTrigger value="dogs">{t("exclusions.tabs.dogs")}</TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      <FilterBar
-        showReset={hasActiveFilters}
-        onReset={resetFilters}
-        resetLabel={t("common.page.filterReset")}
+      <div
+        className={cn(
+          "flex flex-col gap-3 rounded-xl border border-[#E5E7EB] bg-white p-3 shadow-none",
+          "lg:flex-row lg:items-center lg:gap-3",
+        )}
       >
         <SearchField
-          className="min-w-0 flex-1 lg:max-w-md"
-          placeholder={searchPlaceholder}
+          className="min-w-0 flex-1 [&_input]:h-10 [&_input]:rounded-xl [&_input]:border-[#E5E7EB] [&_input]:shadow-none"
+          placeholder={t("exclusions.search")}
           value={search}
           onChange={setSearch}
         />
-        <FilterPills>
+        <div className="flex flex-wrap items-center gap-3 lg:justify-end">
           <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as typeof typeFilter)}>
-            <FilterSelectTrigger><SelectValue placeholder={t("exclusions.filter.reason")} /></FilterSelectTrigger>
+            <FilterSelectTrigger className={filterTriggerClass}>
+              <SelectValue placeholder={t("exclusions.filter.reason")} />
+            </FilterSelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("exclusions.filter.allReasons")}</SelectItem>
               {typeOptions.map((type) => (
-                <SelectItem key={type} value={type}>{exclusionLabel(type, t)}</SelectItem>
+                <SelectItem key={type} value={type}>
+                  {exclusionLabel(type, t)}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -1001,36 +1001,40 @@ function ExclusionsPage() {
             type="date"
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
-            className="h-9 w-[150px]"
+            className="h-10 w-[150px] rounded-xl border-[#E5E7EB] text-[13px] shadow-none"
             aria-label={t("exclusions.filter.date")}
           />
-          {(tab === "all" || tab === "personnel") && (
-            <Select value={sectionFilter} onValueChange={setSectionFilter}>
-              <FilterSelectTrigger><SelectValue placeholder={t("field.section")} /></FilterSelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t("common.allSections")}</SelectItem>
-                {sections?.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          {(tab === "all" || tab === "dogs") && (
-            <Select
-              value={specialtyFilter}
-              onValueChange={(v) => setSpecialtyFilter(v as typeof specialtyFilter)}
-            >
-              <FilterSelectTrigger><SelectValue placeholder={t("field.specialty")} /></FilterSelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t("specialty.all")}</SelectItem>
-                <SelectItem value="narcotics">{t("specialty.narcotics")}</SelectItem>
-                <SelectItem value="explosives">{t("specialty.explosives")}</SelectItem>
-                <SelectItem value="currency">{t("operationalCases.specialty.currency")}</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
+          <Select value={sectionFilter} onValueChange={setSectionFilter}>
+            <FilterSelectTrigger className={filterTriggerClass}>
+              <SelectValue placeholder={t("field.section")} />
+            </FilterSelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("common.allSections")}</SelectItem>
+              {sections?.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={specialtyFilter}
+            onValueChange={(v) => setSpecialtyFilter(v as typeof specialtyFilter)}
+          >
+            <FilterSelectTrigger className={filterTriggerClass}>
+              <SelectValue placeholder={t("field.specialty")} />
+            </FilterSelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("specialty.all")}</SelectItem>
+              <SelectItem value="narcotics">{t("specialty.narcotics")}</SelectItem>
+              <SelectItem value="explosives">{t("specialty.explosives")}</SelectItem>
+              <SelectItem value="currency">{t("operationalCases.specialty.currency")}</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
-            <FilterSelectTrigger><SelectValue /></FilterSelectTrigger>
+            <FilterSelectTrigger className={filterTriggerClass}>
+              <SelectValue />
+            </FilterSelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("common.allStatuses")}</SelectItem>
               <SelectItem value="active">{t("status.active")}</SelectItem>
@@ -1038,130 +1042,137 @@ function ExclusionsPage() {
               <SelectItem value="expired">{t("status.expired")}</SelectItem>
             </SelectContent>
           </Select>
-        </FilterPills>
-      </FilterBar>
+          {hasActiveFilters ? (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="h-10 shrink-0"
+              onClick={resetFilters}
+            >
+              {t("common.page.filterReset")}
+            </Button>
+          ) : null}
+        </div>
+      </div>
 
-      {showPersonnel ? (
-        <section className="space-y-3">
-          <div className="flex items-center gap-2 border-l-2 border-primary/70 pl-3">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-base font-semibold tracking-tight">
-              {t("exclusions.sections.personnel")}
-            </h2>
-            <Badge variant="secondary" className="tabular-nums">{personnelFiltered.length}</Badge>
-          </div>
-          <PageTableShell
-            footer={
-              !isLoading ? (
-                <PageTablePagination
-                  showingLabel={t("common.page.showing", {
-                    displayed: personnelRows.length,
-                    total: personnelFiltered.length,
-                  })}
-                  page={personnelPage}
-                  totalPages={personnelPageCount}
-                  onPageChange={setPersonnelPage}
-                  prevLabel={t("common.page.prev")}
-                  nextLabel={t("common.page.next")}
-                />
-              ) : undefined
-            }
-          >
-            <TableTooltipProvider>
-              <DataTableShell isLoading={isLoading}>
-                <EnterpriseDataTable
-                  data={personnelRows}
-                  columns={personnelColumns}
-                  getRowId={(row) => row.id}
-                  layout="fixed"
-                  density="compact"
-                  responsiveScroll
-                  emptyState={
-                    <EmptyState
-                      icon={Users}
-                      title={
-                        (data ?? []).some(isPersonnelExclusionRow)
-                          ? t("exclusions.empty.noMatch")
-                          : t("exclusions.empty.nonePersonnel")
-                      }
-                      description={
-                        (data ?? []).some(isPersonnelExclusionRow)
-                          ? t("common.tryAdjustFilters")
-                          : t("exclusions.empty.recordFirst")
-                      }
-                    />
+      <ExclusionSectionCard
+        icon={Users}
+        title={t("exclusions.sections.personnel")}
+        count={personnelFiltered.length}
+        addLabel={t("exclusions.new")}
+        onAdd={() => openCreate("agent")}
+        footer={
+          !isLoading ? (
+            <PageTablePagination
+              showingLabel={t("common.page.showing", {
+                displayed: personnelRows.length,
+                total: personnelFiltered.length,
+              })}
+              page={personnelPage}
+              totalPages={personnelPageCount}
+              onPageChange={setPersonnelPage}
+              prevLabel={t("common.page.prev")}
+              nextLabel={t("common.page.next")}
+            />
+          ) : undefined
+        }
+      >
+        <TableTooltipProvider>
+          <DataTableShell isLoading={isLoading} loadingRows={4}>
+            <EnterpriseDataTable
+              data={personnelRows}
+              columns={personnelColumns}
+              getRowId={(row) => row.id}
+              layout="fixed"
+              density="dense"
+              zebraStriping
+              responsiveScroll
+              emptyState={
+                <EmptyState
+                  compact
+                  icon={Users}
+                  title={
+                    (data ?? []).some(isPersonnelExclusionRow)
+                      ? t("exclusions.empty.noMatch")
+                      : t("exclusions.empty.noneActive")
+                  }
+                  description={
+                    (data ?? []).some(isPersonnelExclusionRow)
+                      ? t("common.tryAdjustFilters")
+                      : t("exclusions.empty.recordFirst")
                   }
                 />
-              </DataTableShell>
-            </TableTooltipProvider>
-          </PageTableShell>
-        </section>
-      ) : null}
+              }
+            />
+          </DataTableShell>
+        </TableTooltipProvider>
+      </ExclusionSectionCard>
 
-      {showDogs ? (
-        <section className="space-y-3">
-          <div className="flex items-center gap-2 border-l-2 border-primary/70 pl-3">
-            <DogIcon className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-base font-semibold tracking-tight">
-              {t("exclusions.sections.dogs")}
-            </h2>
-            <Badge variant="secondary" className="tabular-nums">{dogsFiltered.length}</Badge>
-          </div>
-          <PageTableShell
-            footer={
-              !isLoading ? (
-                <PageTablePagination
-                  showingLabel={t("common.page.showing", {
-                    displayed: dogRows.length,
-                    total: dogsFiltered.length,
-                  })}
-                  page={dogsPage}
-                  totalPages={dogsPageCount}
-                  onPageChange={setDogsPage}
-                  prevLabel={t("common.page.prev")}
-                  nextLabel={t("common.page.next")}
-                />
-              ) : undefined
-            }
-          >
-            <TableTooltipProvider>
-              <DataTableShell isLoading={isLoading}>
-                <EnterpriseDataTable
-                  data={dogRows}
-                  columns={dogColumns}
-                  getRowId={(row) => row.id}
-                  layout="fixed"
-                  density="compact"
-                  responsiveScroll
-                  emptyState={
-                    <EmptyState
-                      icon={DogIcon}
-                      title={
-                        (data ?? []).some(isDogExclusionRow)
-                          ? t("exclusions.empty.noMatch")
-                          : t("exclusions.empty.noneDogs")
-                      }
-                      description={
-                        (data ?? []).some(isDogExclusionRow)
-                          ? t("common.tryAdjustFilters")
-                          : t("exclusions.empty.recordFirst")
-                      }
-                    />
+      <ExclusionSectionCard
+        icon={DogIcon}
+        title={t("exclusions.sections.dogs")}
+        count={dogsFiltered.length}
+        addLabel={t("exclusions.new")}
+        onAdd={() => openCreate("dog")}
+        footer={
+          !isLoading ? (
+            <PageTablePagination
+              showingLabel={t("common.page.showing", {
+                displayed: dogRows.length,
+                total: dogsFiltered.length,
+              })}
+              page={dogsPage}
+              totalPages={dogsPageCount}
+              onPageChange={setDogsPage}
+              prevLabel={t("common.page.prev")}
+              nextLabel={t("common.page.next")}
+            />
+          ) : undefined
+        }
+      >
+        <TableTooltipProvider>
+          <DataTableShell isLoading={isLoading} loadingRows={4}>
+            <EnterpriseDataTable
+              data={dogRows}
+              columns={dogColumns}
+              getRowId={(row) => row.id}
+              layout="fixed"
+              density="dense"
+              zebraStriping
+              responsiveScroll
+              emptyState={
+                <EmptyState
+                  compact
+                  icon={DogIcon}
+                  title={
+                    (data ?? []).some(isDogExclusionRow)
+                      ? t("exclusions.empty.noMatch")
+                      : t("exclusions.empty.noneActive")
+                  }
+                  description={
+                    (data ?? []).some(isDogExclusionRow)
+                      ? t("common.tryAdjustFilters")
+                      : t("exclusions.empty.recordFirst")
                   }
                 />
-              </DataTableShell>
-            </TableTooltipProvider>
-          </PageTableShell>
-        </section>
-      ) : null}
+              }
+            />
+          </DataTableShell>
+        </TableTooltipProvider>
+      </ExclusionSectionCard>
 
       <ExclusionDialog
         open={dialogOpen}
-        onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditing(null); }}
+        onOpenChange={(o) => {
+          setDialogOpen(o);
+          if (!o) setEditing(null);
+        }}
         initial={editing}
         defaultApplyTo={createTarget}
         agents={agents ?? []}
         dogs={dogs ?? []}
+        sectionNameById={sectionNameById}
         exclusions={data ?? []}
         onSubmit={(v) => upsert.mutate(v)}
         submitting={upsert.isPending}
@@ -1179,8 +1190,11 @@ function ExclusionsPage() {
             <AlertDialogCancel>{t("action.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               disabled={!deleteTarget || remove.isPending}
-              onClick={(evt) => { evt.preventDefault(); if (deleteTarget) remove.mutate(deleteTarget); }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(evt) => {
+                evt.preventDefault();
+                if (deleteTarget) remove.mutate(deleteTarget);
+              }}
+              className={buttonVariants({ variant: "danger" })}
             >
               {t("action.delete")}
             </AlertDialogAction>
@@ -1191,8 +1205,61 @@ function ExclusionsPage() {
   );
 }
 
+function ExclusionSectionCard({
+  icon: Icon,
+  title,
+  count,
+  addLabel,
+  onAdd,
+  children,
+  footer,
+}: {
+  icon: LucideIcon;
+  title: string;
+  count: number;
+  addLabel: string;
+  onAdd: () => void;
+  children: ReactNode;
+  footer?: ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-none">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#F1F5F9] px-4 py-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#023A84]/10 text-[#023A84]">
+            <Icon className="h-4 w-4" strokeWidth={2.25} />
+          </span>
+          <h2 className="truncate text-xl font-semibold tracking-tight text-[#0F172A]">
+            {title}
+          </h2>
+          <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#F1F5F9] px-2 text-[12px] font-semibold tabular-nums text-[#374151]">
+            {count}
+          </span>
+        </div>
+        <Button type="button" size="sm" onClick={onAdd} className="shrink-0">
+          <Plus />
+          {addLabel}
+        </Button>
+      </div>
+      <div className="min-h-0">{children}</div>
+      {footer ? (
+        <div className="border-t border-[#F1F5F9] px-4 py-2.5">{footer}</div>
+      ) : null}
+    </section>
+  );
+}
+
 function ExclusionDialog({
-  open, onOpenChange, initial, defaultApplyTo = "agent", agents, dogs, exclusions, onSubmit, submitting,
+  open,
+  onOpenChange,
+  initial,
+  defaultApplyTo = "agent",
+  agents,
+  dogs,
+  sectionNameById,
+  exclusions,
+  onSubmit,
+  submitting,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -1200,6 +1267,8 @@ function ExclusionDialog({
   defaultApplyTo?: ExclusionApplyTarget;
   agents: AgentOption[];
   dogs: DogOption[];
+  /** Live section names from the Sections table (id → name). */
+  sectionNameById: Map<string, string>;
   exclusions: ExclusionRow[];
   onSubmit: (v: ExclusionForm & { id?: string }) => void;
   submitting: boolean;
@@ -1353,12 +1422,38 @@ function ExclusionDialog({
     [agents, locale],
   );
   const activeDogs = dogs.filter((d) => d.active || d.id === initial?.dog_id);
+  const selectableDogs =
+    type === "female_dog_heat"
+      ? activeDogs.filter((d) => d.gender === "female")
+      : activeDogs;
   const selectedAgent = allAgents.find((a) => a.id === agentId);
   const selectedDog = activeDogs.find((d) => d.id === dogId);
   const typeOptions = applyTo === "dog" ? DOG_EXCLUSION_FORM_TYPES : PERSONNEL_EXCLUSION_FORM_TYPES;
-  const selectedAgentStatus = selectedAgent
-    ? personnelSelectorStatus(selectedAgent, exclusions, statusReferenceISO, t)
+
+  useEffect(() => {
+    if (type !== "female_dog_heat" || !dogId) return;
+    const selected = dogs.find((d) => d.id === dogId);
+    if (selected?.gender !== "female") setDogId("");
+  }, [type, dogId, dogs]);
+  const selectedAgentLabel = selectedAgent
+    ? personnelSelectorDisplayLabel(selectedAgent, t)
     : null;
+
+  /** Section of the selected agent, or of the dog's assigned handler — read-only info. */
+  const selectedSectionDisplay = useMemo(() => {
+    const none = t("exclusions.field.noSection");
+    if (applyTo === "agent") {
+      if (!selectedAgent) return null;
+      const sid = selectedAgent.section_id ?? null;
+      return sid ? sectionNameById.get(sid) ?? none : none;
+    }
+    if (!selectedDog) return null;
+    const handler =
+      allAgents.find((a) => a.id === selectedDog.agent_id) ??
+      allAgents.find((a) => a.dog_id === selectedDog.id);
+    const sid = handler?.section_id ?? null;
+    return sid ? sectionNameById.get(sid) ?? none : none;
+  }, [applyTo, selectedAgent, selectedDog, allAgents, sectionNameById, t]);
 
   const summaryCard = (
     <div className="rounded-xl border border-border/70 bg-muted/30 p-4 shadow-sm">
@@ -1394,13 +1489,13 @@ function ExclusionDialog({
               {t("exclusions.summary.duration", { count: duration })}
             </dd>
           </div>
-          {applyTo === "agent" && selectedAgent && selectedAgentStatus ? (
+          {applyTo === "agent" && selectedAgent && selectedAgentLabel ? (
             <div className="border-t border-border/60 pt-2.5">
               <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                 {t("exclusions.field.agent")}
               </dt>
               <dd className="mt-0.5 truncate text-sm font-medium text-foreground">
-                {selectedAgent.first_name} {selectedAgent.last_name} — {selectedAgentStatus}
+                {selectedAgentLabel}
               </dd>
             </div>
           ) : null}
@@ -1456,7 +1551,17 @@ function ExclusionDialog({
                   </ExclusionFormField>
 
                   <ExclusionFormField label={t("exclusions.field.exclusionType")}>
-                    <Select value={type} onValueChange={(v) => setType(v as ExclusionType)}>
+                    <Select
+                      value={type}
+                      onValueChange={(v) => {
+                        const nextType = v as ExclusionType;
+                        setType(nextType);
+                        if (nextType === "female_dog_heat" && dogId) {
+                          const selected = dogs.find((d) => d.id === dogId);
+                          if (selected?.gender !== "female") setDogId("");
+                        }
+                      }}
+                    >
                       <SelectTrigger className="h-10 w-full">
                         <SelectValue />
                       </SelectTrigger>
@@ -1487,9 +1592,7 @@ function ExclusionDialog({
                           className="h-10 w-full justify-between font-normal"
                         >
                           <span className="truncate">
-                            {selectedAgent && selectedAgentStatus
-                              ? `${selectedAgent.first_name} ${selectedAgent.last_name} — ${selectedAgentStatus}`
-                              : t("exclusions.selectAgent")}
+                            {selectedAgentLabel ?? t("exclusions.selectAgent")}
                           </span>
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
@@ -1501,16 +1604,12 @@ function ExclusionDialog({
                             <CommandEmpty>{t("exclusions.noAgentMatch")}</CommandEmpty>
                             <CommandGroup>
                               {allAgents.map((a) => {
-                                const status = personnelSelectorStatus(
-                                  a,
-                                  exclusions,
-                                  statusReferenceISO,
-                                  t,
-                                );
+                                const fonctionLabel = personnelSelectorFonctionLabel(a, t);
+                                const displayLabel = personnelSelectorDisplayLabel(a, t);
                                 return (
                                   <CommandItem
                                     key={a.id}
-                                    value={`${a.first_name} ${a.last_name} ${a.professional_number} ${status}`}
+                                    value={`${a.first_name} ${a.last_name} ${a.professional_number} ${fonctionLabel}`}
                                     onSelect={() => handleSelectAgent(a.id)}
                                   >
                                     <Check
@@ -1519,9 +1618,7 @@ function ExclusionDialog({
                                         agentId === a.id ? "opacity-100" : "opacity-0",
                                       )}
                                     />
-                                    <span className="truncate">
-                                      {a.first_name} {a.last_name} — {status}
-                                    </span>
+                                    <span className="truncate">{displayLabel}</span>
                                   </CommandItem>
                                 );
                               })}
@@ -1558,9 +1655,13 @@ function ExclusionDialog({
                         <Command>
                           <CommandInput placeholder={t("exclusions.searchDog")} />
                           <CommandList>
-                            <CommandEmpty>{t("exclusions.noDogMatch")}</CommandEmpty>
+                            <CommandEmpty>
+                              {type === "female_dog_heat"
+                                ? t("exclusions.noFemaleDogAvailable")
+                                : t("exclusions.noDogMatch")}
+                            </CommandEmpty>
                             <CommandGroup>
-                              {activeDogs.map((d) => (
+                              {selectableDogs.map((d) => (
                                 <CommandItem
                                   key={d.id}
                                   value={`${d.name} ${d.microchip_number ?? ""} ${d.id}`}
@@ -1586,6 +1687,23 @@ function ExclusionDialog({
                     </Popover>
                   </ExclusionFormField>
                 )}
+
+                {selectedSectionDisplay != null ? (
+                  <ExclusionFormField
+                    label={
+                      applyTo === "agent"
+                        ? t("exclusions.field.section")
+                        : t("exclusions.field.dogSection")
+                    }
+                  >
+                    <div
+                      className="flex h-10 items-center rounded-lg border border-border/70 bg-muted/40 px-3 text-sm font-medium text-foreground shadow-sm"
+                      aria-live="polite"
+                    >
+                      <span className="truncate">{selectedSectionDisplay}</span>
+                    </div>
+                  </ExclusionFormField>
+                ) : null}
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <ExclusionFormField

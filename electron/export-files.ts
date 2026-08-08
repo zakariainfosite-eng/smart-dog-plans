@@ -1,5 +1,5 @@
 import { BrowserWindow, dialog, type App } from "electron";
-import { mkdir, open, rename, unlink, writeFile } from "node:fs/promises";
+import { mkdir, open, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
 
 export type ExportFilePayload = {
@@ -32,11 +32,31 @@ function isDocxFilename(filename: string): boolean {
   return extname(filename).toLowerCase() === ".docx";
 }
 
-function assertDocxZipMagic(buf: Buffer, context: string): void {
-  if (buf.length < 4 || buf[0] !== 0x50 || buf[1] !== 0x4b || buf[2] !== 0x03 || buf[3] !== 0x04) {
+/** ZIP local magic + EOCD/central-directory consistency (catches truncated IPC payloads). */
+function assertDocxZipArchive(buf: Buffer, context: string): void {
+  if (buf.length < 22 || buf[0] !== 0x50 || buf[1] !== 0x4b || buf[2] !== 0x03 || buf[3] !== 0x04) {
     const head = Buffer.from(buf.subarray(0, Math.min(8, buf.length))).toString("hex");
     throw new Error(
       `${context}: decoded DOCX missing ZIP magic PK\\x03\\x04 (head=${head}, len=${buf.length})`,
+    );
+  }
+
+  const maxScan = Math.min(buf.length - 22, 0xffff);
+  let eocd = -1;
+  for (let i = buf.length - 22; i >= buf.length - 22 - maxScan; i -= 1) {
+    if (buf[i] === 0x50 && buf[i + 1] === 0x4b && buf[i + 2] === 0x05 && buf[i + 3] === 0x06) {
+      eocd = i;
+      break;
+    }
+  }
+  if (eocd < 0) {
+    throw new Error(`${context}: missing ZIP EOCD (PK\\x05\\x06) — truncated/corrupt after IPC`);
+  }
+  const cdSize = buf.readUInt32LE(eocd + 12);
+  const cdOffset = buf.readUInt32LE(eocd + 16);
+  if (cdOffset + cdSize !== eocd) {
+    throw new Error(
+      `${context}: ZIP central-directory mismatch (offset=${cdOffset}, size=${cdSize}, eocd=${eocd})`,
     );
   }
 }
@@ -56,16 +76,18 @@ function payloadToBuffer(file: ExportFilePayload): Buffer {
       );
     }
     if (isDocxFilename(file.filename)) {
-      assertDocxZipMagic(buf, `IPC decode ${file.filename}`);
+      assertDocxZipArchive(buf, `IPC decode ${file.filename}`);
     }
     return buf;
   }
   if (Array.isArray(file.data)) {
-    const buf = Buffer.from(file.data);
+    // Large number[] IPC is the confirmed Windows corruption vector for DOCX.
     if (isDocxFilename(file.filename)) {
-      assertDocxZipMagic(buf, `IPC decode ${file.filename}`);
+      throw new Error(
+        `Export file "${file.filename}" must use dataBase64 (number[] IPC corrupts DOCX on Windows).`,
+      );
     }
-    return buf;
+    return Buffer.from(file.data);
   }
   throw new Error(
     `Export file "${file.filename}" has no dataBase64/data payload (ipc-save / filesystem).`,
@@ -175,6 +197,17 @@ export async function saveExportFiles(
       const outPath = isMulti ? join(targetDir, `${chosenBase}${ext}`) : chosenPath;
       const buf = payloadToBuffer(file);
       await writeFileAtomic(outPath, buf);
+
+      // Post-write integrity — ensures Word never sees a truncated Windows write.
+      const onDisk = await readFile(outPath);
+      if (onDisk.length !== buf.length) {
+        throw new Error(
+          `filesystem: wrote ${onDisk.length} bytes for "${file.filename}", expected ${buf.length}`,
+        );
+      }
+      if (isDocxFilename(file.filename)) {
+        assertDocxZipArchive(onDisk, `filesystem ${file.filename}`);
+      }
       paths.push(outPath);
     }
 

@@ -3,10 +3,15 @@ import type Database from "better-sqlite3";
 import {
   isChefDeSectionFonction,
   isCynotechnicienFonction,
+  isPrimaryChefDeSectionFonction,
   normalizePersonnelFonction,
   parsePersonnelFonctionStrict,
   type PersonnelFonction,
 } from "../src/lib/personnel-fonction";
+import {
+  normalizeAgentBirthDate,
+  validateAgentBirthDate,
+} from "../src/lib/agent-birth-date";
 
 export type { PersonnelFonction };
 
@@ -20,6 +25,8 @@ export type CreateAgentInput = {
   gender: "male" | "female";
   fonction: PersonnelFonction;
   marital_status: MaritalStatus;
+  /** ISO `yyyy-MM-dd`. Required on form create/edit; NULL allowed for legacy rows. */
+  date_naissance: string | null;
   section_id: string | null;
   dog_id: string | null;
   phone: string | null;
@@ -30,11 +37,12 @@ export type CreateAgentInput = {
 };
 
 /**
- * Updates may omit marital_status (preserve previous), pass null (legacy / Non renseignée),
- * or set an explicit value. Form create/edit always sends a required enum value.
+ * Updates may omit marital_status / date_naissance (preserve previous), pass null
+ * (legacy empty), or set an explicit value. Form create/edit always sends values.
  */
-export type UpdateAgentInput = Omit<CreateAgentInput, "marital_status"> & {
+export type UpdateAgentInput = Omit<CreateAgentInput, "marital_status" | "date_naissance"> & {
   marital_status?: MaritalStatus | null;
+  date_naissance?: string | null;
 };
 
 type AgentRowDb = {
@@ -46,6 +54,7 @@ type AgentRowDb = {
   gender: "male" | "female";
   fonction: PersonnelFonction;
   marital_status: string | null;
+  date_naissance: string | null;
   section_id: string | null;
   dog_id: string | null;
   is_section_chief: number;
@@ -73,6 +82,7 @@ export type AgentRecord = {
   gender: "male" | "female";
   fonction: PersonnelFonction;
   marital_status: MaritalStatus | null;
+  date_naissance: string | null;
   section_id: string | null;
   dog_id: string | null;
   is_section_chief: boolean;
@@ -104,6 +114,7 @@ const AGENT_SELECT = `
     a.gender,
     COALESCE(a.fonction, 'cynotechnicien') AS fonction,
     a.marital_status,
+    a.date_naissance,
     a.section_id,
     a.dog_id,
     a.is_section_chief,
@@ -140,6 +151,14 @@ function requireMaritalStatus(value: string | null | undefined): MaritalStatus {
   return normalized;
 }
 
+function requireBirthDate(value: string | null | undefined): string {
+  const code = validateAgentBirthDate(value);
+  if (code) {
+    throw new Error(`Agent date_naissance is invalid (${code})`);
+  }
+  return normalizeAgentBirthDate(value)!;
+}
+
 function nowIso(): string {
   return new Date().toISOString();
 }
@@ -156,6 +175,7 @@ function resolveAssignmentFields(input: CreateAgentInput): {
   const fonction = parsePersonnelFonctionStrict(input.fonction);
   const isCyno = isCynotechnicienFonction(fonction);
   const isChief = isChefDeSectionFonction(fonction);
+  const isPrimaryChef = isPrimaryChefDeSectionFonction(fonction);
   return {
     fonction,
     sectionId: isCyno
@@ -166,12 +186,14 @@ function resolveAssignmentFields(input: CreateAgentInput): {
         ? input.section_id
         : null,
     dogId: isCyno ? input.dog_id : null,
-    isSectionChief: isChief && input.section_id ? 1 : 0,
+    // Flag only the permanent Chef — never the Adjoint (temporary replacement is display-only).
+    isSectionChief: isPrimaryChef && input.section_id ? 1 : 0,
   };
 }
 
+/** Name only — grade is stored separately on sections.commander_grade. */
 function formatCommanderFullName(input: CreateAgentInput): string {
-  return [input.grade, input.first_name, input.last_name]
+  return [input.first_name, input.last_name]
     .map((part) => part.trim())
     .filter(Boolean)
     .join(" ");
@@ -210,38 +232,36 @@ function writeSectionCommander(
 }
 
 /**
- * Keep sections.commander_* in sync with the unique Chef de section per section.
- * Replacing a chef demotes the previous one and clears their section link.
+ * Keep sections.commander_* denormalized fields in sync with the permanent
+ * Chef de section (fonction = chef_de_section) only.
+ *
+ * CRITICAL invariants (do not regress):
+ * - NEVER runs UPDATE/DELETE on any other agent's row
+ * - NEVER sets agents.section_id = NULL (or any section_id) as a side effect
+ * - NEVER promotes Adjoint (chef_de_section_pi) into sections.commander_*
+ * - Temporary Chef → Adjoint replacement is display-only
+ *   (resolveSectionCommanderDisplay) — exclusions/planning/PDF must not call this
  */
 function syncSectionChiefLink(
   db: Database.Database,
-  agentId: string,
+  _agentId: string,
   input: CreateAgentInput,
   previous: { section_id: string | null; fonction: string } | null,
 ): ReturnType<typeof resolveAssignmentFields> {
   const resolved = resolveAssignmentFields(input);
-  const isChief = isChefDeSectionFonction(resolved.fonction);
-  const previousWasChief = isChefDeSectionFonction(previous?.fonction);
+  const isPrimaryChef = isPrimaryChefDeSectionFonction(resolved.fonction);
+  const previousWasPrimaryChef = isPrimaryChefDeSectionFonction(previous?.fonction);
 
-  if (previousWasChief && previous?.section_id) {
+  // Only touch denormalized sections.commander_* — never agents.section_id.
+  if (previousWasPrimaryChef && previous?.section_id) {
     const leaving =
-      !isChief || previous.section_id !== resolved.sectionId;
+      !isPrimaryChef || previous.section_id !== resolved.sectionId;
     if (leaving) {
       clearSectionCommander(db, previous.section_id);
     }
   }
 
-  if (isChief && resolved.sectionId) {
-    db.prepare(
-      `UPDATE agents
-       SET is_section_chief = 0,
-           section_id = NULL,
-           updated_at = ?
-       WHERE fonction IN ('chef_de_section', 'chef_de_section_pi')
-         AND section_id = ?
-         AND id != ?`,
-    ).run(nowIso(), resolved.sectionId, agentId);
-
+  if (isPrimaryChef && resolved.sectionId) {
     writeSectionCommander(db, resolved.sectionId, input);
   }
 
@@ -259,6 +279,7 @@ function mapAgentRow(row: AgentRowDb): AgentRecord {
     // Read path: map legacy aliases; unknown → cynotechnicien (compatibility).
     fonction: normalizePersonnelFonction(row.fonction),
     marital_status: normalizeMaritalStatus(row.marital_status),
+    date_naissance: normalizeAgentBirthDate(row.date_naissance),
     section_id: row.section_id,
     dog_id: row.dog_id,
     is_section_chief: row.is_section_chief === 1,
@@ -316,6 +337,7 @@ export function createAgent(db: Database.Database, input: CreateAgentInput): Age
   const id = randomUUID();
   const timestamp = nowIso();
   const maritalStatus = requireMaritalStatus(input.marital_status);
+  const birthDate = requireBirthDate(input.date_naissance);
 
   try {
     const run = db.transaction(() => {
@@ -329,9 +351,9 @@ export function createAgent(db: Database.Database, input: CreateAgentInput): Age
       db.prepare(
         `INSERT INTO agents (
           id, first_name, last_name, professional_number, grade, gender, fonction, marital_status,
-          section_id, dog_id, is_section_chief, active, phone, address, observations, photo_url,
-          created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          date_naissance, section_id, dog_id, is_section_chief, active, phone, address, observations,
+          photo_url, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         id,
         input.first_name,
@@ -341,6 +363,7 @@ export function createAgent(db: Database.Database, input: CreateAgentInput): Age
         input.gender,
         fonction,
         maritalStatus,
+        birthDate,
         sectionId,
         dogId,
         isSectionChief,
@@ -367,6 +390,11 @@ export function createAgent(db: Database.Database, input: CreateAgentInput): Age
       `Agent marital_status was not persisted on create (expected ${maritalStatus}, got ${String(created.marital_status)}). Restart Electron so the main process loads the latest agents-store.`,
     );
   }
+  if (created.date_naissance !== birthDate) {
+    throw new Error(
+      `Agent date_naissance was not persisted on create (expected ${birthDate}, got ${String(created.date_naissance)}). Restart Electron so the main process loads the latest agents-store.`,
+    );
+  }
   return mapAgentRecord(created);
 }
 
@@ -387,6 +415,13 @@ export function updateAgent(db: Database.Database, id: string, input: UpdateAgen
         ? null
         : requireMaritalStatus(input.marital_status);
 
+  const birthDate =
+    input.date_naissance === undefined
+      ? previous.date_naissance
+      : input.date_naissance == null || input.date_naissance === ""
+        ? null
+        : requireBirthDate(input.date_naissance);
+
   try {
     const run = db.transaction(() => {
       const { fonction, sectionId, dogId, isSectionChief } = syncSectionChiefLink(
@@ -406,6 +441,7 @@ export function updateAgent(db: Database.Database, id: string, input: UpdateAgen
             gender = ?,
             fonction = ?,
             marital_status = ?,
+            date_naissance = ?,
             section_id = ?,
             dog_id = ?,
             is_section_chief = ?,
@@ -425,6 +461,7 @@ export function updateAgent(db: Database.Database, id: string, input: UpdateAgen
           input.gender,
           fonction,
           maritalStatus,
+          birthDate,
           sectionId,
           dogId,
           isSectionChief,
@@ -455,6 +492,11 @@ export function updateAgent(db: Database.Database, id: string, input: UpdateAgen
       `Agent marital_status was not persisted on update (expected ${String(maritalStatus)}, got ${String(updated.marital_status)}). Restart Electron so the main process loads the latest agents-store.`,
     );
   }
+  if (updated.date_naissance !== birthDate) {
+    throw new Error(
+      `Agent date_naissance was not persisted on update (expected ${String(birthDate)}, got ${String(updated.date_naissance)}). Restart Electron so the main process loads the latest agents-store.`,
+    );
+  }
   return mapAgentRecord(updated);
 }
 
@@ -465,7 +507,9 @@ export function deleteAgent(db: Database.Database, id: string): void {
   }
 
   const run = db.transaction(() => {
-    if (isChefDeSectionFonction(previous.fonction) && previous.section_id) {
+    // Only clear denormalized commander fields when the permanent Chef is removed.
+    // Never clear them when deleting an Adjoint (temporary replacement is display-only).
+    if (isPrimaryChefDeSectionFonction(previous.fonction) && previous.section_id) {
       clearSectionCommander(db, previous.section_id);
     }
     db.prepare(`DELETE FROM agents WHERE id = ?`).run(id);

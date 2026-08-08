@@ -22,7 +22,7 @@ import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useI18n } from "@/hooks/use-i18n";
 
 export const Route = createFileRoute("/_authenticated/statistics")({
-  head: () => ({ meta: [{ title: "Statistiques — Smart K9 Planning" }] }),
+  head: () => ({ meta: [{ title: "Statistiques — CynoPlanning" }] }),
   component: StatisticsPage,
 });
 

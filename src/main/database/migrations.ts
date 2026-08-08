@@ -119,6 +119,31 @@ function migrateUsersRoleColumn(database: Database.Database): void {
   }
 }
 
+function migrateExclusionReturnNotifications(database: Database.Database): void {
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS exclusion_notifications (
+      id TEXT PRIMARY KEY NOT NULL,
+      exclusion_id TEXT NOT NULL REFERENCES agent_exclusions(id) ON DELETE CASCADE,
+      agent_id TEXT REFERENCES agents(id) ON DELETE CASCADE,
+      dog_id TEXT REFERENCES dogs(id) ON DELETE CASCADE,
+      subject_kind TEXT NOT NULL CHECK (subject_kind IN ('personnel', 'dog')),
+      notification_type TEXT NOT NULL,
+      milestone TEXT NOT NULL CHECK (milestone IN ('d7', 'd3', 'd1', 'd0')),
+      end_date TEXT NOT NULL,
+      return_date TEXT NOT NULL,
+      subject_name TEXT NOT NULL,
+      exclusion_type TEXT NOT NULL,
+      is_read INTEGER NOT NULL DEFAULT 0 CHECK (is_read IN (0, 1)),
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (exclusion_id, milestone)
+    );
+    CREATE INDEX IF NOT EXISTS idx_exclusion_notifications_return_date
+      ON exclusion_notifications(return_date);
+    CREATE INDEX IF NOT EXISTS idx_exclusion_notifications_is_read
+      ON exclusion_notifications(is_read);
+  `);
+}
+
 function migrateCheckpointsPriorityColumn(database: Database.Database): void {
   const names = tableColumnNames(database, "checkpoints");
   if (!names.has("priority")) {
@@ -184,7 +209,7 @@ function migrateNonCynoClearAssignment(database: Database.Database): void {
     .prepare(
       `UPDATE agents SET section_id = NULL, updated_at = datetime('now')
        WHERE fonction IS NOT NULL
-         AND fonction NOT IN ('cynotechnicien', 'chef_de_section')
+         AND fonction NOT IN ('cynotechnicien', 'chef_de_section', 'chef_de_section_pi')
          AND section_id IS NOT NULL`,
     )
     .run();
@@ -274,7 +299,7 @@ function migrateAgentsFonctionChefMateriel(database: Database.Database): void {
 
 /**
  * Expand agents.fonction CHECK to the full personnel hierarchy.
- * Required so new roles (Chef Brigade, Secrétaire, Chef de section PI, …) can be stored.
+ * Required so new roles (Chef Brigade, Secrétaire, Adjoint Chef de section, …) can be stored.
  * Existing values are preserved; unknown empty → cynotechnicien.
  */
 function migrateAgentsFonctionHierarchyV2(database: Database.Database): void {
@@ -703,6 +728,14 @@ function migrateAgentsMaritalStatusColumn(database: Database.Database): void {
   }
 }
 
+/** Nullable birth date — legacy rows stay NULL until filled in the form. */
+function migrateAgentsDateNaissanceColumn(database: Database.Database): void {
+  const names = tableColumnNames(database, "agents");
+  if (!names.has("date_naissance")) {
+    database.exec(`ALTER TABLE agents ADD COLUMN date_naissance TEXT DEFAULT NULL`);
+  }
+}
+
 /** Ordered migration history — append only; never reorder or rename released ids. */
 export const SQLITE_MIGRATIONS: readonly SqliteMigration[] = [
   {
@@ -770,6 +803,16 @@ export const SQLITE_MIGRATIONS: readonly SqliteMigration[] = [
       "Rename chef_brigade → chef_brigadier (+ PI) and expand fonction CHECK to canonical hierarchy",
     up: migrateAgentsFonctionBrigadierCanonical,
     noTransaction: true,
+  },
+  {
+    id: "013_exclusion_return_notifications",
+    description: "Alert center table for upcoming exclusion return milestones",
+    up: migrateExclusionReturnNotifications,
+  },
+  {
+    id: "014_agents_date_naissance_column",
+    description: "Add date_naissance (date of birth) to agents — nullable for existing rows",
+    up: migrateAgentsDateNaissanceColumn,
   },
 ];
 

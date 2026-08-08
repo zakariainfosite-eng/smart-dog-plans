@@ -7,6 +7,10 @@ import { cn } from "@/lib/utils";
 
 /* ── Hero ─────────────────────────────────────────────────────────── */
 
+export type PageHeroBreadcrumbItem = {
+  label: string;
+};
+
 export type PageHeroMetaItem = {
   label: string;
   value: string | number;
@@ -27,6 +31,8 @@ export type PageHeroProps = {
   icon: LucideIcon;
   title: string;
   subtitle?: string;
+  /** Compact trail shown above the title, e.g. CynoPlanning / Fonctionnaires */
+  breadcrumb?: PageHeroBreadcrumbItem[];
   meta?: PageHeroMetaItem[];
   actions?: PageHeroAction[];
   actionsSlot?: ReactNode;
@@ -38,6 +44,7 @@ export function PageHero({
   icon: Icon,
   title,
   subtitle,
+  breadcrumb,
   meta,
   actions,
   actionsSlot,
@@ -47,82 +54,111 @@ export function PageHero({
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-[20px] border border-border/50 p-8 shadow-soft",
-        "bg-gradient-to-br from-primary/[0.06] via-slate-50/80 to-slate-100/60",
-        "dark:from-primary/10 dark:via-muted/30 dark:to-muted/20",
+        "cyno-page-hero",
+        /* Bleed into AppLayout padding so content scrolls cleanly underneath. */
+        "-mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8",
+        "py-4 sm:py-5",
         className,
       )}
     >
-      <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-primary/[0.04] blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-20 left-1/3 h-40 w-40 rounded-full bg-sky-400/[0.06] blur-3xl" />
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
+        <div className="min-w-0 flex-1">
+          {breadcrumb && breadcrumb.length > 0 ? (
+            <nav aria-label="Breadcrumb" className="mb-1.5">
+              <ol className="flex flex-wrap items-center gap-1.5 text-[13px] text-[#94A3B8]">
+                {breadcrumb.map((item, index) => (
+                  <li key={`${item.label}-${index}`} className="flex items-center gap-1.5">
+                    {index > 0 ? (
+                      <span aria-hidden className="text-[#CBD5E1]">
+                        /
+                      </span>
+                    ) : null}
+                    <span
+                      className={cn(
+                        index === breadcrumb.length - 1
+                          ? "font-medium text-[#64748B]"
+                          : "text-[#94A3B8]",
+                      )}
+                    >
+                      {item.label}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </nav>
+          ) : null}
 
-      <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0 space-y-4">
           <div className="flex items-start gap-3">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-soft">
-              <Icon className="h-6 w-6" strokeWidth={2.25} />
+            <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#023A84]/8 text-[#023A84] ring-1 ring-inset ring-[#023A84]/10">
+              <Icon className="h-[18px] w-[18px]" strokeWidth={2.25} />
             </span>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{title}</h1>
+            <div className="min-w-0">
+              <h1 className="truncate text-[28px] font-bold leading-tight tracking-tight text-[#0F172A] dark:text-foreground">
+                {title}
+              </h1>
               {subtitle ? (
-                <p className="mt-1 max-w-xl text-sm text-muted-foreground sm:text-base">{subtitle}</p>
+                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[#64748B]">
+                  {subtitle}
+                </p>
+              ) : null}
+
+              {meta && meta.length > 0 ? (
+                <ul className="mt-2.5 flex flex-wrap gap-2">
+                  {meta.map((item) => {
+                    const MetaIcon = item.icon;
+                    return (
+                      <li
+                        key={item.label}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC]/80 px-2.5 py-1 text-[12px] text-[#64748B] dark:border-border dark:bg-muted/40"
+                      >
+                        {MetaIcon ? (
+                          <MetaIcon className="h-3.5 w-3.5 text-[#023A84]/70" strokeWidth={2.25} />
+                        ) : (
+                          <span
+                            className={cn(
+                              "h-1.5 w-1.5 rounded-full bg-[#023A84]",
+                              item.dotClassName,
+                            )}
+                          />
+                        )}
+                        <span>{item.label}</span>
+                        <strong
+                          className={cn(
+                            "font-semibold tabular-nums text-[#0F172A] dark:text-foreground",
+                            item.valueClassName,
+                          )}
+                        >
+                          {loading ? "—" : item.value}
+                        </strong>
+                      </li>
+                    );
+                  })}
+                </ul>
               ) : null}
             </div>
           </div>
-
-          {meta && meta.length > 0 ? (
-            <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
-              {meta.map((item) => {
-                const MetaIcon = item.icon;
-                return (
-                  <li key={item.label} className="flex items-center gap-2">
-                    {MetaIcon ? (
-                      <MetaIcon className="h-3.5 w-3.5 text-primary/70" />
-                    ) : (
-                      <span className={cn("h-1.5 w-1.5 rounded-full bg-primary", item.dotClassName)} />
-                    )}
-                    <span>
-                      {item.label}:{" "}
-                      <strong
-                        className={cn(
-                          "font-semibold tabular-nums text-foreground",
-                          item.valueClassName,
-                        )}
-                      >
-                        {loading ? "—" : item.value}
-                      </strong>
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : null}
         </div>
 
         {actionsSlot ? (
-          <div className="flex shrink-0 flex-wrap items-center gap-3">{actionsSlot}</div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2 lg:justify-end">
+            {actionsSlot}
+          </div>
         ) : actions && actions.length > 0 ? (
-          <div className="flex shrink-0 flex-wrap items-center gap-3">
+          <div className="flex shrink-0 flex-wrap items-center gap-2 lg:justify-end">
             {actions.map((action) => {
               const ActionIcon = action.icon;
               const isPrimary = action.variant !== "secondary";
-              return (
-                <Button
-                  key={action.label}
-                  variant={isPrimary ? "default" : "outline"}
-                  size="lg"
-                  className={cn(
-                    "h-11 rounded-xl px-5",
-                    isPrimary && "px-6 text-base font-semibold shadow-soft transition-all hover:shadow-card",
-                    !isPrimary && "border-border/70 bg-background/80 shadow-sm backdrop-blur-sm",
-                  )}
-                  onClick={action.onClick}
-                  disabled={action.disabled}
-                >
-                  {ActionIcon ? <ActionIcon className="mr-2 h-4 w-4" /> : null}
-                  {action.label}
-                </Button>
-              );
+                return (
+                  <Button
+                    key={action.label}
+                    variant={isPrimary ? "default" : "secondary"}
+                    onClick={action.onClick}
+                    disabled={action.disabled}
+                  >
+                    {ActionIcon ? <ActionIcon className="h-4 w-4" /> : null}
+                    {action.label}
+                  </Button>
+                );
             })}
           </div>
         ) : null}
@@ -146,6 +182,13 @@ export type PageStatCardProps = {
   percentage?: string;
   iconClassName?: string;
   iconBgClassName?: string;
+  /** Top accent bar (gradient). Defaults to CynoPlanning blue. */
+  accentBarClassName?: string;
+  /**
+   * `minimal` — 90px, single accent, subtle border, no gradient/shadow.
+   * Used by premium list pages (Exclusions, etc.).
+   */
+  variant?: "default" | "minimal";
   loading?: boolean;
   className?: string;
 };
@@ -157,40 +200,79 @@ export function PageStatCard({
   trend,
   percentage,
   iconClassName,
-  iconBgClassName = "bg-primary/10 text-primary",
+  iconBgClassName = "bg-[#023A84]/12 text-[#023A84]",
+  accentBarClassName = "from-[#023A84] via-[#1a5aab] to-[#4A90D9]",
+  variant = "default",
   loading,
   className,
 }: PageStatCardProps) {
+  const minimal = variant === "minimal";
+
   return (
     <article
       className={cn(
-        "group relative flex h-[130px] flex-col justify-between overflow-hidden rounded-[20px] border border-border/60 bg-card p-4 shadow-soft transition-all duration-200",
-        "hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-card",
+        "group relative flex flex-col overflow-hidden bg-white dark:bg-card",
+        minimal
+          ? "h-[90px] justify-center rounded-xl border border-[#E5E7EB] px-4 shadow-none"
+          : [
+              "h-[122px] rounded-[18px] border border-[#023A84]/10 px-4 pb-2.5 pt-3.5",
+              "shadow-[0_3px_14px_-4px_rgba(2,58,132,0.10)]",
+              "transition-all duration-200 ease-out",
+              "hover:-translate-y-0.5 hover:border-[#023A84]/25 hover:shadow-[0_8px_20px_-6px_rgba(2,58,132,0.16)]",
+            ],
         className,
       )}
     >
-      <div className="flex items-start justify-between gap-2">
+      {!minimal ? (
+        <div
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r opacity-90 transition-opacity duration-200 group-hover:opacity-100",
+            accentBarClassName,
+          )}
+        />
+      ) : null}
+
+      <div className="relative flex min-h-0 items-center gap-3">
         <span
           className={cn(
-            "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-transform duration-200 group-hover:scale-105",
-            iconBgClassName,
+            "flex shrink-0 items-center justify-center rounded-full",
+            minimal
+              ? "h-9 w-9 bg-[#023A84]/10 text-[#023A84]"
+              : cn(
+                  "mt-0.5 h-9 w-9 shadow-sm ring-1 ring-inset ring-black/5 transition-transform duration-200 group-hover:scale-105",
+                  iconBgClassName,
+                ),
           )}
         >
-          <Icon className={cn("h-5 w-5", iconClassName)} strokeWidth={2.25} />
+          <Icon className={cn("h-4 w-4", iconClassName)} strokeWidth={2.25} />
         </span>
-        {percentage ? (
-          <span className="rounded-full bg-muted/60 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
-            {percentage}
-          </span>
-        ) : null}
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-brand text-[32px] font-bold leading-none tracking-tight text-[#0B1F3A] tabular-nums dark:text-foreground">
+              {loading ? "—" : value}
+            </p>
+            {percentage ? (
+              <span className="mt-1 shrink-0 rounded-full bg-[#023A84]/8 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-[#023A84]">
+                {percentage}
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-1 truncate text-[13px] font-medium leading-tight text-[#6B7280]">
+            {label}
+          </p>
+          {!minimal && trend ? (
+            <p className="mt-1 truncate text-[10px] font-medium uppercase tracking-[0.06em] text-[#023A84]/75">
+              {trend}
+            </p>
+          ) : null}
+        </div>
       </div>
-      <div>
-        <p className="text-3xl font-bold tabular-nums tracking-tight text-foreground">
-          {loading ? "—" : value}
-        </p>
-        <p className="mt-0.5 text-xs font-medium text-muted-foreground">{label}</p>
-        {trend ? <p className="mt-1 text-[11px] font-semibold text-emerald-600">{trend}</p> : null}
-      </div>
+
+      {!minimal && !trend ? (
+        <div className="mt-1.5 h-[22px] shrink-0" aria-hidden />
+      ) : null}
     </article>
   );
 }

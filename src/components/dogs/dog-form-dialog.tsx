@@ -368,10 +368,10 @@ export function DogFormDialog({
         </div>
 
         <DialogFooter className="shrink-0 gap-3 border-t border-border/60 bg-card px-6 py-4 sm:justify-end sm:px-8">
-          <Button variant="outline" className="min-w-[7rem]" onClick={() => onOpenChange(false)}>
+          <Button variant="secondary" className="min-w-[7rem]" onClick={() => onOpenChange(false)}>
             {t("action.cancel")}
           </Button>
-          <Button className="min-w-[10rem] transition-all hover:shadow-md" onClick={onSubmit} disabled={isSaving}>
+          <Button className="min-w-[10rem]" onClick={onSubmit} disabled={isSaving}>
             {isSaving
               ? t("action.saving")
               : editing

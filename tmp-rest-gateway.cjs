@@ -31,6 +31,7 @@ var ALLOWED_TABLES = /* @__PURE__ */ new Set([
   "checkpoints",
   "checkpoint_posts",
   "agent_exclusions",
+  "exclusion_notifications",
   "planning",
   "planning_assignments",
   "rotation_history",
