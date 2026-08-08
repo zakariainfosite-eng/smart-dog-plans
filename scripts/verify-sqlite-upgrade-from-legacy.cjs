@@ -38,7 +38,10 @@ function count(db, table) {
 }
 
 function columnNames(db, table) {
-  return db.prepare(`PRAGMA table_info(${table})`).all().map((row) => row.name);
+  return db
+    .prepare(`PRAGMA table_info(${table})`)
+    .all()
+    .map((row) => row.name);
 }
 
 /**
@@ -262,9 +265,18 @@ function createLegacyDatabase(path) {
     agent_exclusions: count(db, "agent_exclusions"),
     operational_cases: count(db, "operational_cases"),
     application_settings: count(db, "application_settings"),
-    agentIds: db.prepare(`SELECT id FROM agents ORDER BY id`).all().map((r) => r.id),
-    dogIds: db.prepare(`SELECT id FROM dogs ORDER BY id`).all().map((r) => r.id),
-    planningIds: db.prepare(`SELECT id FROM planning ORDER BY id`).all().map((r) => r.id),
+    agentIds: db
+      .prepare(`SELECT id FROM agents ORDER BY id`)
+      .all()
+      .map((r) => r.id),
+    dogIds: db
+      .prepare(`SELECT id FROM dogs ORDER BY id`)
+      .all()
+      .map((r) => r.id),
+    planningIds: db
+      .prepare(`SELECT id FROM planning ORDER BY id`)
+      .all()
+      .map((r) => r.id),
     caseNumbers: db
       .prepare(`SELECT case_number FROM operational_cases ORDER BY case_number`)
       .all()
@@ -341,9 +353,18 @@ app.whenReady().then(async () => {
       agent_exclusions: count(database, "agent_exclusions"),
       operational_cases: count(database, "operational_cases"),
       application_settings: count(database, "application_settings"),
-      agentIds: database.prepare(`SELECT id FROM agents ORDER BY id`).all().map((r) => r.id),
-      dogIds: database.prepare(`SELECT id FROM dogs ORDER BY id`).all().map((r) => r.id),
-      planningIds: database.prepare(`SELECT id FROM planning ORDER BY id`).all().map((r) => r.id),
+      agentIds: database
+        .prepare(`SELECT id FROM agents ORDER BY id`)
+        .all()
+        .map((r) => r.id),
+      dogIds: database
+        .prepare(`SELECT id FROM dogs ORDER BY id`)
+        .all()
+        .map((r) => r.id),
+      planningIds: database
+        .prepare(`SELECT id FROM planning ORDER BY id`)
+        .all()
+        .map((r) => r.id),
       caseNumbers: database
         .prepare(`SELECT case_number FROM operational_cases ORDER BY case_number`)
         .all()
@@ -390,7 +411,9 @@ app.whenReady().then(async () => {
       .prepare(`SELECT COUNT(*) AS n FROM agents WHERE origine IS NOT NULL`)
       .get().n;
     if (legacyOrigins !== 0) {
-      fail(`expected existing agents.origine to remain NULL, got ${legacyOrigins} populated row(s)`);
+      fail(
+        `expected existing agents.origine to remain NULL, got ${legacyOrigins} populated row(s)`,
+      );
     }
     const checkpointCols = columnNames(database, "checkpoints");
     for (const required of ["priority", "mandatory"]) {
@@ -412,12 +435,12 @@ app.whenReady().then(async () => {
     if (!userCols.includes("role")) {
       fail("missing new column users.role");
     }
-    ok("new columns added (fonction, marital_status, date_naissance, origine, mandatory, priority, dog_id, …)");
+    ok(
+      "new columns added (fonction, marital_status, date_naissance, origine, mandatory, priority, dog_id, …)",
+    );
 
     const history = database
-      .prepare(
-        `SELECT id, name, applied_at, success FROM ${SCHEMA_MIGRATIONS_TABLE} ORDER BY id`,
-      )
+      .prepare(`SELECT id, name, applied_at, success FROM ${SCHEMA_MIGRATIONS_TABLE} ORDER BY id`)
       .all();
     if (history.length !== SQLITE_MIGRATIONS.length) {
       fail(`expected ${SQLITE_MIGRATIONS.length} migration rows, got ${history.length}`);
@@ -435,32 +458,77 @@ app.whenReady().then(async () => {
     }
     ok("schema_migrations complete (version/name/date/success, no duplicates)");
 
-    const backups = readdirSync(tempUserData).filter((name) =>
-      isMigrationBackupFileName(name),
-    );
+    const backups = readdirSync(tempUserData).filter((name) => isMigrationBackupFileName(name));
     if (backups.length < 1) {
       fail("expected at least one pre-migration backup");
     }
     ok(`timestamped backup present (${backups[0]})`);
 
-    // Idempotent second startup — no extra migration rows.
+    // Scenario C: make only the latest additive migration pending, then reopen.
+    // Existing rows and all previously applied migration records must remain intact.
+    const historyBeforePendingOnly = new Map(
+      history.map((row) => [row.id, { name: row.name, applied_at: row.applied_at }]),
+    );
+    closeDatabase();
+    {
+      const pendingProbe = new Database(dbPath);
+      pendingProbe
+        .prepare(`UPDATE agents SET origine = ? WHERE id = ?`)
+        .run("Existing origin value", "agt-1");
+      pendingProbe
+        .prepare(`DELETE FROM ${SCHEMA_MIGRATIONS_TABLE} WHERE id = ?`)
+        .run("015_agents_origine_column");
+      pendingProbe.close();
+    }
+
+    initializeDatabase(mockApp);
+    const historyAfterPendingOnly = getDatabase()
+      .prepare(
+        `SELECT id, name, applied_at, success
+         FROM ${SCHEMA_MIGRATIONS_TABLE} ORDER BY id`,
+      )
+      .all();
+    if (historyAfterPendingOnly.length !== SQLITE_MIGRATIONS.length) {
+      fail(`pending-only startup produced ${historyAfterPendingOnly.length} migration rows`);
+    }
+    for (const row of historyAfterPendingOnly) {
+      if (row.id === "015_agents_origine_column") continue;
+      const beforeRow = historyBeforePendingOnly.get(row.id);
+      if (!beforeRow || row.name !== beforeRow.name || row.applied_at !== beforeRow.applied_at) {
+        fail(`already-applied migration record changed: ${row.id}`);
+      }
+    }
+    const preservedOrigin = getDatabase()
+      .prepare(`SELECT origine FROM agents WHERE id = ?`)
+      .get("agt-1")?.origine;
+    if (preservedOrigin !== "Existing origin value") {
+      fail(`pending migration overwrote existing agent data: origine=${preservedOrigin}`);
+    }
+    const agentsAgain = count(getDatabase(), "agents");
+    if (agentsAgain !== before.agents) {
+      fail("pending-only startup changed agent count");
+    }
+    ok("only the missing migration runs; existing records and rows remain unchanged");
+
+    // Scenario B follow-up: a normal restart after upgrade is fully idempotent.
     closeDatabase();
     initializeDatabase(mockApp);
     const historyAgain = getDatabase()
       .prepare(`SELECT COUNT(*) AS n FROM ${SCHEMA_MIGRATIONS_TABLE}`)
       .get().n;
     if (historyAgain !== SQLITE_MIGRATIONS.length) {
-      fail(`second startup changed migration count to ${historyAgain}`);
+      fail(`idempotent restart changed migration count to ${historyAgain}`);
     }
-    const agentsAgain = count(getDatabase(), "agents");
-    if (agentsAgain !== before.agents) {
-      fail("second startup changed agent count");
+    if (count(getDatabase(), "agents") !== before.agents) {
+      fail("idempotent restart changed agent count");
     }
     ok("application starts normally after migration (idempotent re-open)");
 
     // Sample row integrity
     const agent = getDatabase()
-      .prepare(`SELECT first_name, last_name, professional_number, fonction FROM agents WHERE id = ?`)
+      .prepare(
+        `SELECT first_name, last_name, professional_number, fonction FROM agents WHERE id = ?`,
+      )
       .get("agt-1");
     if (!agent || agent.professional_number !== "P1001" || agent.fonction !== "cynotechnicien") {
       fail(`agent agt-1 corrupted: ${JSON.stringify(agent)}`);

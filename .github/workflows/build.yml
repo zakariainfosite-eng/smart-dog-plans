@@ -19,7 +19,22 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Build web application
+        run: npm run build:web
+
+      - name: Build Electron main process
+        run: npm run electron:build:main
+
+      - name: Verify SQLite update safety
+        shell: pwsh
+        run: |
+          Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
+          npx --no-install electron scripts/verify-sqlite-migrations.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npx --no-install electron scripts/verify-sqlite-upgrade-from-legacy.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Build Windows NSIS EXE
         # Build only; never publish a GitHub Release via electron-builder.
@@ -28,6 +43,17 @@ jobs:
           GH_TOKEN: ""
           GITHUB_TOKEN: ""
         run: npm run electron:build:win
+
+      - name: Verify NSIS installer artifact
+        shell: pwsh
+        run: |
+          $installers = @(Get-ChildItem -Path release -Recurse -Filter "CynoPlanning-*-Setup.exe")
+          if ($installers.Count -eq 0) {
+            throw "No CynoPlanning NSIS setup executable was generated."
+          }
+          $installers | ForEach-Object {
+            Write-Host "Installer: $($_.FullName) ($($_.Length) bytes)"
+          }
 
       - name: Upload EXE
         uses: actions/upload-artifact@v4
