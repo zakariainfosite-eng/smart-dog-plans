@@ -6,9 +6,7 @@ import { z } from "zod";
 import {
   Dog as DogIcon,
   Plus,
-  Activity,
   Bomb,
-  Ban,
   Pill,
   FileText,
   ArrowUpDown,
@@ -79,6 +77,7 @@ import { DogAvatar } from "@/components/dogs/dog-avatar";
 import { DogDetailsDrawer } from "@/components/dogs/dog-details-drawer";
 import { DogFormDialog, type DogFormValues } from "@/components/dogs/dog-form-dialog";
 import { DogStatusBadge } from "@/components/dogs/dog-status-badge";
+import { DogsStatusStatsCards } from "@/components/dogs/dogs-status-stats-cards";
 import { deleteDogPhotoByUrl, uploadDogPhoto, validateDogPhotoFile } from "@/lib/dog-photo-api";
 import { formatDogAgeLabel } from "@/lib/dog-ui";
 import { formatPageLastUpdated, paginate, totalPages } from "@/lib/page-ui";
@@ -277,7 +276,16 @@ function DogsPage() {
     const statuses = new Map(
       list.map((dog) => [dog.id, deriveDogOperationalStatus(dog.id, exclusions)]),
     );
-    const excluded = list.filter((dog) => statuses.get(dog.id)?.kind === "excluded");
+    const activeDogs = list.filter((dog) => statuses.get(dog.id)?.kind !== "excluded");
+    const excludedDogs = list.filter((dog) => statuses.get(dog.id)?.kind === "excluded");
+
+    const isNarcoticsGroup = (specialty: string) =>
+      specialty === "narcotics" || specialty === "currency";
+
+    const activeNarcotics = activeDogs.filter((dog) => isNarcoticsGroup(dog.specialty)).length;
+    const activeExplosives = activeDogs.filter((dog) => dog.specialty === "explosives").length;
+    const excludedNarcotics = excludedDogs.filter((dog) => isNarcoticsGroup(dog.specialty)).length;
+    const excludedExplosives = excludedDogs.filter((dog) => dog.specialty === "explosives").length;
 
     const specialtyKeys = new Set<string>(KNOWN_DOG_SPECIALTIES);
     list.forEach((dog) => specialtyKeys.add(dog.specialty));
@@ -287,13 +295,13 @@ function DogsPage() {
     }));
 
     const exclusionTypes = new Set<string>(DOG_EXCLUSION_FORM_TYPES);
-    excluded.forEach((dog) => {
+    excludedDogs.forEach((dog) => {
       const status = statuses.get(dog.id);
       if (status?.kind === "excluded") exclusionTypes.add(status.exclusionType);
     });
     const exclusionReasons = [...exclusionTypes].map((exclusionType) => ({
       exclusionType,
-      count: excluded.filter((dog) => {
+      count: excludedDogs.filter((dog) => {
         const status = statuses.get(dog.id);
         return status?.kind === "excluded" && status.exclusionType === exclusionType;
       }).length,
@@ -301,10 +309,12 @@ function DogsPage() {
 
     return {
       total: list.length,
-      active: list.length - excluded.length,
-      excluded: excluded.length,
-      excludedExplosives: excluded.filter((dog) => dog.specialty === "explosives").length,
-      excludedNarcotics: excluded.filter((dog) => dog.specialty === "narcotics").length,
+      active: activeDogs.length,
+      excluded: excludedDogs.length,
+      activeNarcotics,
+      activeExplosives,
+      excludedNarcotics,
+      excludedExplosives,
       specialties,
       exclusionReasons,
     };
@@ -724,6 +734,9 @@ function DogsPage() {
     [t, sexSort, exclusions],
   );
 
+  const specialtyCount = (specialty: string) =>
+    stats.specialties.find((entry) => entry.specialty === specialty)?.count ?? 0;
+
   return (
     <div className="space-y-6">
       <PageTitle
@@ -776,73 +789,62 @@ function DogsPage() {
           <button
             type="button"
             className="rounded-[18px] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            onClick={() => filterByOperationalStatus("available")}
+            onClick={() => filterBySpecialty("narcotics")}
           >
             <KpiCard
-              icon={Activity}
-              label={t("dogs.stat.active")}
-              value={stats.active}
-              accent="success"
+              icon={Pill}
+              label={t("dogs.stat.narcotics")}
+              value={specialtyCount("narcotics")}
+              accent="warning"
               loading={isLoading}
-              className="h-full"
+              className={
+                specialtyFilter === "narcotics"
+                  ? "h-full border-primary ring-1 ring-primary/40"
+                  : "h-full"
+              }
             />
           </button>
           <button
             type="button"
             className="rounded-[18px] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            onClick={() => filterByOperationalStatus("excluded")}
+            onClick={() => filterBySpecialty("explosives")}
           >
             <KpiCard
-              icon={Ban}
-              label={t("dogs.stat.excluded")}
-              value={stats.excluded}
-              trend={`${t("dogs.statistics.excludedExplosivesShort")} : ${stats.excludedExplosives}\n${t("dogs.statistics.excludedNarcoticsShort")} : ${stats.excludedNarcotics}`}
+              icon={Bomb}
+              label={t("dogs.stat.explosives")}
+              value={specialtyCount("explosives")}
               accent="danger"
               loading={isLoading}
-              className="h-full [&_p:last-child]:whitespace-pre-line [&_p:last-child]:normal-case"
+              className={
+                specialtyFilter === "explosives"
+                  ? "h-full border-primary ring-1 ring-primary/40"
+                  : "h-full"
+              }
             />
           </button>
         </div>
       </section>
 
       <section
-        aria-labelledby="dogs-specialties-title"
-        className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm"
+        aria-labelledby="dogs-status-stats-title"
+        className="space-y-3"
       >
-        <div className="mb-3">
-          <h2 id="dogs-specialties-title" className="text-sm font-semibold text-foreground">
-            {t("dogs.statistics.bySpecialty")}
-          </h2>
-          <p className="text-xs text-muted-foreground">{t("dogs.statistics.clickToFilter")}</p>
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {stats.specialties
-            .filter(({ specialty }) => specialty !== "currency")
-            .map(({ specialty, count }) => {
-              const SpecialtyIcon =
-                specialty === "narcotics" ? Pill : specialty === "explosives" ? Bomb : DogIcon;
-              return (
-                <button
-                  key={specialty}
-                  type="button"
-                  className="rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  onClick={() => filterBySpecialty(specialty)}
-                >
-                  <KpiCard
-                    icon={SpecialtyIcon}
-                    label={specialtyLabel(specialty)}
-                    value={count}
-                    accent={specialty === "explosives" ? "danger" : "warning"}
-                    loading={isLoading}
-                    variant="minimal"
-                    className={
-                      specialtyFilter === specialty ? "border-primary ring-1 ring-primary/40" : ""
-                    }
-                  />
-                </button>
-              );
-            })}
-        </div>
+        <h2 id="dogs-status-stats-title" className="sr-only">
+          {t("dogs.statistics.statusBreakdown")}
+        </h2>
+        <DogsStatusStatsCards
+          loading={isLoading}
+          active={{
+            narcotics: stats.activeNarcotics,
+            explosives: stats.activeExplosives,
+            total: stats.active,
+          }}
+          excluded={{
+            narcotics: stats.excludedNarcotics,
+            explosives: stats.excludedExplosives,
+            total: stats.excluded,
+          }}
+        />
       </section>
 
       <FilterBar

@@ -1,5 +1,6 @@
 import { Outlet } from "@tanstack/react-router";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { ExclusionReminderAlertDialog } from "@/components/notifications/exclusion-reminder-alert-dialog";
 import { useExclusionReturnNotificationsSync } from "@/hooks/use-exclusion-return-notifications-sync";
 import { AppSidebar } from "./AppSidebar";
 import { Header } from "./Header";
@@ -18,6 +19,7 @@ export function AppLayout() {
           </div>
         </main>
       </SidebarInset>
+      <ExclusionReminderAlertDialog />
     </SidebarProvider>
   );
 }

@@ -24,6 +24,7 @@
     "dailyPlanning": "التخطيط اليومي",
     "history": "السجل",
     "statistics": "الإحصائيات",
+    "reportsMessages": "التقارير والرسائل",
     "settings": "الإعدادات"
   },
   "action": {
@@ -334,6 +335,8 @@
       "male": "ذكور",
       "narcoticsHandlers": "معالجو مخدرات",
       "explosivesHandlers": "معالجو متفجرات",
+      "explosives": "متفجرات",
+      "narcotics": "مخدرات",
       "nightEligible": "مؤهلون لليل",
       "trendThisMonth": "+{{count}} هذا الشهر"
     },
@@ -609,11 +612,14 @@
     },
     "statistics": {
       "overview": "نظرة عامة",
+      "statusBreakdown": "توزيع النشط / المستبعد",
       "bySpecialty": "الكلاب حسب التخصص",
       "exclusions": "تفاصيل الكلاب المستبعدة",
       "activeExclusionsToday": "أسباب الاستبعاد النشطة اليوم",
       "excludedExplosivesShort": "متفجرات",
       "excludedNarcoticsShort": "مخدرات",
+      "totalActive": "إجمالي النشط",
+      "totalExcluded": "إجمالي المستبعد",
       "clickToFilter": "انقر على إحصائية لتصفية القائمة."
     },
     "gender": {
@@ -817,6 +823,18 @@
       "total": "({{count}} إجمالي)",
       "shifts": "الورديات"
     },
+    "dogStats": {
+      "title": "الكلاب حسب التخصص",
+      "total": "الإجمالي",
+      "active": "نشط",
+      "excluded": "مستبعد",
+      "explosives": {
+        "title": "المتفجرات"
+      },
+      "narcotics": {
+        "title": "المخدرات والأوراق النقدية"
+      }
+    },
     "config": {
       "subtitle": "الإعداد التشغيلي الذي يقرأه محرك Smart Rotation.",
       "general": "معلومات عامة",
@@ -946,7 +964,9 @@
       "active": "استثناءات نشطة",
       "sickAgents": "موظفون مرضى",
       "dogsInHeat": "كلاب في حرارة",
-      "sickDogs": "كلاب مرضى"
+      "sickDogs": "كلاب مرضى",
+      "dogBySpecialty": "استثناءات الكلاب حسب التخصص",
+      "excludedDogsTotal": "إجمالي الكلاب المستثناة"
     },
     "search": "البحث بالفرد أو الكلب أو الرقم…",
     "searchPersonnel": "البحث بالاسم أو الرقم…",

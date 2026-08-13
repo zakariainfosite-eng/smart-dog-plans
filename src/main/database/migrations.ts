@@ -157,6 +157,40 @@ function migrateExclusionReturnNotifications(database: Database.Database): void 
   `);
 }
 
+function migrateExclusionNotificationsD2Milestone(database: Database.Database): void {
+  const table = database
+    .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'exclusion_notifications'")
+    .get() as { name: string } | undefined;
+  if (!table) return;
+
+  database.exec(`
+    CREATE TABLE exclusion_notifications__d2_v1 (
+      id TEXT PRIMARY KEY NOT NULL,
+      exclusion_id TEXT NOT NULL REFERENCES agent_exclusions(id) ON DELETE CASCADE,
+      agent_id TEXT REFERENCES agents(id) ON DELETE CASCADE,
+      dog_id TEXT REFERENCES dogs(id) ON DELETE CASCADE,
+      subject_kind TEXT NOT NULL CHECK (subject_kind IN ('personnel', 'dog')),
+      notification_type TEXT NOT NULL,
+      milestone TEXT NOT NULL CHECK (milestone IN ('d2', 'd1', 'd0', 'd7', 'd3')),
+      end_date TEXT NOT NULL,
+      return_date TEXT NOT NULL,
+      subject_name TEXT NOT NULL,
+      exclusion_type TEXT NOT NULL,
+      is_read INTEGER NOT NULL DEFAULT 0 CHECK (is_read IN (0, 1)),
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (exclusion_id, milestone)
+    );
+    INSERT INTO exclusion_notifications__d2_v1
+      SELECT * FROM exclusion_notifications;
+    DROP TABLE exclusion_notifications;
+    ALTER TABLE exclusion_notifications__d2_v1 RENAME TO exclusion_notifications;
+    CREATE INDEX IF NOT EXISTS idx_exclusion_notifications_return_date
+      ON exclusion_notifications(return_date);
+    CREATE INDEX IF NOT EXISTS idx_exclusion_notifications_is_read
+      ON exclusion_notifications(is_read);
+  `);
+}
+
 function migrateCheckpointsPriorityColumn(database: Database.Database): void {
   const names = tableColumnNames(database, "checkpoints");
   if (!names.has("priority")) {
@@ -738,6 +772,89 @@ function migrateAgentsOrigineColumn(database: Database.Database): void {
   }
 }
 
+function migrateRoleDocumentsModule(database: Database.Database): void {
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS role_documents (
+      id TEXT PRIMARY KEY NOT NULL,
+      reference_number TEXT UNIQUE,
+      role_category TEXT NOT NULL CHECK (role_category IN ('veterinary', 'assistant', 'secretary', 'equipment_chief')),
+      template_id TEXT NOT NULL,
+      document_kind TEXT NOT NULL CHECK (document_kind IN ('report', 'message', 'monthly')),
+      status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'finalized')),
+      title TEXT NOT NULL,
+      report_month INTEGER CHECK (report_month IS NULL OR (report_month >= 1 AND report_month <= 12)),
+      report_year INTEGER CHECK (report_year IS NULL OR report_year >= 2000),
+      agent_id TEXT REFERENCES agents(id) ON DELETE SET NULL,
+      dog_id TEXT REFERENCES dogs(id) ON DELETE SET NULL,
+      section_id TEXT REFERENCES sections(id) ON DELETE SET NULL,
+      payload TEXT NOT NULL DEFAULT '{}',
+      created_by_user_id TEXT,
+      created_by_email TEXT,
+      created_by_name TEXT NOT NULL DEFAULT '',
+      finalized_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS document_reference_sequences (
+      prefix TEXT NOT NULL CHECK (prefix IN ('RAP', 'MSG')),
+      year INTEGER NOT NULL CHECK (year >= 2000),
+      last_number INTEGER NOT NULL DEFAULT 0 CHECK (last_number >= 0),
+      PRIMARY KEY (prefix, year)
+    );
+    CREATE INDEX IF NOT EXISTS idx_role_documents_role_category ON role_documents(role_category);
+    CREATE INDEX IF NOT EXISTS idx_role_documents_status ON role_documents(status);
+    CREATE INDEX IF NOT EXISTS idx_role_documents_template ON role_documents(template_id);
+    CREATE INDEX IF NOT EXISTS idx_role_documents_agent ON role_documents(agent_id);
+    CREATE INDEX IF NOT EXISTS idx_role_documents_dog ON role_documents(dog_id);
+    CREATE INDEX IF NOT EXISTS idx_role_documents_section ON role_documents(section_id);
+    CREATE INDEX IF NOT EXISTS idx_role_documents_created_at ON role_documents(created_at);
+    CREATE INDEX IF NOT EXISTS idx_role_documents_report_period ON role_documents(report_year, report_month);
+  `);
+}
+
+function migrateRoleDocumentsEquipmentChiefCategory(database: Database.Database): void {
+  const table = database
+    .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'role_documents'")
+    .get() as { name: string } | undefined;
+  if (!table) return;
+
+  database.exec(`
+    CREATE TABLE role_documents__equipment_chief_v1 (
+      id TEXT PRIMARY KEY NOT NULL,
+      reference_number TEXT UNIQUE,
+      role_category TEXT NOT NULL CHECK (role_category IN ('veterinary', 'assistant', 'secretary', 'equipment_chief')),
+      template_id TEXT NOT NULL,
+      document_kind TEXT NOT NULL CHECK (document_kind IN ('report', 'message', 'monthly')),
+      status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'finalized')),
+      title TEXT NOT NULL,
+      report_month INTEGER CHECK (report_month IS NULL OR (report_month >= 1 AND report_month <= 12)),
+      report_year INTEGER CHECK (report_year IS NULL OR report_year >= 2000),
+      agent_id TEXT REFERENCES agents(id) ON DELETE SET NULL,
+      dog_id TEXT REFERENCES dogs(id) ON DELETE SET NULL,
+      section_id TEXT REFERENCES sections(id) ON DELETE SET NULL,
+      payload TEXT NOT NULL DEFAULT '{}',
+      created_by_user_id TEXT,
+      created_by_email TEXT,
+      created_by_name TEXT NOT NULL DEFAULT '',
+      finalized_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    INSERT INTO role_documents__equipment_chief_v1
+      SELECT * FROM role_documents;
+    DROP TABLE role_documents;
+    ALTER TABLE role_documents__equipment_chief_v1 RENAME TO role_documents;
+    CREATE INDEX IF NOT EXISTS idx_role_documents_role_category ON role_documents(role_category);
+    CREATE INDEX IF NOT EXISTS idx_role_documents_status ON role_documents(status);
+    CREATE INDEX IF NOT EXISTS idx_role_documents_template ON role_documents(template_id);
+    CREATE INDEX IF NOT EXISTS idx_role_documents_agent ON role_documents(agent_id);
+    CREATE INDEX IF NOT EXISTS idx_role_documents_dog ON role_documents(dog_id);
+    CREATE INDEX IF NOT EXISTS idx_role_documents_section ON role_documents(section_id);
+    CREATE INDEX IF NOT EXISTS idx_role_documents_created_at ON role_documents(created_at);
+    CREATE INDEX IF NOT EXISTS idx_role_documents_report_period ON role_documents(report_year, report_month);
+  `);
+}
+
 /** Ordered migration history — append only; never reorder or rename released ids. */
 export const SQLITE_MIGRATIONS: readonly SqliteMigration[] = [
   {
@@ -820,6 +937,21 @@ export const SQLITE_MIGRATIONS: readonly SqliteMigration[] = [
     id: "015_agents_origine_column",
     description: "Add origine to agents — nullable for existing rows",
     up: migrateAgentsOrigineColumn,
+  },
+  {
+    id: "016_role_documents_module",
+    description: "Rapports & Messages — role_documents and reference sequences",
+    up: migrateRoleDocumentsModule,
+  },
+  {
+    id: "017_role_documents_equipment_chief",
+    description: "Rapports & Messages — allow equipment_chief role category",
+    up: migrateRoleDocumentsEquipmentChiefCategory,
+  },
+  {
+    id: "018_exclusion_notifications_d2_milestone",
+    description: "Exclusion end reminders — add d2 milestone (2 days before end)",
+    up: migrateExclusionNotificationsD2Milestone,
   },
 ];
 

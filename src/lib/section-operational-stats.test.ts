@@ -3,8 +3,12 @@ import type { AgentExclusionRecord } from "@/lib/agent-exclusions";
 import {
   computeSectionOperationalStats,
   getActiveExclusionsForSection,
-  mapExclusionTypeToSectionBreakdownKey,
+  groupSectionExclusionTypesByLabel,
   memberSpecialtyFlags,
+  SECTION_EXCLUSION_DISPLAY_TYPES,
+  SECTION_EXCLUSION_HIDDEN_DISPLAY_TYPES,
+  sumSectionExclusionBreakdown,
+  emptySectionExclusionBreakdown,
 } from "@/lib/section-operational-stats";
 
 function exclusion(
@@ -84,19 +88,43 @@ describe("computeSectionOperationalStats", () => {
       ],
       day,
     );
-    // Counters mirror the Exclusions table (both of a1's rows).
     expect(stats.byReason.training).toBe(1);
     expect(stats.byReason.dog_sick).toBe(1);
-    expect(stats.byReason.leave).toBe(1);
+    expect(stats.byReason.annual_leave).toBe(1);
     expect(stats.byReason.sickness).toBe(1);
-    // Availability still one agent-level outcome per member.
     expect(stats.available).toBe(0);
     expect(stats.activeExclusions).toBe(3);
   });
 
-  it("aggregates leave types into Congé", () => {
-    expect(mapExclusionTypeToSectionBreakdownKey("special_leave")).toBe("leave");
-    expect(mapExclusionTypeToSectionBreakdownKey("administrative_leave")).toBe("leave");
+  it("counts each leave variant separately", () => {
+    const stats = computeSectionOperationalStats(
+      sectionId,
+      agents,
+      [
+        exclusion({ agent_id: "a1", exclusion_type: "special_leave" }),
+        exclusion({ agent_id: "a2", exclusion_type: "administrative_leave" }),
+      ],
+      day,
+    );
+    expect(stats.byReason.special_leave).toBe(1);
+    expect(stats.byReason.administrative_leave).toBe(1);
+    expect(stats.byReason.annual_leave).toBe(0);
+  });
+
+  it("counts dog exclusion types individually instead of Autre", () => {
+    const stats = computeSectionOperationalStats(
+      sectionId,
+      agents,
+      [
+        exclusion({ dog_id: "d1", exclusion_type: "dog_injured" }),
+        exclusion({ dog_id: "d2", exclusion_type: "dog_vet_visit" }),
+        exclusion({ agent_id: "a3", exclusion_type: "suspension" }),
+      ],
+      day,
+    );
+    expect(stats.byReason.dog_injured).toBe(1);
+    expect(stats.byReason.dog_vet_visit).toBe(1);
+    expect(stats.byReason.suspension).toBe(1);
   });
 
   it("ignores other sections' dog exclusions", () => {
@@ -121,7 +149,6 @@ describe("computeSectionOperationalStats", () => {
       day,
     );
     expect(stats.available).toBe(1);
-    // a1 narcotics + a2 explosives are both excluded → operational 0, totals kept
     expect(stats.narcotics).toBe(0);
     expect(stats.narcoticsTotal).toBe(1);
     expect(stats.explosives).toBe(0);
@@ -267,7 +294,7 @@ describe("getActiveExclusionsForSection", () => {
     expect(types).toEqual(["dog_sick", "female_dog_heat", "sickness"]);
   });
 
-  it("filters by breakdown key (e.g. Maladie only)", () => {
+  it("filters by exclusion type (e.g. Maladie only)", () => {
     const rows = getActiveExclusionsForSection(
       sectionId,
       agents,
@@ -277,12 +304,12 @@ describe("getActiveExclusionsForSection", () => {
         exclusion({ dog_id: "d2", exclusion_type: "dog_sick" }),
       ],
       day,
-      "sickness",
+      ["sickness"],
     );
     expect(rows.map((row) => row.exclusion_type)).toEqual(["sickness"]);
   });
 
-  it("aggregates leave variants under Congé filter", () => {
+  it("filters grouped leave variants together", () => {
     const rows = getActiveExclusionsForSection(
       sectionId,
       agents,
@@ -292,11 +319,89 @@ describe("getActiveExclusionsForSection", () => {
         exclusion({ agent_id: "a1", exclusion_type: "sickness" }),
       ],
       day,
-      "leave",
+      ["annual_leave", "special_leave", "administrative_leave"],
     );
     expect(rows.map((row) => row.exclusion_type).sort()).toEqual([
       "annual_leave",
       "special_leave",
     ]);
+  });
+});
+
+describe("SECTION_EXCLUSION_DISPLAY_TYPES", () => {
+  it("hides Indisponible types from section card statistics", () => {
+    expect(SECTION_EXCLUSION_HIDDEN_DISPLAY_TYPES).toEqual(["other", "dog_other"]);
+    expect(SECTION_EXCLUSION_DISPLAY_TYPES).not.toContain("other");
+    expect(SECTION_EXCLUSION_DISPLAY_TYPES).not.toContain("dog_other");
+    expect(SECTION_EXCLUSION_DISPLAY_TYPES).toContain("sickness");
+    expect(SECTION_EXCLUSION_DISPLAY_TYPES).toContain("dog_sick");
+  });
+
+  it("does not produce an Indisponible group when building display labels", () => {
+    const groups = groupSectionExclusionTypesByLabel(
+      SECTION_EXCLUSION_DISPLAY_TYPES,
+      (type) => {
+        const labels: Record<string, string> = {
+          other: "Indisponible",
+          dog_other: "Indisponible",
+          sickness: "Malade",
+        };
+        return labels[type] ?? type;
+      },
+    );
+
+    expect(groups.some((group) => group.label === "Indisponible")).toBe(false);
+  });
+});
+
+describe("groupSectionExclusionTypesByLabel", () => {
+  it("merges types that share the same display label", () => {
+    const groups = groupSectionExclusionTypesByLabel(
+      [
+        "annual_leave",
+        "special_leave",
+        "administrative_leave",
+        "other",
+        "dog_other",
+        "sickness",
+      ],
+      (type) => {
+        const labels: Record<string, string> = {
+          annual_leave: "Congé",
+          special_leave: "Congé",
+          administrative_leave: "Congé",
+          other: "Indisponible",
+          dog_other: "Indisponible",
+          sickness: "Malade",
+        };
+        return labels[type] ?? type;
+      },
+    );
+
+    expect(groups).toHaveLength(3);
+    expect(groups.find((group) => group.label === "Congé")?.types).toEqual([
+      "annual_leave",
+      "special_leave",
+      "administrative_leave",
+    ]);
+    expect(groups.find((group) => group.label === "Indisponible")?.types).toEqual([
+      "other",
+      "dog_other",
+    ]);
+  });
+
+  it("aggregates counts for grouped labels", () => {
+    const breakdown = emptySectionExclusionBreakdown();
+    breakdown.annual_leave = 2;
+    breakdown.special_leave = 1;
+    breakdown.administrative_leave = 0;
+
+    expect(
+      sumSectionExclusionBreakdown(breakdown, [
+        "annual_leave",
+        "special_leave",
+        "administrative_leave",
+      ]),
+    ).toBe(3);
   });
 });

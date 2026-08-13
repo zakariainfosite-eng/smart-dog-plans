@@ -10,6 +10,7 @@ import {
   CalendarDays,
   History,
   FileBarChart,
+  FileText,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -45,6 +46,7 @@ const navItems: NavItem[] = [
   { key: "nav.exclusions", url: "/exclusions", icon: UserX },
   { key: "nav.operationalCases", url: "/operational-cases", icon: Briefcase },
   { key: "nav.history", url: "/history", icon: History },
+  { key: "nav.reportsMessages", url: "/reports-messages", icon: FileText },
   { key: "nav.statistics", url: "/statistics", icon: FileBarChart },
   { key: "nav.settings", url: "/settings", icon: Settings },
 ];

@@ -105,8 +105,9 @@ export async function fetchImminentReturns(
   const items: ImminentReturnItem[] = [];
   for (const row of rows) {
     const returnDate = exclusionReturnDateISO(row.end_date);
+    if (!returnDate) continue;
     const daysUntil = daysUntilReturn(returnDate, todayISO);
-    if (daysUntil < 0) continue;
+    if (!Number.isFinite(daysUntil) || daysUntil < 0) continue;
 
     const subjectKind: ExclusionNotificationSubjectKind =
       exclusionApplyTarget(row.exclusion_type, row.dog_id) === "dog" ? "dog" : "personnel";

@@ -86,7 +86,7 @@ export function SectionDetailSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl"
+        className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-none lg:w-1/2 lg:max-w-[50vw]"
       >
         <SheetHeader className="shrink-0 space-y-3 border-b border-border/60 px-6 py-5 text-left">
           <div className="flex items-start justify-between gap-3 pr-8">
@@ -200,12 +200,13 @@ export function SectionDetailSheet({
               {t("sections.detail.emptyMembers")}
             </p>
           ) : (
-            <div className="overflow-hidden rounded-xl border border-border/60">
-              <Table>
+            <div className="overflow-x-auto rounded-xl border border-border/60">
+              <Table className="min-w-full table-auto">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12">{t("sections.detail.photo")}</TableHead>
-                    <TableHead>{t("sections.detail.fullName")}</TableHead>
+                    <TableHead className="whitespace-nowrap">{t("employees.field.lastName")}</TableHead>
+                    <TableHead className="whitespace-nowrap">{t("employees.field.firstName")}</TableHead>
                     <TableHead>{t("employees.field.professionalNumber")}</TableHead>
                     <TableHead>{t("field.grade")}</TableHead>
                     <TableHead>{t("employees.field.fonction")}</TableHead>
@@ -232,16 +233,25 @@ export function SectionDetailSheet({
                             className="h-8 w-8"
                           />
                         </TableCell>
-                        <TableCell className="font-medium">
-                          {agent.first_name} {agent.last_name}
+                        <TableCell className="max-w-none overflow-visible whitespace-nowrap font-medium">
+                          {agent.last_name}
                         </TableCell>
-                        <TableCell className="font-mono text-xs text-muted-foreground">
+                        <TableCell className="max-w-none overflow-visible whitespace-nowrap font-medium">
+                          {agent.first_name}
+                        </TableCell>
+                        <TableCell className="max-w-none overflow-visible whitespace-nowrap font-mono text-xs text-muted-foreground">
                           {agent.professional_number}
                         </TableCell>
-                        <TableCell>{agent.grade}</TableCell>
-                        <TableCell>{t(`personnelFonction.${fonction}`)}</TableCell>
-                        <TableCell>{agent.dogs?.name ?? "—"}</TableCell>
-                        <TableCell>
+                        <TableCell className="max-w-none overflow-visible whitespace-nowrap">
+                          {agent.grade}
+                        </TableCell>
+                        <TableCell className="max-w-none overflow-visible whitespace-nowrap">
+                          {t(`personnelFonction.${fonction}`)}
+                        </TableCell>
+                        <TableCell className="max-w-none overflow-visible whitespace-nowrap">
+                          {agent.dogs?.name ?? "—"}
+                        </TableCell>
+                        <TableCell className="max-w-none overflow-visible">
                           <StatusBadge
                             tone={
                               status === t("employees.operationalStatus.available")

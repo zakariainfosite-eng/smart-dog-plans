@@ -53,6 +53,8 @@ const ALLOWED_TABLES = new Set([
   "operational_cases",
   "operational_case_attachments",
   "application_settings",
+  "role_documents",
+  "document_reference_sequences",
   "users",
 ]);
 

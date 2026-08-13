@@ -17,6 +17,7 @@
     "dailyPlanning": "Daily planning",
     "history": "History",
     "statistics": "Statistics",
+    "reportsMessages": "Reports & Messages",
     "settings": "Settings"
   },
   "auth": {
@@ -66,11 +67,14 @@
     },
     "statistics": {
       "overview": "Overview",
+      "statusBreakdown": "Active / excluded breakdown",
       "bySpecialty": "Dogs by specialty",
       "exclusions": "Excluded dogs breakdown",
       "activeExclusionsToday": "Active exclusion reasons today",
       "excludedExplosivesShort": "Explosives",
       "excludedNarcoticsShort": "Narcotics",
+      "totalActive": "Total active",
+      "totalExcluded": "Total excluded",
       "clickToFilter": "Click a statistic to filter the list."
     },
     "gender": {
@@ -122,6 +126,18 @@
     "error": {
       "loadFailed": "Failed to load checkpoints.",
       "retry": "Retry"
+    },
+    "dogStats": {
+      "title": "Dogs by specialty",
+      "total": "Total",
+      "active": "Active",
+      "excluded": "Excluded",
+      "explosives": {
+        "title": "Explosives"
+      },
+      "narcotics": {
+        "title": "Narcotics & Banknotes"
+      }
     }
   },
   "dailyPlanning": {
@@ -240,7 +256,9 @@
     "searchPersonnel": "Search name or professional number…",
     "searchDogs": "Search dog name or ID…",
     "stat": {
-      "sickAgents": "Sick personnel"
+      "sickAgents": "Sick personnel",
+      "dogBySpecialty": "Dog exclusions by specialty",
+      "excludedDogsTotal": "Total excluded dogs"
     },
     "dialog": {
       "newDesc": "Record an unavailability for a staff member or a dog."
@@ -425,6 +443,10 @@
     "operationalStatus": {
       "available": "Available",
       "excluded": "Out of service"
+    },
+    "stat": {
+      "explosives": "Explosives",
+      "narcotics": "Narcotics"
     },
     "hint": {
       "inactiveExcluded": "Inactive personnel and non-cynotechnician roles are excluded from planning."

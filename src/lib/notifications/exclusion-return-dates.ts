@@ -1,48 +1,73 @@
-import { addDays, differenceInCalendarDays, format, parseISO, startOfDay } from "date-fns";
+import { addDays, differenceInCalendarDays, format, isValid, parseISO, startOfDay } from "date-fns";
 import {
-  EXCLUSION_RETURN_MILESTONES,
-  type ExclusionReturnMilestoneDays,
+  EXCLUSION_END_MILESTONES,
+  type ExclusionEndMilestoneDays,
   milestoneFromDays,
 } from "@/lib/notifications/exclusion-return-types";
-import { planningDayISO } from "@/lib/agent-exclusions";
+import { isValidPlanningDayISO, planningDayISO } from "@/lib/agent-exclusions";
 
 /**
  * First calendar day the subject is available again in planning.
  * Exclusions are inclusive of `end_date`, so return = end_date + 1 day.
  */
-export function exclusionReturnDateISO(endDateISO: string): string {
-  return format(addDays(startOfDay(parseISO(endDateISO.slice(0, 10))), 1), "yyyy-MM-dd");
+export function exclusionReturnDateISO(endDateISO: string): string | null {
+  if (!isValidPlanningDayISO(endDateISO)) return null;
+  const endDay = startOfDay(parseISO(endDateISO.slice(0, 10)));
+  if (!isValid(endDay)) return null;
+  return format(addDays(endDay, 1), "yyyy-MM-dd");
 }
 
 export function daysUntilReturn(returnDateISO: string, reference: Date | string = new Date()): number {
+  if (!isValidPlanningDayISO(returnDateISO)) return Number.NaN;
   const today = startOfDay(
     typeof reference === "string" ? parseISO(planningDayISO(reference)) : reference,
   );
   const returnDay = startOfDay(parseISO(returnDateISO.slice(0, 10)));
+  if (!isValid(today) || !isValid(returnDay)) return Number.NaN;
   return differenceInCalendarDays(returnDay, today);
+}
+
+/** Days until inclusive exclusion end_date (0 = ends today). */
+export function daysUntilEnd(endDateISO: string, reference: Date | string = new Date()): number {
+  if (!isValidPlanningDayISO(endDateISO)) return Number.NaN;
+  const today = startOfDay(
+    typeof reference === "string" ? parseISO(planningDayISO(reference)) : reference,
+  );
+  const endDay = startOfDay(parseISO(endDateISO.slice(0, 10)));
+  if (!isValid(today) || !isValid(endDay)) return Number.NaN;
+  return differenceInCalendarDays(endDay, today);
+}
+
+export function isEndMilestoneDay(daysUntil: number): daysUntil is ExclusionEndMilestoneDays {
+  return (EXCLUSION_END_MILESTONES as readonly number[]).includes(daysUntil);
+}
+
+export function milestoneForDaysUntilEnd(daysUntil: number) {
+  if (!Number.isFinite(daysUntil)) return null;
+  if (!isEndMilestoneDay(daysUntil)) return null;
+  return milestoneFromDays(daysUntil);
 }
 
 export function isReturnMilestoneDay(
   daysUntil: number,
-): daysUntil is ExclusionReturnMilestoneDays {
-  return (EXCLUSION_RETURN_MILESTONES as readonly number[]).includes(daysUntil);
+): daysUntil is ExclusionEndMilestoneDays {
+  return isEndMilestoneDay(daysUntil);
 }
 
+/** @deprecated Use milestoneForDaysUntilEnd */
 export function milestoneForDaysUntil(daysUntil: number) {
-  if (!isReturnMilestoneDay(daysUntil)) return null;
-  return milestoneFromDays(daysUntil);
+  return milestoneForDaysUntilEnd(daysUntil);
 }
 
-/** Inclusive window used when scanning exclusions for new alerts. */
+/** Scan active exclusions whose end_date falls within the reminder window. */
 export function exclusionScanWindow(reference: Date | string = new Date()): {
   minEndDate: string;
   maxEndDate: string;
 } {
   const today = planningDayISO(reference);
-  // d0 → end was yesterday; d7 → end is today+6
   return {
-    minEndDate: format(addDays(parseISO(today), -1), "yyyy-MM-dd"),
-    maxEndDate: format(addDays(parseISO(today), 6), "yyyy-MM-dd"),
+    minEndDate: today,
+    maxEndDate: format(addDays(parseISO(today), 2), "yyyy-MM-dd"),
   };
 }
 

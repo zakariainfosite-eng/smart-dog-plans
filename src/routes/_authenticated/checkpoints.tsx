@@ -11,14 +11,24 @@ import {
 import { toast } from "sonner";
 import { RowActionButtons } from "@/components/enterprise/row-action-buttons";
 
+import { db } from "@/integrations/database/client";
 import {
   createCheckpoint,
   deleteCheckpoint,
   getCheckpoints,
+  getDogs,
   updateCheckpoint,
   type Checkpoint,
   type CheckpointWithPosts,
 } from "@/integrations/database";
+import {
+  ACTIVE_EXCLUSIONS_TODAY_QUERY_KEY,
+  fetchActiveExclusionsForDate,
+  todayISODate,
+  type AgentExclusionRecord,
+} from "@/lib/agent-exclusions";
+import { computeDogOperationalStatsFromDogs } from "@/lib/checkpoints/checkpoint-dog-stats";
+import { CheckpointDogOverviewCards } from "@/components/checkpoints/checkpoint-dog-overview-cards";
 import { PageTitle } from "@/components/layout/PageTitle";
 import {
   PageTableShell,
@@ -72,10 +82,52 @@ function CheckpointsPage() {
   const [deleteTarget, setDeleteTarget] = useState<CheckpointWithPosts | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
+  const statusReferenceISO = todayISODate();
+
   const { data, isLoading, isError, error, dataUpdatedAt, refetch, isFetching } = useQuery({
     queryKey: ["checkpoints-with-posts"],
     queryFn: () => getCheckpoints(),
   });
+
+  const { data: dogs = [], isLoading: dogsLoading } = useQuery({
+    queryKey: ["dogs-with-agent"],
+    queryFn: () => getDogs(),
+  });
+
+  const { data: todayExclusions = [] } = useQuery({
+    queryKey: [...ACTIVE_EXCLUSIONS_TODAY_QUERY_KEY, statusReferenceISO],
+    queryFn: () => fetchActiveExclusionsForDate(db, statusReferenceISO),
+    refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
+    staleTime: 0,
+  });
+
+  const exclusions = todayExclusions as AgentExclusionRecord[];
+
+  const aggregateDogStats = useMemo(
+    () =>
+      computeDogOperationalStatsFromDogs(
+        dogs.map((dog) => ({ id: dog.id, specialty: dog.specialty })),
+        exclusions,
+        statusReferenceISO,
+      ),
+    [dogs, exclusions, statusReferenceISO],
+  );
+
+  const dogStatsLoading = isLoading || dogsLoading;
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    console.log("[checkpoints] dog overview stats", {
+      totalDogsLoaded: dogs.length,
+      exclusionsLoaded: exclusions.length,
+      sampleDogs: dogs.slice(0, 5).map((dog) => ({
+        id: dog.id,
+        specialty: dog.specialty,
+      })),
+      aggregateDogStats,
+    });
+  }, [dogs, exclusions, aggregateDogStats]);
 
   const loadErrorMessage =
     error instanceof Error
@@ -348,6 +400,8 @@ function CheckpointsPage() {
         <KpiCard icon={Users} label={t("checkpoints.stat.requiredTeams")} value={stats.posts} accent="neutral" loading={isLoading} />
       </div>
 
+      <CheckpointDogOverviewCards stats={aggregateDogStats} loading={dogStatsLoading} />
+
       <FilterBar
         showReset={hasFilters}
         onReset={resetFilters}
@@ -420,9 +474,7 @@ function CheckpointsPage() {
             density="comfortable"
             responsiveScroll
             isSubRowOpen={(row) => expanded.has(row.original.id)}
-            renderSubRow={(row) => (
-              <CheckpointOperationalSummary checkpoint={row.original} />
-            )}
+            renderSubRow={(row) => <CheckpointOperationalSummary checkpoint={row.original} />}
             emptyState={
               <EmptyState
                 icon={MapPin}

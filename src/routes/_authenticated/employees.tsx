@@ -9,7 +9,6 @@ import {
   Plus,
   Dog as DogIcon,
   Shield,
-  Moon,
   Venus,
   Mars,
   Pill,
@@ -80,7 +79,6 @@ import {
   agentSpecialty,
   availabilityBadgeTone,
   deriveAgentAvailabilityForAgent,
-  isNightEligible,
 } from "@/lib/agent-ui";
 import {
   ACTIVE_EXCLUSIONS_TODAY_QUERY_KEY,
@@ -405,7 +403,6 @@ function EmployeesPage() {
     const female = list.filter((a) => a.gender === "female").length;
     const male = list.filter((a) => a.gender === "male").length;
     const withDog = list.filter((a) => a.dog_id).length;
-    const nightEligible = list.filter((a) => isNightEligible(a, exclusions)).length;
 
     const now = new Date();
     const thisMonth = now.getMonth();
@@ -422,7 +419,6 @@ function EmployeesPage() {
       female,
       male,
       withDog,
-      nightEligible,
       addedThisMonth,
       narcotics: list.filter((a) => agentSpecialty(a) === "narcotics").length,
       explosives: list.filter((a) => agentSpecialty(a) === "explosives").length,
@@ -1039,7 +1035,7 @@ function EmployeesPage() {
         loading={isLoading}
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-8">
         <AgentsStatCard
           icon={Users}
           value={stats.total}
@@ -1092,11 +1088,19 @@ function EmployeesPage() {
           loading={isLoading}
         />
         <AgentsStatCard
-          icon={Moon}
-          value={stats.nightEligible}
-          label={t("employees.stat.nightEligible")}
-          percentage={pct(stats.nightEligible, stats.total)}
-          iconBgClassName="bg-violet-500/10 text-violet-600"
+          icon={Bomb}
+          value={stats.explosives}
+          label={t("employees.stat.explosives")}
+          percentage={pct(stats.explosives, stats.total)}
+          iconBgClassName="bg-orange-500/10 text-orange-600"
+          loading={isLoading}
+        />
+        <AgentsStatCard
+          icon={Pill}
+          value={stats.narcotics}
+          label={t("employees.stat.narcotics")}
+          percentage={pct(stats.narcotics, stats.total)}
+          iconBgClassName="bg-teal-500/10 text-teal-600"
           loading={isLoading}
         />
       </div>

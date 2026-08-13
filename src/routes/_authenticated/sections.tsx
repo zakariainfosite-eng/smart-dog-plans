@@ -49,11 +49,12 @@ import {
   todayISODate,
   type AgentExclusionRecord,
 } from "@/lib/agent-exclusions";
+import type { ExclusionType } from "@/lib/agent-exclusions";
 import {
-  SECTION_EXCLUSION_BREAKDOWN_KEYS,
+  SECTION_EXCLUSION_DISPLAY_TYPES,
   computeSectionOperationalStats,
-  type SectionExclusionBreakdown,
-  type SectionExclusionBreakdownKey,
+  emptySectionExclusionBreakdown,
+  groupSectionExclusionTypesByLabel,
 } from "@/lib/section-operational-stats";
 import {
   resolveSectionCommanderDisplay,
@@ -63,17 +64,7 @@ import {
 import { useI18n } from "@/hooks/use-i18n";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 
-const EMPTY_SECTION_BREAKDOWN: SectionExclusionBreakdown = {
-  sickness: 0,
-  leave: 0,
-  training: 0,
-  mission: 0,
-  absence: 0,
-  dog_sick: 0,
-  female_dog_heat: 0,
-  dog_temporary_retirement: 0,
-  other: 0,
-};
+const EMPTY_SECTION_BREAKDOWN = emptySectionExclusionBreakdown();
 
 export const Route = createFileRoute("/_authenticated/sections")({
   head: () => ({ meta: [{ title: "Sections — CynoPlanning" }] }),
@@ -111,8 +102,12 @@ function SectionsPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [assignmentsOpen, setAssignmentsOpen] = useState(false);
   const [exclusionsSectionId, setExclusionsSectionId] = useState<string | null>(null);
-  const [exclusionsBreakdownKey, setExclusionsBreakdownKey] =
-    useState<SectionExclusionBreakdownKey | null>(null);
+  const [exclusionsBreakdownTypes, setExclusionsBreakdownTypes] = useState<
+    ExclusionType[] | null
+  >(null);
+  const [exclusionsBreakdownLabel, setExclusionsBreakdownLabel] = useState<
+    string | null
+  >(null);
 
   const statusReferenceISO = todayISODate();
 
@@ -135,6 +130,14 @@ function SectionsPage() {
   });
 
   const exclusions = todayExclusions as AgentExclusionRecord[];
+
+  const sectionExclusionDisplayGroups = useMemo(
+    () =>
+      groupSectionExclusionTypesByLabel(SECTION_EXCLUSION_DISPLAY_TYPES, (type) =>
+        t(`exclusions.type.${type}`),
+      ),
+    [t, locale],
+  );
 
   const statsBySectionId = useMemo(() => {
     const map = new Map<string, ReturnType<typeof computeSectionOperationalStats>>();
@@ -270,9 +273,11 @@ function SectionsPage() {
 
   const openSectionExclusions = (
     sectionId: string,
-    breakdownKey: SectionExclusionBreakdownKey | null = null,
+    breakdownTypes: ExclusionType[] | null = null,
+    breakdownLabel: string | null = null,
   ) => {
-    setExclusionsBreakdownKey(breakdownKey);
+    setExclusionsBreakdownTypes(breakdownTypes);
+    setExclusionsBreakdownLabel(breakdownLabel);
     setExclusionsSectionId(sectionId);
   };
 
@@ -376,9 +381,10 @@ function SectionsPage() {
                   agentCount={stats.assigned}
                   availableCount={stats.available}
                   exclusionBreakdown={stats.byReason}
-                  breakdownLabels={SECTION_EXCLUSION_BREAKDOWN_KEYS.map((key) => ({
-                    key,
-                    label: t(`sections.stat.breakdown.${key}`),
+                  breakdownLabels={sectionExclusionDisplayGroups.map((group) => ({
+                    key: group.key,
+                    label: group.label,
+                    types: group.types,
                   }))}
                   narcoticsOperational={stats.narcotics}
                   narcoticsTotal={stats.narcoticsTotal}
@@ -423,7 +429,9 @@ function SectionsPage() {
                   openLabel={t("sections.detail.open")}
                   onOpen={() => openDetail(s)}
                   onExclusionsClick={() => openSectionExclusions(s.id)}
-                  onExclusionTypeClick={(key) => openSectionExclusions(s.id, key)}
+                  onExclusionTypeClick={(types, label) =>
+                    openSectionExclusions(s.id, types, label)
+                  }
                   onEdit={() => openEdit(s)}
                   onDelete={() => setDeleteTarget(s)}
                 />
@@ -458,7 +466,8 @@ function SectionsPage() {
         onOpenChange={(open) => {
           if (!open) {
             setExclusionsSectionId(null);
-            setExclusionsBreakdownKey(null);
+            setExclusionsBreakdownTypes(null);
+            setExclusionsBreakdownLabel(null);
           }
         }}
         sectionName={exclusionsSection?.name ?? null}
@@ -466,12 +475,8 @@ function SectionsPage() {
         agents={agents}
         exclusions={exclusions}
         referenceISO={statusReferenceISO}
-        breakdownKey={exclusionsBreakdownKey}
-        breakdownLabel={
-          exclusionsBreakdownKey
-            ? t(`sections.stat.breakdown.${exclusionsBreakdownKey}`)
-            : null
-        }
+        breakdownTypes={exclusionsBreakdownTypes}
+        breakdownLabel={exclusionsBreakdownLabel}
       />
 
       <SectionDialog

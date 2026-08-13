@@ -1,9 +1,11 @@
 import {
+  ALL_EXCLUSION_TYPES,
   filterActiveExclusions,
   getActiveExclusionsForAgent,
   isAgentLevelExclusionType,
   isDogLevelExclusionType,
   type AgentExclusionRecord,
+  type ExclusionType,
 } from "@/lib/agent-exclusions";
 import {
   deriveAgentAvailabilityForAgent,
@@ -30,26 +32,20 @@ export type SectionMemberInput = {
   dogs?: SectionMemberDogInput | null;
 };
 
-/**
- * Display buckets on section cards (one count per assigned agent).
- * Leave types are aggregated into `leave` (« Congé »).
- */
-export const SECTION_EXCLUSION_BREAKDOWN_KEYS = [
-  "sickness",
-  "leave",
-  "training",
-  "mission",
-  "absence",
-  "dog_sick",
-  "female_dog_heat",
-  "dog_temporary_retirement",
+/** Exclusion types omitted from section card statistics UI (records unchanged). */
+export const SECTION_EXCLUSION_HIDDEN_DISPLAY_TYPES: readonly ExclusionType[] = [
   "other",
-] as const;
+  "dog_other",
+];
 
-export type SectionExclusionBreakdownKey =
-  (typeof SECTION_EXCLUSION_BREAKDOWN_KEYS)[number];
+/** Ordered exclusion types shown on section cards (same source as Exclusions module). */
+export const SECTION_EXCLUSION_DISPLAY_TYPES = ALL_EXCLUSION_TYPES.filter(
+  (type) => !(SECTION_EXCLUSION_HIDDEN_DISPLAY_TYPES as readonly string[]).includes(type),
+);
 
-export type SectionExclusionBreakdown = Record<SectionExclusionBreakdownKey, number>;
+export type SectionExclusionBreakdownKey = ExclusionType;
+
+export type SectionExclusionBreakdown = Record<ExclusionType, number>;
 
 export type SectionOperationalStats = {
   /** Agents currently assigned to the section. */
@@ -60,7 +56,7 @@ export type SectionOperationalStats = {
   unavailable: number;
   /** Distinct assigned agents with any active exclusion (agent or dog). */
   activeExclusions: number;
-  /** Per-reason counts — each agent counted once (highest-priority reason). */
+  /** Per-type counts — one increment per active exclusion row. */
   byReason: SectionExclusionBreakdown;
   /**
    * Operational narcotics: assigned dog specialty minus any active exclusion.
@@ -76,46 +72,46 @@ export type SectionOperationalStats = {
   explosivesTotal: number;
 };
 
-function emptyBreakdown(): SectionExclusionBreakdown {
-  return {
-    sickness: 0,
-    leave: 0,
-    training: 0,
-    mission: 0,
-    absence: 0,
-    dog_sick: 0,
-    female_dog_heat: 0,
-    dog_temporary_retirement: 0,
-    other: 0,
-  };
+export function emptySectionExclusionBreakdown(): SectionExclusionBreakdown {
+  return Object.fromEntries(
+    ALL_EXCLUSION_TYPES.map((type) => [type, 0]),
+  ) as SectionExclusionBreakdown;
 }
 
-/** Map a raw exclusion type to a section-card display bucket. */
-export function mapExclusionTypeToSectionBreakdownKey(
-  exclusionType: string,
-): SectionExclusionBreakdownKey {
-  switch (exclusionType) {
-    case "sickness":
-      return "sickness";
-    case "annual_leave":
-    case "special_leave":
-    case "administrative_leave":
-      return "leave";
-    case "training":
-      return "training";
-    case "mission":
-      return "mission";
-    case "absence":
-      return "absence";
-    case "dog_sick":
-      return "dog_sick";
-    case "female_dog_heat":
-      return "female_dog_heat";
-    case "dog_temporary_retirement":
-      return "dog_temporary_retirement";
-    default:
-      return "other";
+/** One row on the section exclusions card (unique display label). */
+export type SectionExclusionDisplayGroup = {
+  key: string;
+  label: string;
+  types: ExclusionType[];
+};
+
+/** Group exclusion types that share the same localized label (e.g. Congé, Indisponible). */
+export function groupSectionExclusionTypesByLabel(
+  types: readonly ExclusionType[],
+  labelForType: (type: ExclusionType) => string,
+): SectionExclusionDisplayGroup[] {
+  const groups: SectionExclusionDisplayGroup[] = [];
+  const indexByLabel = new Map<string, number>();
+
+  for (const type of types) {
+    const label = labelForType(type);
+    const existingIndex = indexByLabel.get(label);
+    if (existingIndex !== undefined) {
+      groups[existingIndex].types.push(type);
+      continue;
+    }
+    indexByLabel.set(label, groups.length);
+    groups.push({ key: type, label, types: [type] });
   }
+
+  return groups;
+}
+
+export function sumSectionExclusionBreakdown(
+  breakdown: SectionExclusionBreakdown,
+  types: readonly ExclusionType[],
+): number {
+  return types.reduce((total, type) => total + (breakdown[type] ?? 0), 0);
 }
 
 function normalizeSpecialtyToken(value: string): string {
@@ -177,12 +173,8 @@ export function memberSpecialtyFlags(agent: SectionMemberInput): {
   };
 }
 
-/** True when an exclusion type belongs to a section-card breakdown bucket. */
-export function exclusionMatchesSectionBreakdownKey(
-  exclusionType: string,
-  key: SectionExclusionBreakdownKey,
-): boolean {
-  return mapExclusionTypeToSectionBreakdownKey(exclusionType) === key;
+function isKnownExclusionType(type: string): type is ExclusionType {
+  return (ALL_EXCLUSION_TYPES as readonly string[]).includes(type);
 }
 
 /**
@@ -196,14 +188,16 @@ export function countSectionExclusionBreakdown(
   exclusions: AgentExclusionRecord[],
   reference: Date | string = new Date(),
 ): SectionExclusionBreakdown {
-  const byReason = emptyBreakdown();
+  const byReason = emptySectionExclusionBreakdown();
   for (const row of getActiveExclusionsForSection(
     sectionId,
     agents,
     exclusions,
     reference,
   )) {
-    byReason[mapExclusionTypeToSectionBreakdownKey(row.exclusion_type)] += 1;
+    if (isKnownExclusionType(row.exclusion_type)) {
+      byReason[row.exclusion_type] += 1;
+    }
   }
   return byReason;
 }
@@ -285,7 +279,7 @@ export function getActiveExclusionsForSection(
   agents: SectionMemberInput[],
   exclusions: AgentExclusionRecord[],
   reference: Date | string = new Date(),
-  breakdownKey?: SectionExclusionBreakdownKey | null,
+  exclusionTypes?: readonly ExclusionType[] | null,
 ): AgentExclusionRecord[] {
   const members = agents.filter((agent) => agent.section_id === sectionId);
   const memberIds = new Set(members.map((agent) => agent.id));
@@ -294,12 +288,13 @@ export function getActiveExclusionsForSection(
       .map((agent) => agent.dog_id ?? agent.dogs?.id ?? null)
       .filter((id): id is string => Boolean(id)),
   );
+  const typeFilter =
+    exclusionTypes && exclusionTypes.length > 0
+      ? new Set<string>(exclusionTypes)
+      : null;
 
   return filterActiveExclusions(exclusions, reference).filter((row) => {
-    if (
-      breakdownKey &&
-      !exclusionMatchesSectionBreakdownKey(row.exclusion_type, breakdownKey)
-    ) {
+    if (typeFilter && !typeFilter.has(row.exclusion_type)) {
       return false;
     }
     if (isAgentLevelExclusionType(row.exclusion_type)) {

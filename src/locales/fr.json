@@ -23,6 +23,7 @@
     "planning": "Planification",
     "dailyPlanning": "Planification quotidienne",
     "history": "Historique",
+    "reportsMessages": "Rapports & Messages",
     "statistics": "Statistiques",
     "settings": "Paramètres"
   },
@@ -178,6 +179,14 @@
     },
     "history": {
       "title": "Historique — CynoPlanning"
+    },
+    "reportsMessages": {
+      "title": "Rapports & Messages — CynoPlanning",
+      "document": "Document — CynoPlanning",
+      "veterinary": "Rapports & Messages — Aide-soignant vétérinaire — CynoPlanning",
+      "assistant": "Rapports — Assistant cynotechnique — CynoPlanning",
+      "secretary": "Rapports — Secrétaire — CynoPlanning",
+      "equipmentChief": "Rapports & Messages — Chef matériel — CynoPlanning"
     }
   },
   "error": {
@@ -253,9 +262,12 @@
   },
   "notifications": {
     "title": "Centre d'alertes",
-    "subtitle": "Retours d'exclusion à venir",
+    "subtitle": "Exclusions arrivant à expiration",
     "empty": "Aucune notification pour le moment.",
     "markAllRead": "Tout marquer comme lu",
+    "section": {
+      "expiring": "Exclusions arrivant à expiration"
+    },
     "filter": {
       "all": "Tous",
       "personnel": "Personnel",
@@ -272,13 +284,50 @@
       "warning": "Sous 3 jours",
       "success": "Disponible aujourd'hui"
     },
+    "ending": {
+      "subject": "Fin prochaine d'exclusion — {{type}}",
+      "remainingToday": "Se termine aujourd'hui",
+      "remainingOneDay": "1 jour restant",
+      "remainingDays": "{{count}} jours restants",
+      "daysRemaining": "Jours restants",
+      "endDate": "Date de fin",
+      "exclusionType": "Type d'exclusion",
+      "subjectLabel": "Concerné"
+    },
+    "actions": {
+      "viewExclusion": "Voir l'exclusion",
+      "createReport": "Créer un rapport",
+      "createMessage": "Créer un message administratif",
+      "creatingDocument": "Création…",
+      "documentCreated": "Document créé",
+      "documentError": "Impossible de créer le document"
+    },
+    "reminderAlert": {
+      "title": "⚠️ Rappel administratif",
+      "messageInDays": "L'exclusion de {{name}} ({{type}}) se termine dans {{count}} jours.",
+      "messageTomorrow": "L'exclusion de {{name}} ({{type}}) se termine dans 1 jour.",
+      "messageToday": "L'exclusion de {{name}} ({{type}}) se termine aujourd'hui.",
+      "footer": "Veuillez préparer le rapport et le message nécessaire pour l'administration.",
+      "createReport": "Créer un rapport",
+      "createMessage": "Créer un message",
+      "viewExclusion": "Voir l'exclusion",
+      "close": "Fermer"
+    },
     "message": {
       "personnel": {
+        "endsInDays": "Attention : L'exclusion de {{name}} ({{type}}) se termine dans {{count}} jours. Préparer le suivi administratif nécessaire.",
+        "endsTomorrow": "Attention : L'exclusion de {{name}} ({{type}}) se termine dans 1 jour. Préparer le suivi administratif nécessaire.",
+        "endsToday": "Attention : L'exclusion de {{name}} ({{type}}) se termine aujourd'hui. Préparer le suivi administratif nécessaire.",
         "inDays": "{{name}} redevient disponible dans {{count}} jours ({{date}}).",
         "tomorrow": "{{name}} reprend le service demain.",
         "today": "{{name}} est de nouveau disponible aujourd'hui."
       },
       "dog": {
+        "articleFemale": "de la chienne",
+        "articleMale": "du chien",
+        "endsInDays": "Attention : La période d'exclusion {{article}} {{name}} ({{type}}) se termine dans {{count}} jours. Vérifier la situation et préparer le rapport nécessaire.",
+        "endsTomorrow": "Attention : La période d'exclusion {{article}} {{name}} ({{type}}) se termine dans 1 jour. Vérifier la situation et préparer le rapport nécessaire.",
+        "endsToday": "Attention : La période d'exclusion {{article}} {{name}} ({{type}}) se termine aujourd'hui. Vérifier la situation et préparer le rapport nécessaire.",
         "inDays": "Chien {{name}} ({{type}}) sera de nouveau opérationnel dans {{count}} jours.",
         "tomorrow": "Chien {{name}} termine {{type}} demain.",
         "today": "Chien {{name}} est de nouveau opérationnel aujourd'hui."
@@ -334,6 +383,8 @@
       "male": "Hommes",
       "narcoticsHandlers": "Maîtres stupéfiants",
       "explosivesHandlers": "Maîtres explosifs",
+      "explosives": "Explosifs",
+      "narcotics": "Stupéfiants",
       "nightEligible": "Éligibles de nuit",
       "trendThisMonth": "+{{count}} ce mois"
     },
@@ -609,11 +660,14 @@
     },
     "statistics": {
       "overview": "Vue d’ensemble",
+      "statusBreakdown": "Répartition actifs / exclus",
       "bySpecialty": "Chiens par spécialité",
       "exclusions": "Détail des chiens exclus",
       "activeExclusionsToday": "Motifs d’exclusion actifs aujourd’hui",
       "excludedExplosivesShort": "Explo",
       "excludedNarcoticsShort": "Stupe",
+      "totalActive": "Total actifs",
+      "totalExcluded": "Total exclus",
       "clickToFilter": "Cliquez sur une statistique pour filtrer la liste."
     },
     "gender": {
@@ -801,6 +855,18 @@
       "total": "({{count}} au total)",
       "shifts": "Quartiers"
     },
+    "dogStats": {
+      "title": "Chiens par spécialité",
+      "total": "Total",
+      "active": "Actifs",
+      "excluded": "Exclus",
+      "explosives": {
+        "title": "Explosifs"
+      },
+      "narcotics": {
+        "title": "Stupéfiants & Billets de banque"
+      }
+    },
     "config": {
       "subtitle": "Configuration opérationnelle lue par le moteur Smart Rotation.",
       "general": "Informations générales",
@@ -930,7 +996,9 @@
       "active": "Exclusions actives",
       "sickAgents": "Fonctionnaires malades",
       "dogsInHeat": "Chiennes en chaleur",
-      "sickDogs": "Chiens malades"
+      "sickDogs": "Chiens malades",
+      "dogBySpecialty": "Exclusions chiens par spécialité",
+      "excludedDogsTotal": "Total chiens exclus"
     },
     "search": "Rechercher par personnel, chien ou matricule…",
     "searchPersonnel": "Rechercher nom ou matricule…",
@@ -2128,5 +2196,215 @@
     "french": "Français",
     "english": "English",
     "arabic": "العربية"
+  },
+  "reportsMessages": {
+    "title": "Rapports & Messages",
+    "description": "Centre documentaire organisé par rôle — rapports, messages et rapports mensuels.",
+    "hub": {
+      "description": "Sélectionnez une catégorie pour accéder aux rapports et messages correspondants.",
+      "chooseCategory": "Choisissez une catégorie",
+      "openCategory": "Accéder à cette catégorie",
+      "cards": {
+        "veterinary": {
+          "title": "Rapports & Messages — Aide-soignant vétérinaire",
+          "description": "Rapports et messages liés aux activités et au suivi vétérinaire."
+        },
+        "assistant": {
+          "title": "Rapports & Messages — Assistant cynotechnique",
+          "description": "Rapports et messages liés aux activités cynotechniques."
+        },
+        "secretary": {
+          "title": "Rapports & Messages — Secrétaire",
+          "description": "Rapports, messages et documents administratifs."
+        },
+        "equipment_chief": {
+          "title": "Rapports & Messages — Chef matériel",
+          "description": "Rapports, suivi et gestion liés au matériel."
+        }
+      }
+    },
+    "backToHub": "Retour aux catégories",
+    "veterinary": {
+      "shortLabel": "Aide-soignant vétérinaire",
+      "workspaceDescription": "Centre documentaire vétérinaire — choisissez le type de document à créer.",
+      "documentTypes": "Types de documents"
+    },
+    "backToRole": "Retour à l'espace rôle",
+    "sections": {
+      "templates": "Modèles de documents"
+    },
+    "roles": {
+      "veterinary": {
+        "title": "Rapports — Aide-soignant vétérinaire",
+        "description": "Rapports vétérinaires, soins, suivis et messages."
+      },
+      "assistant": {
+        "title": "Rapports — Assistant cynotechnique",
+        "description": "Rapports d'activité, incidents, missions et matériel."
+      },
+      "secretary": {
+        "title": "Rapports — Secrétaire",
+        "description": "Correspondance, notes de service et documents administratifs."
+      },
+      "equipment_chief": {
+        "title": "Rapports & Messages — Chef matériel",
+        "description": "Rapports, suivi et gestion liés au matériel."
+      }
+    },
+    "tabs": {
+      "new": "Nouveau rapport",
+      "drafts": "Brouillons",
+      "previous": "Rapports précédents",
+      "monthly": "Rapports mensuels",
+      "messages": "Messages",
+      "newHint": "Sélectionnez un modèle ci-dessus pour créer un nouveau document."
+    },
+    "filters": {
+      "search": "Rechercher un document…",
+      "type": "Type de document",
+      "allTypes": "Tous les types",
+      "year": "Année",
+      "allYears": "Toutes les années",
+      "month": "Mois",
+      "allMonths": "Tous les mois",
+      "agent": "Fonctionnaire",
+      "allAgents": "Tous les fonctionnaires",
+      "dog": "Chien",
+      "allDogs": "Tous les chiens",
+      "status": "Statut",
+      "allStatuses": "Tous les statuts"
+    },
+    "status": {
+      "draft": "Brouillon",
+      "finalized": "Finalisé"
+    },
+    "empty": {
+      "drafts": "Aucun brouillon.",
+      "previous": "Aucun rapport finalisé.",
+      "monthly": "Aucun rapport mensuel.",
+      "messages": "Aucun message enregistré."
+    },
+    "form": {
+      "documentTitle": "Titre du document",
+      "selectAgent": "Sélectionner un fonctionnaire",
+      "selectDog": "Sélectionner un chien",
+      "selectSection": "Sélectionner une section"
+    },
+    "fields": {
+      "reportDate": "Date",
+      "dog": "Chien",
+      "section": "Section",
+      "agent": "Fonctionnaire / cynotechnicien",
+      "motif": "Motif",
+      "description": "Description",
+      "observations": "Observations",
+      "actionsTaken": "Actions / soins effectués",
+      "recommendations": "Recommandations",
+      "responsibleSignature": "Signature / responsable",
+      "checkpoint": "Point de contrôle",
+      "specialty": "Spécialité",
+      "subject": "Objet",
+      "recipient": "Destinataire",
+      "messageBody": "Contenu du message",
+      "month": "Mois",
+      "year": "Année",
+      "monthlySummary": "Synthèse mensuelle",
+      "monthlyActivities": "Activités du mois"
+    },
+    "actions": {
+      "create": "Créer",
+      "open": "Ouvrir",
+      "preview": "Aperçu",
+      "edit": "Modifier",
+      "exportPdf": "Exporter PDF",
+      "print": "Imprimer",
+      "duplicate": "Dupliquer",
+      "finalize": "Finaliser",
+      "saveDraft": "Enregistrer le brouillon"
+    },
+    "finalize": {
+      "title": "Finaliser ce document ?",
+      "description": "Un numéro de référence unique sera attribué. Cette action nécessite votre confirmation."
+    },
+    "toast": {
+      "saved": "Brouillon enregistré",
+      "finalized": "Document finalisé",
+      "duplicated": "Document dupliqué",
+      "deleted": "Brouillon supprimé"
+    },
+    "pdf": {
+      "subtitle": "Document administratif",
+      "reference": "Référence",
+      "date": "Date",
+      "author": "Rédigé par",
+      "period": "Période",
+      "signatureArea": "Signature et validation"
+    },
+    "templates": {
+      "veterinary": {
+        "sickDog": "Rapport de chien malade",
+        "sickDogDesc": "Documenter l'état de santé d'un chien malade.",
+        "injuredDog": "Rapport de chienne en chaleur",
+        "injuredDogDesc": "Documenter la période de chaleur et le suivi d'une chienne.",
+        "vetVisit": "Rapport de visite vétérinaire",
+        "vetVisitDesc": "Compte rendu de visite ou consultation vétérinaire.",
+        "care": "Rapport de soins",
+        "careDesc": "Soins prodigués et protocole suivi.",
+        "followUp": "Rapport de suivi d'un chien",
+        "followUpDesc": "Suivi médical ou opérationnel d'un chien.",
+        "monthly": "Rapport mensuel",
+        "monthlyDesc": "Synthèse mensuelle de l'activité vétérinaire.",
+        "message": "Message / Demande",
+        "messageDesc": "Message ou demande vétérinaire.",
+        "other": "Autre rapport vétérinaire",
+        "otherDesc": "Document vétérinaire personnalisé ou non listé."
+      },
+      "assistant": {
+        "activity": "Rapport d'activité",
+        "activityDesc": "Activité cynotechnique sur une période.",
+        "dogReport": "Rapport concernant un chien",
+        "dogReportDesc": "Situation ou observation liée à un chien.",
+        "incident": "Rapport d'incident",
+        "incidentDesc": "Incident opérationnel ou de sécurité.",
+        "mission": "Rapport de mission",
+        "missionDesc": "Compte rendu de mission.",
+        "equipment": "Rapport de matériel",
+        "equipmentDesc": "État ou utilisation du matériel.",
+        "monthly": "Rapport mensuel",
+        "monthlyDesc": "Synthèse mensuelle de l'activité.",
+        "message": "Message / demande",
+        "messageDesc": "Message ou demande opérationnelle."
+      },
+      "secretary": {
+        "administrative": "Rapport administratif",
+        "administrativeDesc": "Document administratif général.",
+        "monthly": "Rapport mensuel",
+        "monthlyDesc": "Synthèse mensuelle administrative.",
+        "correspondence": "Correspondance",
+        "correspondenceDesc": "Courrier ou correspondance officielle.",
+        "adminMessage": "Message administratif",
+        "adminMessageDesc": "Communication administrative interne.",
+        "request": "Demande",
+        "requestDesc": "Formulaire de demande administrative.",
+        "serviceNote": "Note de service",
+        "serviceNoteDesc": "Note de service ou consigne administrative."
+      },
+      "equipmentChief": {
+        "inventory": "Rapport d'inventaire du matériel",
+        "inventoryDesc": "État des stocks et inventaire du matériel.",
+        "missing": "Rapport de matériel manquant",
+        "missingDesc": "Signaler un équipement manquant ou non retrouvé.",
+        "damaged": "Rapport de matériel endommagé",
+        "damagedDesc": "Consigner un dommage ou une panne de matériel.",
+        "request": "Demande de matériel",
+        "requestDesc": "Demander du matériel ou des fournitures.",
+        "tracking": "Suivi des équipements",
+        "trackingDesc": "Suivi de l'état et de l'utilisation des équipements.",
+        "monthly": "Rapport mensuel matériel",
+        "monthlyDesc": "Synthèse mensuelle de la gestion du matériel.",
+        "adminMessage": "Message administratif matériel",
+        "adminMessageDesc": "Communication administrative liée au matériel."
+      }
+    }
   }
 }

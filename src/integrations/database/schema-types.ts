@@ -75,7 +75,7 @@ export type Database = {
           dog_id: string | null
           subject_kind: "personnel" | "dog"
           notification_type: string
-          milestone: "d7" | "d3" | "d1" | "d0"
+          milestone: "d2" | "d1" | "d0" | "d7" | "d3"
           end_date: string
           return_date: string
           subject_name: string
@@ -90,7 +90,7 @@ export type Database = {
           dog_id?: string | null
           subject_kind: "personnel" | "dog"
           notification_type: string
-          milestone: "d7" | "d3" | "d1" | "d0"
+          milestone: "d2" | "d1" | "d0" | "d7" | "d3"
           end_date: string
           return_date: string
           subject_name: string
@@ -105,7 +105,7 @@ export type Database = {
           dog_id?: string | null
           subject_kind?: "personnel" | "dog"
           notification_type?: string
-          milestone?: "d7" | "d3" | "d1" | "d0"
+          milestone?: "d2" | "d1" | "d0" | "d7" | "d3"
           end_date?: string
           return_date?: string
           subject_name?: string
@@ -366,6 +366,90 @@ export type Database = {
           key?: string
           updated_at?: string
           value?: Json
+        }
+        Relationships: []
+      }
+      role_documents: {
+        Row: {
+          id: string
+          reference_number: string | null
+          role_category: "veterinary" | "assistant" | "secretary" | "equipment_chief"
+          template_id: string
+          document_kind: "report" | "message" | "monthly"
+          status: "draft" | "finalized"
+          title: string
+          report_month: number | null
+          report_year: number | null
+          agent_id: string | null
+          dog_id: string | null
+          section_id: string | null
+          payload: string
+          created_by_user_id: string | null
+          created_by_email: string | null
+          created_by_name: string
+          finalized_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          reference_number?: string | null
+          role_category: "veterinary" | "assistant" | "secretary" | "equipment_chief"
+          template_id: string
+          document_kind: "report" | "message" | "monthly"
+          status?: "draft" | "finalized"
+          title: string
+          report_month?: number | null
+          report_year?: number | null
+          agent_id?: string | null
+          dog_id?: string | null
+          section_id?: string | null
+          payload?: string
+          created_by_user_id?: string | null
+          created_by_email?: string | null
+          created_by_name?: string
+          finalized_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          reference_number?: string | null
+          role_category?: "veterinary" | "assistant" | "secretary" | "equipment_chief"
+          template_id?: string
+          document_kind?: "report" | "message" | "monthly"
+          status?: "draft" | "finalized"
+          title?: string
+          report_month?: number | null
+          report_year?: number | null
+          agent_id?: string | null
+          dog_id?: string | null
+          section_id?: string | null
+          payload?: string
+          created_by_user_id?: string | null
+          created_by_email?: string | null
+          created_by_name?: string
+          finalized_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      document_reference_sequences: {
+        Row: {
+          prefix: "RAP" | "MSG"
+          year: number
+          last_number: number
+        }
+        Insert: {
+          prefix: "RAP" | "MSG"
+          year: number
+          last_number?: number
+        }
+        Update: {
+          prefix?: "RAP" | "MSG"
+          year?: number
+          last_number?: number
         }
         Relationships: []
       }

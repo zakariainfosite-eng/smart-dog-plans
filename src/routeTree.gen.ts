@@ -15,7 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedStatisticsRouteImport } from './routes/_authenticated/statistics'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSectionsRouteImport } from './routes/_authenticated/sections'
-import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
+import { Route as AuthenticatedReportsMessagesRouteImport } from './routes/_authenticated/reports-messages'
 import { Route as AuthenticatedOperationalCasesRouteImport } from './routes/_authenticated/operational-cases'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedExclusionsRouteImport } from './routes/_authenticated/exclusions'
@@ -24,7 +24,13 @@ import { Route as AuthenticatedDogsRouteImport } from './routes/_authenticated/d
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDailyPlanningRouteImport } from './routes/_authenticated/daily-planning'
 import { Route as AuthenticatedCheckpointsRouteImport } from './routes/_authenticated/checkpoints'
+import { Route as AuthenticatedReportsMessagesIndexRouteImport } from './routes/_authenticated/reports-messages.index'
+import { Route as AuthenticatedReportsMessagesVeterinaryRouteImport } from './routes/_authenticated/reports-messages.veterinary'
+import { Route as AuthenticatedReportsMessagesSecretaryRouteImport } from './routes/_authenticated/reports-messages.secretary'
+import { Route as AuthenticatedReportsMessagesEquipmentChiefRouteImport } from './routes/_authenticated/reports-messages.equipment-chief'
+import { Route as AuthenticatedReportsMessagesAssistantRouteImport } from './routes/_authenticated/reports-messages.assistant'
 import { Route as AuthenticatedDogsIdRouteImport } from './routes/_authenticated/dogs.$id'
+import { Route as AuthenticatedReportsMessagesRoleCategoryDocumentIdRouteImport } from './routes/_authenticated/reports-messages.$roleCategory.$documentId'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -55,11 +61,12 @@ const AuthenticatedSectionsRoute = AuthenticatedSectionsRouteImport.update({
   path: '/sections',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
+const AuthenticatedReportsMessagesRoute =
+  AuthenticatedReportsMessagesRouteImport.update({
+    id: '/reports-messages',
+    path: '/reports-messages',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedOperationalCasesRoute =
   AuthenticatedOperationalCasesRouteImport.update({
     id: '/operational-cases',
@@ -103,11 +110,47 @@ const AuthenticatedCheckpointsRoute =
     path: '/checkpoints',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedReportsMessagesIndexRoute =
+  AuthenticatedReportsMessagesIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedReportsMessagesRoute,
+  } as any)
+const AuthenticatedReportsMessagesVeterinaryRoute =
+  AuthenticatedReportsMessagesVeterinaryRouteImport.update({
+    id: '/veterinary',
+    path: '/veterinary',
+    getParentRoute: () => AuthenticatedReportsMessagesRoute,
+  } as any)
+const AuthenticatedReportsMessagesSecretaryRoute =
+  AuthenticatedReportsMessagesSecretaryRouteImport.update({
+    id: '/secretary',
+    path: '/secretary',
+    getParentRoute: () => AuthenticatedReportsMessagesRoute,
+  } as any)
+const AuthenticatedReportsMessagesEquipmentChiefRoute =
+  AuthenticatedReportsMessagesEquipmentChiefRouteImport.update({
+    id: '/equipment-chief',
+    path: '/equipment-chief',
+    getParentRoute: () => AuthenticatedReportsMessagesRoute,
+  } as any)
+const AuthenticatedReportsMessagesAssistantRoute =
+  AuthenticatedReportsMessagesAssistantRouteImport.update({
+    id: '/assistant',
+    path: '/assistant',
+    getParentRoute: () => AuthenticatedReportsMessagesRoute,
+  } as any)
 const AuthenticatedDogsIdRoute = AuthenticatedDogsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => AuthenticatedDogsRoute,
 } as any)
+const AuthenticatedReportsMessagesRoleCategoryDocumentIdRoute =
+  AuthenticatedReportsMessagesRoleCategoryDocumentIdRouteImport.update({
+    id: '/$roleCategory/$documentId',
+    path: '/$roleCategory/$documentId',
+    getParentRoute: () => AuthenticatedReportsMessagesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -120,11 +163,17 @@ export interface FileRoutesByFullPath {
   '/exclusions': typeof AuthenticatedExclusionsRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/operational-cases': typeof AuthenticatedOperationalCasesRoute
-  '/reports': typeof AuthenticatedReportsRoute
+  '/reports-messages': typeof AuthenticatedReportsMessagesRouteWithChildren
   '/sections': typeof AuthenticatedSectionsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/statistics': typeof AuthenticatedStatisticsRoute
   '/dogs/$id': typeof AuthenticatedDogsIdRoute
+  '/reports-messages/assistant': typeof AuthenticatedReportsMessagesAssistantRoute
+  '/reports-messages/equipment-chief': typeof AuthenticatedReportsMessagesEquipmentChiefRoute
+  '/reports-messages/secretary': typeof AuthenticatedReportsMessagesSecretaryRoute
+  '/reports-messages/veterinary': typeof AuthenticatedReportsMessagesVeterinaryRoute
+  '/reports-messages/': typeof AuthenticatedReportsMessagesIndexRoute
+  '/reports-messages/$roleCategory/$documentId': typeof AuthenticatedReportsMessagesRoleCategoryDocumentIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -137,11 +186,16 @@ export interface FileRoutesByTo {
   '/exclusions': typeof AuthenticatedExclusionsRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/operational-cases': typeof AuthenticatedOperationalCasesRoute
-  '/reports': typeof AuthenticatedReportsRoute
   '/sections': typeof AuthenticatedSectionsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/statistics': typeof AuthenticatedStatisticsRoute
   '/dogs/$id': typeof AuthenticatedDogsIdRoute
+  '/reports-messages/assistant': typeof AuthenticatedReportsMessagesAssistantRoute
+  '/reports-messages/equipment-chief': typeof AuthenticatedReportsMessagesEquipmentChiefRoute
+  '/reports-messages/secretary': typeof AuthenticatedReportsMessagesSecretaryRoute
+  '/reports-messages/veterinary': typeof AuthenticatedReportsMessagesVeterinaryRoute
+  '/reports-messages': typeof AuthenticatedReportsMessagesIndexRoute
+  '/reports-messages/$roleCategory/$documentId': typeof AuthenticatedReportsMessagesRoleCategoryDocumentIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -156,11 +210,17 @@ export interface FileRoutesById {
   '/_authenticated/exclusions': typeof AuthenticatedExclusionsRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/operational-cases': typeof AuthenticatedOperationalCasesRoute
-  '/_authenticated/reports': typeof AuthenticatedReportsRoute
+  '/_authenticated/reports-messages': typeof AuthenticatedReportsMessagesRouteWithChildren
   '/_authenticated/sections': typeof AuthenticatedSectionsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/statistics': typeof AuthenticatedStatisticsRoute
   '/_authenticated/dogs/$id': typeof AuthenticatedDogsIdRoute
+  '/_authenticated/reports-messages/assistant': typeof AuthenticatedReportsMessagesAssistantRoute
+  '/_authenticated/reports-messages/equipment-chief': typeof AuthenticatedReportsMessagesEquipmentChiefRoute
+  '/_authenticated/reports-messages/secretary': typeof AuthenticatedReportsMessagesSecretaryRoute
+  '/_authenticated/reports-messages/veterinary': typeof AuthenticatedReportsMessagesVeterinaryRoute
+  '/_authenticated/reports-messages/': typeof AuthenticatedReportsMessagesIndexRoute
+  '/_authenticated/reports-messages/$roleCategory/$documentId': typeof AuthenticatedReportsMessagesRoleCategoryDocumentIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -175,11 +235,17 @@ export interface FileRouteTypes {
     | '/exclusions'
     | '/history'
     | '/operational-cases'
-    | '/reports'
+    | '/reports-messages'
     | '/sections'
     | '/settings'
     | '/statistics'
     | '/dogs/$id'
+    | '/reports-messages/assistant'
+    | '/reports-messages/equipment-chief'
+    | '/reports-messages/secretary'
+    | '/reports-messages/veterinary'
+    | '/reports-messages/'
+    | '/reports-messages/$roleCategory/$documentId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -192,11 +258,16 @@ export interface FileRouteTypes {
     | '/exclusions'
     | '/history'
     | '/operational-cases'
-    | '/reports'
     | '/sections'
     | '/settings'
     | '/statistics'
     | '/dogs/$id'
+    | '/reports-messages/assistant'
+    | '/reports-messages/equipment-chief'
+    | '/reports-messages/secretary'
+    | '/reports-messages/veterinary'
+    | '/reports-messages'
+    | '/reports-messages/$roleCategory/$documentId'
   id:
     | '__root__'
     | '/'
@@ -210,11 +281,17 @@ export interface FileRouteTypes {
     | '/_authenticated/exclusions'
     | '/_authenticated/history'
     | '/_authenticated/operational-cases'
-    | '/_authenticated/reports'
+    | '/_authenticated/reports-messages'
     | '/_authenticated/sections'
     | '/_authenticated/settings'
     | '/_authenticated/statistics'
     | '/_authenticated/dogs/$id'
+    | '/_authenticated/reports-messages/assistant'
+    | '/_authenticated/reports-messages/equipment-chief'
+    | '/_authenticated/reports-messages/secretary'
+    | '/_authenticated/reports-messages/veterinary'
+    | '/_authenticated/reports-messages/'
+    | '/_authenticated/reports-messages/$roleCategory/$documentId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -267,11 +344,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSectionsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/reports': {
-      id: '/_authenticated/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof AuthenticatedReportsRouteImport
+    '/_authenticated/reports-messages': {
+      id: '/_authenticated/reports-messages'
+      path: '/reports-messages'
+      fullPath: '/reports-messages'
+      preLoaderRoute: typeof AuthenticatedReportsMessagesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/operational-cases': {
@@ -330,12 +407,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCheckpointsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/reports-messages/': {
+      id: '/_authenticated/reports-messages/'
+      path: '/'
+      fullPath: '/reports-messages/'
+      preLoaderRoute: typeof AuthenticatedReportsMessagesIndexRouteImport
+      parentRoute: typeof AuthenticatedReportsMessagesRoute
+    }
+    '/_authenticated/reports-messages/veterinary': {
+      id: '/_authenticated/reports-messages/veterinary'
+      path: '/veterinary'
+      fullPath: '/reports-messages/veterinary'
+      preLoaderRoute: typeof AuthenticatedReportsMessagesVeterinaryRouteImport
+      parentRoute: typeof AuthenticatedReportsMessagesRoute
+    }
+    '/_authenticated/reports-messages/secretary': {
+      id: '/_authenticated/reports-messages/secretary'
+      path: '/secretary'
+      fullPath: '/reports-messages/secretary'
+      preLoaderRoute: typeof AuthenticatedReportsMessagesSecretaryRouteImport
+      parentRoute: typeof AuthenticatedReportsMessagesRoute
+    }
+    '/_authenticated/reports-messages/equipment-chief': {
+      id: '/_authenticated/reports-messages/equipment-chief'
+      path: '/equipment-chief'
+      fullPath: '/reports-messages/equipment-chief'
+      preLoaderRoute: typeof AuthenticatedReportsMessagesEquipmentChiefRouteImport
+      parentRoute: typeof AuthenticatedReportsMessagesRoute
+    }
+    '/_authenticated/reports-messages/assistant': {
+      id: '/_authenticated/reports-messages/assistant'
+      path: '/assistant'
+      fullPath: '/reports-messages/assistant'
+      preLoaderRoute: typeof AuthenticatedReportsMessagesAssistantRouteImport
+      parentRoute: typeof AuthenticatedReportsMessagesRoute
+    }
     '/_authenticated/dogs/$id': {
       id: '/_authenticated/dogs/$id'
       path: '/$id'
       fullPath: '/dogs/$id'
       preLoaderRoute: typeof AuthenticatedDogsIdRouteImport
       parentRoute: typeof AuthenticatedDogsRoute
+    }
+    '/_authenticated/reports-messages/$roleCategory/$documentId': {
+      id: '/_authenticated/reports-messages/$roleCategory/$documentId'
+      path: '/$roleCategory/$documentId'
+      fullPath: '/reports-messages/$roleCategory/$documentId'
+      preLoaderRoute: typeof AuthenticatedReportsMessagesRoleCategoryDocumentIdRouteImport
+      parentRoute: typeof AuthenticatedReportsMessagesRoute
     }
   }
 }
@@ -351,6 +470,36 @@ const AuthenticatedDogsRouteChildren: AuthenticatedDogsRouteChildren = {
 const AuthenticatedDogsRouteWithChildren =
   AuthenticatedDogsRoute._addFileChildren(AuthenticatedDogsRouteChildren)
 
+interface AuthenticatedReportsMessagesRouteChildren {
+  AuthenticatedReportsMessagesAssistantRoute: typeof AuthenticatedReportsMessagesAssistantRoute
+  AuthenticatedReportsMessagesEquipmentChiefRoute: typeof AuthenticatedReportsMessagesEquipmentChiefRoute
+  AuthenticatedReportsMessagesSecretaryRoute: typeof AuthenticatedReportsMessagesSecretaryRoute
+  AuthenticatedReportsMessagesVeterinaryRoute: typeof AuthenticatedReportsMessagesVeterinaryRoute
+  AuthenticatedReportsMessagesIndexRoute: typeof AuthenticatedReportsMessagesIndexRoute
+  AuthenticatedReportsMessagesRoleCategoryDocumentIdRoute: typeof AuthenticatedReportsMessagesRoleCategoryDocumentIdRoute
+}
+
+const AuthenticatedReportsMessagesRouteChildren: AuthenticatedReportsMessagesRouteChildren =
+  {
+    AuthenticatedReportsMessagesAssistantRoute:
+      AuthenticatedReportsMessagesAssistantRoute,
+    AuthenticatedReportsMessagesEquipmentChiefRoute:
+      AuthenticatedReportsMessagesEquipmentChiefRoute,
+    AuthenticatedReportsMessagesSecretaryRoute:
+      AuthenticatedReportsMessagesSecretaryRoute,
+    AuthenticatedReportsMessagesVeterinaryRoute:
+      AuthenticatedReportsMessagesVeterinaryRoute,
+    AuthenticatedReportsMessagesIndexRoute:
+      AuthenticatedReportsMessagesIndexRoute,
+    AuthenticatedReportsMessagesRoleCategoryDocumentIdRoute:
+      AuthenticatedReportsMessagesRoleCategoryDocumentIdRoute,
+  }
+
+const AuthenticatedReportsMessagesRouteWithChildren =
+  AuthenticatedReportsMessagesRoute._addFileChildren(
+    AuthenticatedReportsMessagesRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedCheckpointsRoute: typeof AuthenticatedCheckpointsRoute
   AuthenticatedDailyPlanningRoute: typeof AuthenticatedDailyPlanningRoute
@@ -360,7 +509,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedExclusionsRoute: typeof AuthenticatedExclusionsRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedOperationalCasesRoute: typeof AuthenticatedOperationalCasesRoute
-  AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
+  AuthenticatedReportsMessagesRoute: typeof AuthenticatedReportsMessagesRouteWithChildren
   AuthenticatedSectionsRoute: typeof AuthenticatedSectionsRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedStatisticsRoute: typeof AuthenticatedStatisticsRoute
@@ -375,7 +524,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedExclusionsRoute: AuthenticatedExclusionsRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedOperationalCasesRoute: AuthenticatedOperationalCasesRoute,
-  AuthenticatedReportsRoute: AuthenticatedReportsRoute,
+  AuthenticatedReportsMessagesRoute:
+    AuthenticatedReportsMessagesRouteWithChildren,
   AuthenticatedSectionsRoute: AuthenticatedSectionsRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedStatisticsRoute: AuthenticatedStatisticsRoute,

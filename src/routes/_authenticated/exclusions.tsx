@@ -20,7 +20,6 @@ import {
   PERSONNEL_EXCLUSION_FORM_TYPES,
   deleteAgentExclusion,
   exclusionApplyTarget,
-  exclusionCalendarStatus,
   expirePastExclusions,
   fetchAgentExclusionHistory,
   isAgentExclusionActive,
@@ -28,7 +27,6 @@ import {
   isDogLevelExclusionType,
   todayISODate,
   type ExclusionApplyTarget,
-  type ExclusionCalendarStatus,
 } from "@/lib/agent-exclusions";
 import { normalizePersonnelFonction } from "@/lib/personnel-fonction";
 import {
@@ -36,7 +34,6 @@ import {
   Plus,
   Activity,
   HeartPulse,
-  CalendarOff,
   Flame,
   Stethoscope,
   CalendarRange,
@@ -44,6 +41,8 @@ import {
   Check,
   Dog as DogIcon,
   Users,
+  Pill,
+  Bomb,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -201,8 +200,14 @@ export const Route = createFileRoute("/_authenticated/exclusions")({
   component: ExclusionsPage,
 });
 
-export function exclusionLabel(type: ExclusionType, t: TFunction): string {
-  return t(`exclusions.type.${type}`);
+export function exclusionLabel(
+  type: ExclusionType | string | null | undefined,
+  t: TFunction,
+): string {
+  if (!type) return "—";
+  const key = `exclusions.type.${type}`;
+  const translated = t(key);
+  return translated === key ? String(type) : translated;
 }
 
 function exclusionSchema(t: TFunction) {
@@ -268,9 +273,34 @@ function exclusionSchema(t: TFunction) {
 }
 type ExclusionForm = z.infer<ReturnType<typeof exclusionSchema>>;
 
-type StatusFilter = "all" | "active" | "upcoming" | "expired";
+/** Main exclusions table — only rows in force today (start reached, end not passed, active=true). */
+function isExclusionRowEnabled(active: boolean | number | null | undefined): boolean {
+  return active === true || active === 1;
+}
+
+function isCurrentlyActiveExclusionRow(
+  exclusion: Pick<ExclusionRow, "start_date" | "end_date" | "active">,
+): boolean {
+  if (!isExclusionRowEnabled(exclusion.active)) return false;
+  const start = exclusion.start_date?.trim();
+  const end = exclusion.end_date?.trim();
+  if (!start || !end) return false;
+  const today = todayISODate();
+  return start <= today && today <= end;
+}
 
 const PAGE_SIZE = 15;
+
+function formatExclusionTableDate(value: string | null | undefined): string {
+  if (!value?.trim()) return "—";
+  try {
+    const parsed = parseISO(value.slice(0, 10));
+    if (Number.isNaN(parsed.getTime())) return "—";
+    return format(parsed, "dd/MM/yyyy");
+  } catch {
+    return "—";
+  }
+}
 
 function ExclusionsPage() {
   const { t, locale } = useI18n();
@@ -280,7 +310,6 @@ function ExclusionsPage() {
   const [dogsPage, setDogsPage] = useState(1);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | ExclusionType>("all");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sectionFilter, setSectionFilter] = useState<string>("all");
   const [specialtyFilter, setSpecialtyFilter] = useState<"all" | DogSpecialty>("all");
   const [dateFilter, setDateFilter] = useState("");
@@ -385,15 +414,43 @@ function ExclusionsPage() {
     return map;
   }, [agents]);
 
-  const stats = useMemo(() => {
-    const list = data ?? [];
-    const active = list.filter((e) => isAgentExclusionActive(e));
+  const dogById = useMemo(() => {
+    const map = new Map<string, DogOption>();
+    for (const dog of dogs ?? []) map.set(dog.id, dog);
+    return map;
+  }, [dogs]);
+
+  const dogExclusionStats = useMemo(() => {
+    const narcoticsDogIds = new Set<string>();
+    const explosivesDogIds = new Set<string>();
+    const allDogIds = new Set<string>();
+
+    for (const row of data ?? []) {
+      if (!isDogExclusionRow(row) || !isCurrentlyActiveExclusionRow(row)) continue;
+
+      const dogId = row.dog_id ?? row.dog?.id ?? null;
+      if (!dogId) continue;
+
+      allDogIds.add(dogId);
+      const specialty = row.dog?.specialty ?? dogById.get(dogId)?.specialty ?? null;
+      if (specialty === "explosives") explosivesDogIds.add(dogId);
+      if (specialty === "narcotics" || specialty === "currency") narcoticsDogIds.add(dogId);
+    }
+
     return {
-      total: active.length,
-      upcoming: list.filter((e) => exclusionCalendarStatus(e) === "upcoming").length,
-      sick: active.filter((e) => e.exclusion_type === "sickness").length,
-      dogHeat: active.filter((e) => e.exclusion_type === "female_dog_heat").length,
-      dogSick: active.filter((e) => e.exclusion_type === "dog_sick").length,
+      narcotics: narcoticsDogIds.size,
+      explosives: explosivesDogIds.size,
+      total: allDogIds.size,
+    };
+  }, [data, dogById]);
+
+  const stats = useMemo(() => {
+    const list = (data ?? []).filter(isCurrentlyActiveExclusionRow);
+    return {
+      total: list.length,
+      sick: list.filter((e) => e.exclusion_type === "sickness").length,
+      dogHeat: list.filter((e) => e.exclusion_type === "female_dog_heat").length,
+      dogSick: list.filter((e) => e.exclusion_type === "dog_sick").length,
       personnel: list.filter(isPersonnelExclusionRow).length,
       dogs: list.filter(isDogExclusionRow).length,
     };
@@ -402,13 +459,13 @@ function ExclusionsPage() {
   const typeOptions = ALL_EXCLUSION_TYPES;
 
   const matchesSharedFilters = (e: ExclusionWithAgent) => {
+    if (!isCurrentlyActiveExclusionRow(e)) return false;
     if (typeFilter !== "all" && e.exclusion_type !== typeFilter) return false;
     if (dateFilter) {
-      if (!(e.start_date <= dateFilter && dateFilter <= e.end_date)) return false;
+      const start = e.start_date?.slice(0, 10);
+      const end = e.end_date?.slice(0, 10);
+      if (!start || !end || !(start <= dateFilter && dateFilter <= end)) return false;
     }
-    const status = exclusionCalendarStatus(e);
-    if (statusFilter === "active" && !isAgentExclusionActive(e)) return false;
-    if (statusFilter !== "all" && statusFilter !== "active" && status !== statusFilter) return false;
     return true;
   };
 
@@ -429,7 +486,7 @@ function ExclusionsPage() {
       }
       return true;
     });
-  }, [data, search, typeFilter, statusFilter, sectionFilter, dateFilter]);
+  }, [data, search, typeFilter, sectionFilter, dateFilter]);
 
   const dogsFiltered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -448,15 +505,14 @@ function ExclusionsPage() {
       }
       return true;
     });
-  }, [data, search, typeFilter, statusFilter, specialtyFilter, dateFilter]);
+  }, [data, search, typeFilter, specialtyFilter, dateFilter]);
 
   const hasActiveFilters =
     !!search ||
     typeFilter !== "all" ||
     sectionFilter !== "all" ||
     specialtyFilter !== "all" ||
-    !!dateFilter ||
-    statusFilter !== "all";
+    !!dateFilter;
 
   const resetFilters = () => {
     setSearch("");
@@ -464,13 +520,12 @@ function ExclusionsPage() {
     setSectionFilter("all");
     setSpecialtyFilter("all");
     setDateFilter("");
-    setStatusFilter("all");
   };
 
   useEffect(() => {
     setPersonnelPage(1);
     setDogsPage(1);
-  }, [search, typeFilter, sectionFilter, specialtyFilter, dateFilter, statusFilter]);
+  }, [search, typeFilter, sectionFilter, specialtyFilter, dateFilter]);
 
   const personnelRows = useMemo(
     () => paginate(personnelFiltered, personnelPage, PAGE_SIZE),
@@ -483,12 +538,6 @@ function ExclusionsPage() {
   const personnelPageCount = calcTotalPages(personnelFiltered.length, PAGE_SIZE);
   const dogsPageCount = calcTotalPages(dogsFiltered.length, PAGE_SIZE);
   const lastUpdated = formatPageLastUpdated(dataUpdatedAt, locale);
-
-  const statusLabel = (status: ExclusionCalendarStatus) => {
-    if (status === "active") return t("status.active");
-    if (status === "upcoming") return t("status.upcoming");
-    return t("status.expired");
-  };
 
   const upsert = useMutation({
     mutationFn: async (values: ExclusionForm & { id?: string }) => {
@@ -705,7 +754,7 @@ function ExclusionsPage() {
         header: t("exclusions.table.start"),
         meta: { width: "9%" },
         cell: ({ row }) => {
-          const d = format(parseISO(row.original.start_date), "dd/MM/yyyy");
+          const d = formatExclusionTableDate(row.original.start_date);
           return (
             <CellTooltip label={d}>
               <span className="truncate text-xs text-muted-foreground">{d}</span>
@@ -718,7 +767,7 @@ function ExclusionsPage() {
         header: t("exclusions.table.end"),
         meta: { width: "9%" },
         cell: ({ row }) => {
-          const d = format(parseISO(row.original.end_date), "dd/MM/yyyy");
+          const d = formatExclusionTableDate(row.original.end_date);
           return (
             <CellTooltip label={d}>
               <span className="truncate text-xs text-muted-foreground">{d}</span>
@@ -731,12 +780,10 @@ function ExclusionsPage() {
         header: t("common.status"),
         meta: { width: "9%" },
         cell: ({ row }) => {
-          const status = exclusionCalendarStatus(row.original);
-          const tone = status === "active" ? "success" : status === "upcoming" ? "warning" : "neutral";
-          const label = statusLabel(status);
+          const label = t("status.active");
           return (
             <CellTooltip label={label}>
-              <StatusBadge tone={tone} className="max-w-full truncate">
+              <StatusBadge tone="success" className="max-w-full truncate">
                 {label}
               </StatusBadge>
             </CellTooltip>
@@ -858,7 +905,7 @@ function ExclusionsPage() {
         header: t("exclusions.table.start"),
         meta: { width: "9%" },
         cell: ({ row }) => {
-          const d = format(parseISO(row.original.start_date), "dd/MM/yyyy");
+          const d = formatExclusionTableDate(row.original.start_date);
           return (
             <CellTooltip label={d}>
               <span className="truncate text-xs text-muted-foreground">{d}</span>
@@ -871,7 +918,7 @@ function ExclusionsPage() {
         header: t("exclusions.table.end"),
         meta: { width: "9%" },
         cell: ({ row }) => {
-          const d = format(parseISO(row.original.end_date), "dd/MM/yyyy");
+          const d = formatExclusionTableDate(row.original.end_date);
           return (
             <CellTooltip label={d}>
               <span className="truncate text-xs text-muted-foreground">{d}</span>
@@ -884,12 +931,10 @@ function ExclusionsPage() {
         header: t("common.status"),
         meta: { width: "9%" },
         cell: ({ row }) => {
-          const status = exclusionCalendarStatus(row.original);
-          const tone = status === "active" ? "success" : status === "upcoming" ? "warning" : "neutral";
-          const label = statusLabel(status);
+          const label = t("status.active");
           return (
             <CellTooltip label={label}>
-              <StatusBadge tone={tone} className="max-w-full truncate">
+              <StatusBadge tone="success" className="max-w-full truncate">
                 {label}
               </StatusBadge>
             </CellTooltip>
@@ -928,20 +973,12 @@ function ExclusionsPage() {
         meta={[pageHeroLastUpdatedMeta(t("common.page.lastUpdated"), lastUpdated)]}
       />
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
         <KpiCard
           variant="minimal"
           icon={Activity}
           label={t("exclusions.stat.active")}
           value={stats.total}
-          accent="primary"
-          loading={isLoading}
-        />
-        <KpiCard
-          variant="minimal"
-          icon={CalendarOff}
-          label={t("status.upcoming")}
-          value={stats.upcoming}
           accent="primary"
           loading={isLoading}
         />
@@ -970,6 +1007,39 @@ function ExclusionsPage() {
           loading={isLoading}
         />
       </div>
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold text-foreground">
+          {t("exclusions.stat.dogBySpecialty")}
+        </h2>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+          <KpiCard
+            variant="minimal"
+            icon={Pill}
+            label={`🐕 ${t("dogs.stat.narcotics")}`}
+            value={dogExclusionStats.narcotics}
+            accent="warning"
+            loading={isLoading}
+          />
+          <KpiCard
+            variant="minimal"
+            icon={Bomb}
+            label={`💣 ${t("dogs.stat.explosives")}`}
+            value={dogExclusionStats.explosives}
+            accent="danger"
+            loading={isLoading}
+          />
+          <KpiCard
+            variant="minimal"
+            icon={DogIcon}
+            label={t("exclusions.stat.excludedDogsTotal")}
+            value={dogExclusionStats.total}
+            accent="primary"
+            loading={isLoading}
+            className="col-span-2 md:col-span-1"
+          />
+        </div>
+      </section>
 
       <div
         className={cn(
@@ -1031,17 +1101,6 @@ function ExclusionsPage() {
               <SelectItem value="currency">{t("operationalCases.specialty.currency")}</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
-            <FilterSelectTrigger className={filterTriggerClass}>
-              <SelectValue />
-            </FilterSelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t("common.allStatuses")}</SelectItem>
-              <SelectItem value="active">{t("status.active")}</SelectItem>
-              <SelectItem value="upcoming">{t("status.upcoming")}</SelectItem>
-              <SelectItem value="expired">{t("status.expired")}</SelectItem>
-            </SelectContent>
-          </Select>
           {hasActiveFilters ? (
             <Button
               type="button"
@@ -1093,12 +1152,16 @@ function ExclusionsPage() {
                   compact
                   icon={Users}
                   title={
-                    (data ?? []).some(isPersonnelExclusionRow)
+                    (data ?? []).some(
+                      (row) => isPersonnelExclusionRow(row) && isCurrentlyActiveExclusionRow(row),
+                    )
                       ? t("exclusions.empty.noMatch")
                       : t("exclusions.empty.noneActive")
                   }
                   description={
-                    (data ?? []).some(isPersonnelExclusionRow)
+                    (data ?? []).some(
+                      (row) => isPersonnelExclusionRow(row) && isCurrentlyActiveExclusionRow(row),
+                    )
                       ? t("common.tryAdjustFilters")
                       : t("exclusions.empty.recordFirst")
                   }
@@ -1146,12 +1209,16 @@ function ExclusionsPage() {
                   compact
                   icon={DogIcon}
                   title={
-                    (data ?? []).some(isDogExclusionRow)
+                    (data ?? []).some(
+                      (row) => isDogExclusionRow(row) && isCurrentlyActiveExclusionRow(row),
+                    )
                       ? t("exclusions.empty.noMatch")
                       : t("exclusions.empty.noneActive")
                   }
                   description={
-                    (data ?? []).some(isDogExclusionRow)
+                    (data ?? []).some(
+                      (row) => isDogExclusionRow(row) && isCurrentlyActiveExclusionRow(row),
+                    )
                       ? t("common.tryAdjustFilters")
                       : t("exclusions.empty.recordFirst")
                   }
@@ -1874,8 +1941,12 @@ export function AgentExclusionsHistory({ agentId }: { agentId: string }) {
             return (
               <TableRow key={e.id}>
                 <TableCell>{exclusionLabel(e.exclusion_type, t)}</TableCell>
-                <TableCell className="text-muted-foreground">{format(parseISO(e.start_date), "MMM d, yyyy")}</TableCell>
-                <TableCell className="text-muted-foreground">{format(parseISO(e.end_date), "MMM d, yyyy")}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {formatExclusionTableDate(e.start_date)}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {formatExclusionTableDate(e.end_date)}
+                </TableCell>
                 <TableCell>
                   <Badge variant={active ? "default" : "secondary"}>{active ? t("status.active") : t("status.expired")}</Badge>
                 </TableCell>

@@ -1,5 +1,5 @@
 import type { DbClient } from "@/integrations/database/client";
-import { format, isAfter, isBefore, parseISO, startOfDay } from "date-fns";
+import { format, isAfter, isBefore, isValid, parseISO, startOfDay } from "date-fns";
 import type { Database } from "@/integrations/database/schema-types";
 import { isMissingSoftDeleteColumn } from "@/lib/soft-delete";
 
@@ -45,7 +45,6 @@ export const PERSONNEL_EXCLUSION_FORM_TYPES: ExclusionType[] = [
   "mission",
   "training",
   "suspension",
-  "other",
 ];
 
 /** Types offered when creating a dog exclusion. */
@@ -53,10 +52,7 @@ export const DOG_EXCLUSION_FORM_TYPES: ExclusionType[] = [
   "female_dog_heat",
   "dog_sick",
   "dog_injured",
-  "dog_temporary_retirement",
   "dog_vet_visit",
-  "dog_training",
-  "dog_other",
 ];
 
 /** All known types for filters / history (includes legacy leave variants). */
@@ -92,8 +88,32 @@ export function exclusionApplyTarget(type: string, dogId?: string | null): Exclu
   return "agent";
 }
 
-export function planningDayISO(reference: Date | string): string {
-  if (typeof reference === "string") return reference.slice(0, 10);
+const ISO_DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+/** True when value is a valid calendar day string (`yyyy-MM-dd`). */
+export function isValidPlanningDayISO(value: string | null | undefined): boolean {
+  if (!value?.trim()) return false;
+  const day = value.trim().slice(0, 10);
+  if (!ISO_DAY_PATTERN.test(day)) return false;
+  const parsed = parseISO(day);
+  return isValid(parsed);
+}
+
+/**
+ * Normalize any reference to a planning calendar day (`yyyy-MM-dd`).
+ * Invalid/missing values fall back to today's local calendar day.
+ */
+export function planningDayISO(reference: Date | string = new Date()): string {
+  if (typeof reference === "string") {
+    const trimmed = reference.trim();
+    if (isValidPlanningDayISO(trimmed)) {
+      return trimmed.slice(0, 10);
+    }
+    return format(new Date(), "yyyy-MM-dd");
+  }
+  if (!(reference instanceof Date) || !isValid(reference)) {
+    return format(new Date(), "yyyy-MM-dd");
+  }
   return format(reference, "yyyy-MM-dd");
 }
 

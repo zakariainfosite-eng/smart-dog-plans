@@ -11,8 +11,8 @@ const ROUTE_KEYS: Record<string, string> = {
   "/exclusions": "nav.exclusions",
   "/daily-planning": "nav.dailyPlanning",
   "/history": "nav.history",
+  "/reports-messages": "nav.reportsMessages",
   "/statistics": "nav.statistics",
-  "/reports": "nav.statistics",
   "/settings": "nav.settings",
 };
 

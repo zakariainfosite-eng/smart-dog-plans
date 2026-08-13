@@ -8,10 +8,8 @@ import {
   planningDayISO,
   type AgentExclusionRecord,
 } from "@/lib/agent-exclusions";
-import {
-  getActiveExclusionsForSection,
-  type SectionExclusionBreakdownKey,
-} from "@/lib/section-operational-stats";
+import type { ExclusionType } from "@/lib/agent-exclusions";
+import { getActiveExclusionsForSection } from "@/lib/section-operational-stats";
 import { useI18n } from "@/hooks/use-i18n";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/enterprise/status-badge";
@@ -33,8 +31,8 @@ type SectionExclusionsSheetProps = {
   exclusions: AgentExclusionRecord[];
   referenceISO: string;
   /** When set, list only exclusions for this section-card counter. */
-  breakdownKey?: SectionExclusionBreakdownKey | null;
-  /** Localized label for `breakdownKey` (e.g. « Maladie »). */
+  breakdownTypes?: readonly ExclusionType[] | null;
+  /** Localized label for the breakdown row (e.g. « Maladie »). */
   breakdownLabel?: string | null;
 };
 
@@ -73,7 +71,7 @@ export function SectionExclusionsSheet({
   agents,
   exclusions,
   referenceISO,
-  breakdownKey = null,
+  breakdownTypes = null,
   breakdownLabel = null,
 }: SectionExclusionsSheetProps) {
   const { t } = useI18n();
@@ -88,7 +86,7 @@ export function SectionExclusionsSheet({
       agents,
       exclusions,
       referenceISO,
-      breakdownKey,
+      breakdownTypes,
     );
     const agentById = new Map(agents.map((agent) => [agent.id, agent]));
     const agentByDogId = new Map(
@@ -149,7 +147,7 @@ export function SectionExclusionsSheet({
       personnelRows: rows.filter((row) => row.kind === "personnel").sort(sortRows),
       dogRows: rows.filter((row) => row.kind === "dog").sort(sortRows),
     };
-  }, [sectionId, agents, exclusions, referenceISO, breakdownKey, t]);
+  }, [sectionId, agents, exclusions, referenceISO, breakdownTypes, t]);
 
   const total = personnelRows.length + dogRows.length;
   const title = breakdownLabel

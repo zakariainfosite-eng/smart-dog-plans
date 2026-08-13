@@ -1,11 +1,14 @@
 import type { ExclusionType } from "@/lib/agent-exclusions";
 
-/** Calendar milestones before the return-to-service day (end_date + 1). */
-export const EXCLUSION_RETURN_MILESTONES = [7, 3, 1, 0] as const;
+/** Calendar milestones before exclusion end_date (inclusive last day). */
+export const EXCLUSION_END_MILESTONES = [2, 1, 0] as const;
 
-export type ExclusionReturnMilestoneDays = (typeof EXCLUSION_RETURN_MILESTONES)[number];
+/** @deprecated Use EXCLUSION_END_MILESTONES — kept for legacy rows in history. */
+export const EXCLUSION_RETURN_MILESTONES = EXCLUSION_END_MILESTONES;
 
-export type ExclusionReturnMilestone = "d7" | "d3" | "d1" | "d0";
+export type ExclusionEndMilestoneDays = (typeof EXCLUSION_END_MILESTONES)[number];
+
+export type ExclusionReturnMilestone = "d2" | "d1" | "d0" | "d7" | "d3";
 
 export type ExclusionNotificationSubjectKind = "personnel" | "dog";
 
@@ -53,12 +56,18 @@ export const IMMINENT_RETURNS_QUERY_KEY = ["imminent-exclusion-returns"] as cons
 
 export const NOTIFICATION_HISTORY_DAYS = 30;
 
-export function milestoneFromDays(days: ExclusionReturnMilestoneDays): ExclusionReturnMilestone {
+export function milestoneFromDays(days: ExclusionEndMilestoneDays): ExclusionReturnMilestone {
   return `d${days}` as ExclusionReturnMilestone;
 }
 
 export function daysFromMilestone(milestone: ExclusionReturnMilestone): number {
+  if (milestone === "d7") return 7;
+  if (milestone === "d3") return 3;
   return Number(milestone.slice(1));
+}
+
+export function isActiveEndMilestone(milestone: ExclusionReturnMilestone): boolean {
+  return milestone === "d2" || milestone === "d1" || milestone === "d0";
 }
 
 /** Map exclusion type → notification category (specific when possible). */
@@ -101,8 +110,17 @@ export function severityForDaysUntilReturn(daysUntil: number): ExclusionNotifica
   return "info";
 }
 
+export function severityForDaysUntilEnd(daysUntil: number): ExclusionNotificationSeverity {
+  if (daysUntil <= 0) return "warning";
+  if (daysUntil <= 1) return "warning";
+  return "info";
+}
+
 export function severityForMilestone(
   milestone: ExclusionReturnMilestone,
 ): ExclusionNotificationSeverity {
-  return severityForDaysUntilReturn(daysFromMilestone(milestone));
+  if (!isActiveEndMilestone(milestone)) {
+    return severityForDaysUntilReturn(daysFromMilestone(milestone));
+  }
+  return severityForDaysUntilEnd(daysFromMilestone(milestone));
 }

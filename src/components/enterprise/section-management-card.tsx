@@ -2,16 +2,18 @@ import type { ReactNode } from "react";
 import { Moon, Sun, UserCheck, Users } from "lucide-react";
 import { RowActionButtons } from "@/components/enterprise/row-action-buttons";
 import { StatusBadge } from "@/components/enterprise/status-badge";
+import type { ExclusionType } from "@/lib/agent-exclusions";
 import {
-  SECTION_EXCLUSION_BREAKDOWN_KEYS,
+  SECTION_EXCLUSION_DISPLAY_TYPES,
+  sumSectionExclusionBreakdown,
   type SectionExclusionBreakdown,
-  type SectionExclusionBreakdownKey,
 } from "@/lib/section-operational-stats";
 import { cn } from "@/lib/utils";
 
 export type SectionBreakdownLabel = {
-  key: SectionExclusionBreakdownKey;
+  key: string;
   label: string;
+  types: ExclusionType[];
 };
 
 type SectionManagementCardProps = {
@@ -60,7 +62,7 @@ type SectionManagementCardProps = {
   /** Open all active exclusions for the section. */
   onExclusionsClick?: () => void;
   /** Open active exclusions for one breakdown counter (Maladie, Congé, …). */
-  onExclusionTypeClick?: (key: SectionExclusionBreakdownKey) => void;
+  onExclusionTypeClick?: (types: ExclusionType[], label: string) => void;
   onEdit: () => void;
   onDelete: () => void;
   className?: string;
@@ -111,7 +113,11 @@ export function SectionManagementCard({
   const labels =
     breakdownLabels.length > 0
       ? breakdownLabels
-      : SECTION_EXCLUSION_BREAKDOWN_KEYS.map((key) => ({ key, label: key }));
+      : SECTION_EXCLUSION_DISPLAY_TYPES.map((key) => ({
+          key,
+          label: key,
+          types: [key],
+        }));
 
   const gradeDisplay = commanderManualFill
     ? commanderGrade || "…………"
@@ -269,16 +275,16 @@ export function SectionManagementCard({
           aria-label={exclusionsDetailLabel}
         >
           <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-            {labels.map(({ key, label }) => (
+            {labels.map(({ key, label, types }) => (
               <BreakdownRow
                 key={key}
                 label={label}
-                value={exclusionBreakdown[key] ?? 0}
+                value={sumSectionExclusionBreakdown(exclusionBreakdown, types)}
                 onClick={
                   onExclusionTypeClick || onExclusionsClick
                     ? () => {
                         if (onExclusionTypeClick) {
-                          onExclusionTypeClick(key);
+                          onExclusionTypeClick(types, label);
                           return;
                         }
                         onExclusionsClick?.();
