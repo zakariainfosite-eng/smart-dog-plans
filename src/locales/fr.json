@@ -223,6 +223,9 @@
     "title": "Tableau de bord",
     "description": "Aperçu des opérations et de la planification.",
     "stat": {
+      "activePersonnelTotal": "Personnel actif total",
+      "activeCynotechniciens": "Cynotechniciens actifs",
+      "activeAdministrative": "Administratifs actifs",
       "activeAgents": "Cynotechniciens actifs",
       "activeK9": "Unités K9 actives",
       "activeCheckpoints": "Points de contrôle actifs",
@@ -386,7 +389,9 @@
       "explosives": "Explosifs",
       "narcotics": "Stupéfiants",
       "nightEligible": "Éligibles de nuit",
-      "trendThisMonth": "+{{count}} ce mois"
+      "trendThisMonth": "+{{count}} ce mois",
+      "cynotechniciens": "Cynotechniciens",
+      "administrative": "Fonctionnaires administratifs"
     },
     "search": "Rechercher par nom, matricule, grade, fonction ou origine",
     "sort": {

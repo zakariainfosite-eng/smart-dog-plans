@@ -215,6 +215,9 @@
     "title": "لوحة القيادة",
     "description": "نظرة عامة على العمليات والتخطيط.",
     "stat": {
+      "activePersonnelTotal": "إجمالي الأفراد النشطين",
+      "activeCynotechniciens": "Cynotechniciens نشطون",
+      "activeAdministrative": "إداريون نشطون",
       "activeAgents": "Cynotechniciens نشطون",
       "activeK9": "وحدات كلاب نشطة",
       "activeCheckpoints": "نقاط مراقبة نشطة",
@@ -338,7 +341,9 @@
       "explosives": "متفجرات",
       "narcotics": "مخدرات",
       "nightEligible": "مؤهلون لليل",
-      "trendThisMonth": "+{{count}} هذا الشهر"
+      "trendThisMonth": "+{{count}} هذا الشهر",
+      "cynotechniciens": "الكلاب البوليسية",
+      "administrative": "الموظفون الإداريون"
     },
     "search": "البحث بالاسم أو الرقم المهني أو الرتبة أو الوظيفة",
     "sort": {

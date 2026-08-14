@@ -45,6 +45,7 @@ import {
 import { EmptyState } from "@/components/layout/EmptyState";
 import { AgentsPageHero, AgentsFilterToolbar, AgentsTableShell } from "@/components/agents/agents-page-hero";
 import { AgentsStatCard } from "@/components/agents/agents-stat-card";
+import { EmployeesTotalStatCard } from "@/components/agents/employees-total-stat-card";
 import {
   Pagination,
   PaginationContent,
@@ -110,6 +111,7 @@ import {
   type PersonnelSortKey,
   type PersonnelStatusFilter,
 } from "@/lib/personnel-table-controls";
+import { computePersonnelCategoryStats } from "@/lib/personnel-fonction-stats";
 import { splitPersonnelIntoTwoTables } from "@/lib/documents/personnel-two-tables";
 import { useI18n } from "@/hooks/use-i18n";
 import { useDocumentTitle } from "@/hooks/use-document-title";
@@ -420,6 +422,7 @@ function EmployeesPage() {
       male,
       withDog,
       addedThisMonth,
+      categoryStats: computePersonnelCategoryStats(list),
       narcotics: list.filter((a) => agentSpecialty(a) === "narcotics").length,
       explosives: list.filter((a) => agentSpecialty(a) === "explosives").length,
     };
@@ -1035,10 +1038,10 @@ function EmployeesPage() {
         loading={isLoading}
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-8">
-        <AgentsStatCard
-          icon={Users}
-          value={stats.total}
+      <div className="grid auto-rows-fr grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-8">
+        <EmployeesTotalStatCard
+          total={stats.total}
+          categories={stats.categoryStats}
           label={t("employees.stat.total")}
           trend={
             stats.addedThisMonth > 0

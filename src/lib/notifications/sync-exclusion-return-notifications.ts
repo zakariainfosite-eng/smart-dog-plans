@@ -9,10 +9,14 @@ import { randomId } from "@/lib/random-id";
 import {
   daysUntilEnd,
   exclusionReturnDateISO,
-  exclusionScanWindow,
   historyCutoffISO,
   milestoneForDaysUntilEnd,
+  exclusionScanWindow,
 } from "@/lib/notifications/exclusion-return-dates";
+import {
+  loadActiveExclusionsInReminderWindow,
+  isExclusionRowEnabled,
+} from "@/lib/notifications/exclusion-reminder-candidates";
 import {
   isActiveEndMilestone,
   NOTIFICATION_HISTORY_DAYS,
@@ -21,6 +25,8 @@ import {
   type ExclusionNotificationSubjectKind,
   type ExclusionReturnMilestone,
 } from "@/lib/notifications/exclusion-return-types";
+
+const DEBUG = import.meta.env.DEV;
 
 type ExclusionRow = {
   id: string;
@@ -33,34 +39,6 @@ type ExclusionRow = {
 
 type AgentNameRow = { id: string; first_name: string; last_name: string };
 type DogNameRow = { id: string; name: string };
-
-async function loadCandidateExclusions(
-  db: DbClient,
-  minEndDate: string,
-  maxEndDate: string,
-): Promise<ExclusionRow[]> {
-  const run = async (withSoftDelete: boolean) => {
-    let query = db
-      .from("agent_exclusions")
-      .select("id, agent_id, dog_id, exclusion_type, end_date, active")
-      .eq("active", true)
-      .gte("end_date", minEndDate)
-      .lte("end_date", maxEndDate);
-    if (withSoftDelete) {
-      query = query.eq("is_deleted", false);
-    }
-    return query;
-  };
-
-  const { data, error } = await run(true);
-  if (!error) return (data ?? []) as ExclusionRow[];
-  if (isMissingSoftDeleteColumn(error)) {
-    const legacy = await run(false);
-    if (legacy.error) throw legacy.error;
-    return (legacy.data ?? []) as ExclusionRow[];
-  }
-  throw error;
-}
 
 async function loadExistingKeys(
   db: DbClient,
@@ -156,7 +134,7 @@ async function reconcileStaleNotifications(
     const milestone = row.milestone as ExclusionReturnMilestone;
     const shouldDelete =
       !exclusion ||
-      !exclusion.active ||
+      !isExclusionRowEnabled(exclusion.active) ||
       endDate !== String(exclusion.end_date).slice(0, 10) ||
       endDate < todayISO ||
       (isActiveEndMilestone(milestone) && !milestoneForDaysUntilEnd(daysUntilEnd(endDate, todayISO)));
@@ -191,9 +169,23 @@ export async function syncExclusionReturnNotifications(
   const { minEndDate, maxEndDate } = exclusionScanWindow(todayISO);
   const cutoff = historyCutoffISO(todayISO, NOTIFICATION_HISTORY_DAYS);
 
-  const exclusions = await loadCandidateExclusions(db, minEndDate, maxEndDate);
+  const exclusions = await loadActiveExclusionsInReminderWindow(db, reference);
   const reconciled = await reconcileStaleNotifications(db, todayISO);
   const existing = await loadExistingKeys(db);
+
+  if (DEBUG) {
+    console.log("[notifications] scan", {
+      todayISO,
+      window: { minEndDate, maxEndDate },
+      activeExclusionsInWindow: exclusions.length,
+      exclusions: exclusions.map((row) => ({
+        id: row.id,
+        type: row.exclusion_type,
+        endDate: row.end_date.slice(0, 10),
+        daysUntilEnd: daysUntilEnd(row.end_date, todayISO),
+      })),
+    });
+  }
 
   const agentCache = new Map<string, string>();
   const dogCache = new Map<string, string>();

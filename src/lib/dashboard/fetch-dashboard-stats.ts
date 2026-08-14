@@ -1,6 +1,15 @@
 import { db, type DbClient } from "@/integrations/database/client";
 import { getAgents, getCheckpoints, getDogs } from "@/integrations/database";
-import { expirePastExclusions, todayISODate } from "@/lib/agent-exclusions";
+import {
+  expirePastExclusions,
+  fetchActiveExclusionsForDate,
+  todayISODate,
+  type AgentExclusionRecord,
+} from "@/lib/agent-exclusions";
+import {
+  computeActivePersonnelCategoryStats,
+  type ActivePersonnelCategoryStats,
+} from "@/lib/personnel-fonction-stats";
 
 export type DashboardPlanningRow = {
   id: string;
@@ -10,7 +19,9 @@ export type DashboardPlanningRow = {
 };
 
 export type DashboardStats = {
+  /** @deprecated Use activePersonnel.total — kept for query invalidation callers. */
   agents: number;
+  activePersonnel: ActivePersonnelCategoryStats;
   dogs: number;
   checkpoints: number;
   planning: DashboardPlanningRow[];
@@ -35,11 +46,17 @@ export async function fetchDashboardStats(
   await expirePastExclusions(client);
 
   // Same data source + same cardinality as Employees / Dogs / Checkpoints pages.
-  const [agents, dogs, checkpoints] = await Promise.all([
+  const [agents, dogs, checkpoints, exclusions] = await Promise.all([
     getAgents(),
     getDogs(),
     getCheckpoints(),
+    fetchActiveExclusionsForDate(client, todayISODate()),
   ]);
+
+  const activePersonnel = computeActivePersonnelCategoryStats(
+    agents,
+    exclusions as AgentExclusionRecord[],
+  );
 
   let planning: DashboardPlanningRow[] = [];
   try {
@@ -85,7 +102,8 @@ export async function fetchDashboardStats(
   }
 
   return {
-    agents: agents.length,
+    agents: activePersonnel.total,
+    activePersonnel,
     dogs: dogs.length,
     checkpoints: checkpoints.length,
     planning,

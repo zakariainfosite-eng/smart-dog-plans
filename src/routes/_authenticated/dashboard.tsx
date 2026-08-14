@@ -20,10 +20,12 @@ import { useI18n } from "@/hooks/use-i18n";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { cn } from "@/lib/utils";
 import {
-  EXCLUSION_NOTIFICATIONS_QUERY_KEY,
-  IMMINENT_RETURNS_QUERY_KEY,
-} from "@/lib/notifications/exclusion-return-types";
-import { syncExclusionReturnNotifications } from "@/lib/notifications/sync-exclusion-return-notifications";
+  invalidateExclusionNotificationQueries,
+  runExclusionNotificationSync,
+} from "@/lib/notifications/run-exclusion-notification-sync";
+
+const personnelTrendCardClass =
+  "h-full [&_p:last-child]:whitespace-pre-line [&_p:last-child]:normal-case [&_p:last-child]:text-xs [&_p:last-child]:leading-relaxed";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Tableau de bord — CynoPlanning" }] }),
@@ -54,13 +56,8 @@ function DashboardPage() {
   useEffect(() => {
     void (async () => {
       try {
-        await syncExclusionReturnNotifications(db);
-        void queryClient.invalidateQueries({
-          queryKey: EXCLUSION_NOTIFICATIONS_QUERY_KEY,
-        });
-        void queryClient.invalidateQueries({
-          queryKey: IMMINENT_RETURNS_QUERY_KEY,
-        });
+        await runExclusionNotificationSync(db);
+        invalidateExclusionNotificationQueries(queryClient);
       } catch (error) {
         console.warn("[notifications] dashboard sync failed", error);
       }
@@ -71,16 +68,30 @@ function DashboardPage() {
   const operationalSummary =
     operationalSummaryQuery.data ?? createEmptyOperationalSummary();
 
+  const activePersonnel = data?.activePersonnel ?? {
+    total: 0,
+    cynotechniciens: 0,
+    administrative: 0,
+  };
+
+  const activePersonnelTrend = [
+    `🐕 ${t("dashboard.stat.activeCynotechniciens")} : ${activePersonnel.cynotechniciens}`,
+    `📋 ${t("dashboard.stat.activeAdministrative")} : ${activePersonnel.administrative}`,
+  ].join("\n");
+
   const stats = [
     {
-      label: t("dashboard.stat.activeAgents"),
-      value: data?.agents ?? 0,
+      key: "active-personnel",
+      label: t("dashboard.stat.activePersonnelTotal"),
+      value: activePersonnel.total,
       icon: Users,
       accent: "primary" as const,
-      trend: t("dashboard.kpi.hint.active"),
+      trend: activePersonnelTrend,
+      className: personnelTrendCardClass,
       stagger: "stagger-1",
     },
     {
+      key: "active-k9",
       label: t("dashboard.stat.activeK9"),
       value: data?.dogs ?? 0,
       icon: Dog,
@@ -89,6 +100,7 @@ function DashboardPage() {
       stagger: "stagger-2",
     },
     {
+      key: "active-checkpoints",
       label: t("dashboard.stat.activeCheckpoints"),
       value: data?.checkpoints ?? 0,
       icon: MapPin,
@@ -97,6 +109,7 @@ function DashboardPage() {
       stagger: "stagger-3",
     },
     {
+      key: "today-plannings",
       label: t("dashboard.stat.todayPlannings"),
       value: planningTotal,
       icon: CalendarDays,
@@ -125,14 +138,14 @@ function DashboardPage() {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:gap-3.5">
         {stats.map((s) => (
           <KpiCard
-            key={s.label}
+            key={s.key}
             label={s.label}
             value={s.value}
             icon={s.icon}
             accent={s.accent}
             trend={s.trend}
             loading={isLoading}
-            className={cn("page-enter", s.stagger)}
+            className={cn("page-enter", s.stagger, s.className)}
           />
         ))}
       </div>

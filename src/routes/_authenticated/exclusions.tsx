@@ -28,6 +28,10 @@ import {
   todayISODate,
   type ExclusionApplyTarget,
 } from "@/lib/agent-exclusions";
+import {
+  invalidateExclusionNotificationQueries,
+  runExclusionNotificationSync,
+} from "@/lib/notifications/run-exclusion-notification-sync";
 import { normalizePersonnelFonction } from "@/lib/personnel-fonction";
 import {
   UserX,
@@ -306,6 +310,17 @@ function ExclusionsPage() {
   const { t, locale } = useI18n();
   useDocumentTitle("meta.exclusions.title");
   const queryClient = useQueryClient();
+
+  const refreshExclusionNotifications = () => {
+    void (async () => {
+      try {
+        await runExclusionNotificationSync(db);
+        invalidateExclusionNotificationQueries(queryClient);
+      } catch (error) {
+        console.warn("[notifications] exclusions sync failed", error);
+      }
+    })();
+  };
   const [personnelPage, setPersonnelPage] = useState(1);
   const [dogsPage, setDogsPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -593,6 +608,7 @@ function ExclusionsPage() {
       queryClient.invalidateQueries({ queryKey: ["agent-details"] });
       queryClient.invalidateQueries({ queryKey: ["dog-details"] });
       queryClient.invalidateQueries({ queryKey: ["dogs-with-agent"] });
+      refreshExclusionNotifications();
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -609,6 +625,7 @@ function ExclusionsPage() {
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       queryClient.invalidateQueries({ queryKey: ["dog-details"] });
       queryClient.invalidateQueries({ queryKey: ["dogs-with-agent"] });
+      refreshExclusionNotifications();
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -626,6 +643,7 @@ function ExclusionsPage() {
       queryClient.invalidateQueries({ queryKey: ["agent-details"] });
       queryClient.invalidateQueries({ queryKey: ["dog-details"] });
       queryClient.invalidateQueries({ queryKey: ["dogs-with-agent"] });
+      refreshExclusionNotifications();
     },
     onError: (e: Error) => toast.error(e.message),
   });

@@ -4,12 +4,11 @@ import {
   planningDayISO,
   type ExclusionType,
 } from "@/lib/agent-exclusions";
-import { isMissingSoftDeleteColumn } from "@/lib/soft-delete";
 import {
   daysUntilEnd,
-  exclusionScanWindow,
   milestoneForDaysUntilEnd,
 } from "@/lib/notifications/exclusion-return-dates";
+import { loadActiveExclusionsInReminderWindow } from "@/lib/notifications/exclusion-reminder-candidates";
 import type {
   ExclusionNotificationSubjectKind,
   ExclusionReturnMilestone,
@@ -154,30 +153,9 @@ export function formatExclusionReminderAlertMessage(
 
 async function loadCandidateExclusions(
   db: DbClient,
-  minEndDate: string,
-  maxEndDate: string,
-): Promise<ExclusionRow[]> {
-  const run = async (withSoftDelete: boolean) => {
-    let query = db
-      .from("agent_exclusions")
-      .select("id, agent_id, dog_id, exclusion_type, end_date, active")
-      .eq("active", true)
-      .gte("end_date", minEndDate)
-      .lte("end_date", maxEndDate);
-    if (withSoftDelete) {
-      query = query.eq("is_deleted", false);
-    }
-    return query;
-  };
-
-  const { data, error } = await run(true);
-  if (!error) return (data ?? []) as ExclusionRow[];
-  if (isMissingSoftDeleteColumn(error)) {
-    const legacy = await run(false);
-    if (legacy.error) throw legacy.error;
-    return (legacy.data ?? []) as ExclusionRow[];
-  }
-  throw error;
+  reference: Date | string = new Date(),
+) {
+  return loadActiveExclusionsInReminderWindow(db, reference);
 }
 
 function formatAgentName(agent: AgentNameRow): string {
@@ -228,8 +206,7 @@ export async function fetchPendingExclusionReminderAlerts(
   reference: Date | string = new Date(),
 ): Promise<ExclusionReminderAlert[]> {
   const todayISO = planningDayISO(reference);
-  const { minEndDate, maxEndDate } = exclusionScanWindow(todayISO);
-  const exclusions = await loadCandidateExclusions(db, minEndDate, maxEndDate);
+  const exclusions = await loadCandidateExclusions(db, reference);
 
   const agentCache = new Map<string, string>();
   const dogCache = new Map<string, string>();

@@ -123,7 +123,7 @@
     "concurrently": "^9.2.4",
     "cross-env": "^7.0.3",
     "electron": "^34.5.8",
-    "electron-builder": "^25.1.8",
+    "electron-builder": "^26.15.3",
     "esbuild": "^0.27.7",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.1",

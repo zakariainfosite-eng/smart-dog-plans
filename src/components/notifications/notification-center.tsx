@@ -35,8 +35,8 @@ import {
   fetchExclusionNotifications,
   markAllExclusionNotificationsRead,
   markExclusionNotificationsRead,
-  syncExclusionReturnNotifications,
 } from "@/lib/notifications/sync-exclusion-return-notifications";
+import { runExclusionNotificationSync } from "@/lib/notifications/run-exclusion-notification-sync";
 import { todayISODate } from "@/lib/agent-exclusions";
 
 const severityStyles: Record<
@@ -234,7 +234,7 @@ export function NotificationCenter() {
   const notificationsQuery = useQuery({
     queryKey: EXCLUSION_NOTIFICATIONS_QUERY_KEY,
     queryFn: async () => {
-      await syncExclusionReturnNotifications(db);
+      await runExclusionNotificationSync(db);
       return fetchExclusionNotifications(db);
     },
     staleTime: 30_000,
