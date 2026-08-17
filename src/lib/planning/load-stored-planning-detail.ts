@@ -268,18 +268,115 @@ function buildEngineResultFromAssignments(
   };
 }
 
-/** Rebuild the planning engine view from persisted SQLite rows. */
+function restError(
+  error: { message?: string; code?: string } | null | undefined,
+  context: string,
+): Error {
+  const message = error?.message?.trim() || "Unknown database error";
+  const code = error?.code ? ` [${error.code}]` : "";
+  return new Error(`${context}: ${message}${code}`);
+}
+
+async function fetchRowsByIds<T extends Record<string, unknown>>(
+  client: DbClient,
+  table: string,
+  columns: string,
+  ids: Array<string | null | undefined>,
+): Promise<T[]> {
+  const unique = [...new Set(ids.filter((id): id is string => Boolean(id)))];
+  if (unique.length === 0) return [];
+  const { data, error } = await client.from(table).select(columns).in("id", unique);
+  if (error) throw restError(error, `SELECT ${table}`);
+  return (data ?? []) as T[];
+}
+
+type AssignmentAgent = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  professional_number: string;
+  grade: string;
+  gender: string;
+};
+
+type AssignmentDog = { id: string; name: string; specialty: string };
+
+type AssignmentPost = {
+  id: string;
+  specialty_required: TeamSpecialty;
+  required_agents: number;
+  shift: Shift;
+  checkpoint_id: string;
+};
+
+type AssignmentCheckpoint = { id: string; name: string; night_only: boolean };
+
+function attachAssignmentRelations(
+  assignments: Array<{
+    id: string;
+    planning_id: string;
+    checkpoint_post_id: string | null;
+    agent_id: string;
+    dog_id: string | null;
+    is_hq_reserve: boolean;
+    is_off_duty: boolean;
+  }>,
+  agentsById: Map<string, AssignmentAgent>,
+  dogsById: Map<string, AssignmentDog>,
+  postsById: Map<string, AssignmentPost>,
+  checkpointsById: Map<string, AssignmentCheckpoint>,
+): StoredAssignmentRow[] {
+  return assignments.map((row) => {
+    const post = row.checkpoint_post_id ? postsById.get(row.checkpoint_post_id) ?? null : null;
+    const checkpoint = post ? checkpointsById.get(post.checkpoint_id) ?? null : null;
+    return {
+      ...row,
+      agents: agentsById.get(row.agent_id) ?? null,
+      dogs: row.dog_id ? dogsById.get(row.dog_id) ?? null : null,
+      checkpoint_posts: post
+        ? {
+            ...post,
+            checkpoints: checkpoint,
+          }
+        : null,
+    };
+  });
+}
+
+/**
+ * Rebuild the planning engine view from persisted SQLite rows.
+ * Uses the same identifiers as Historique (`planning.id` / `planning_assignments.planning_id`)
+ * and flat queries — no nested PostgREST embeds — so Capacitor SQLite can load them.
+ */
 export async function loadStoredPlanningDetail(
   client: DbClient,
   planningId: string,
 ): Promise<StoredPlanningDetail> {
+  const id = planningId?.trim();
+  console.info("[history] loadStoredPlanningDetail:start", {
+    planningId: id,
+    table: "planning",
+  });
+
   const { data: planning, error: planningError } = await client
     .from("planning")
     .select("id, planning_date, shift, validated, created_at, section_id")
-    .eq("id", planningId)
-    .single();
+    .eq("id", id)
+    .maybeSingle();
 
-  if (planningError) throw planningError;
+  if (planningError) {
+    console.error("[history] planning query failed", {
+      planningId: id,
+      table: "planning",
+      query: { id },
+      error: planningError,
+    });
+    throw restError(planningError, `SELECT planning WHERE id = ${id}`);
+  }
+  if (!planning) {
+    console.error("[history] planning row missing", { planningId: id, table: "planning" });
+    throw new Error(`Planning not found: ${id}`);
+  }
 
   const planningRow = planning as {
     id: string;
@@ -290,15 +387,36 @@ export async function loadStoredPlanningDetail(
     section_id: string;
   };
 
+  console.info("[history] loadStoredPlanningDetail:planning", {
+    id: planningRow.id,
+    planning_date: planningRow.planning_date,
+    shift: planningRow.shift,
+    section_id: planningRow.section_id,
+    validated: planningRow.validated,
+  });
+
   const { data: sectionData, error: sectionError } = await client
     .from("sections")
     .select("id, name, commander_full_name, commander_grade, commander_mle")
     .eq("id", planningRow.section_id)
     .maybeSingle();
 
-  if (sectionError) throw sectionError;
+  if (sectionError) {
+    console.error("[history] section query failed", {
+      planningId: id,
+      table: "sections",
+      query: { id: planningRow.section_id },
+      error: sectionError,
+    });
+    throw restError(sectionError, `SELECT sections WHERE id = ${planningRow.section_id}`);
+  }
   if (!sectionData) {
-    throw new Error("Planning section not found.");
+    console.error("[history] section row missing", {
+      planningId: id,
+      table: "sections",
+      section_id: planningRow.section_id,
+    });
+    throw new Error(`Planning section not found: ${planningRow.section_id}`);
   }
 
   const section = sectionData as {
@@ -309,36 +427,140 @@ export async function loadStoredPlanningDetail(
     commander_mle: string;
   };
 
-  const { data: assignments, error: assignmentError } = await client
+  const { data: assignmentRows, error: assignmentError } = await client
     .from("planning_assignments")
-    .select(
-      `id, planning_id, checkpoint_post_id, agent_id, dog_id, is_hq_reserve, is_off_duty,
-       agents:agent_id(id, first_name, last_name, professional_number, grade, gender),
-       dogs:dog_id(id, name, specialty),
-       checkpoint_posts:checkpoint_post_id(
-         id, specialty_required, required_agents, shift, checkpoint_id,
-         checkpoints:checkpoint_id(id, name, night_only)
-       )`,
-    )
-    .eq("planning_id", planningId);
+    .select("id, planning_id, checkpoint_post_id, agent_id, dog_id, is_hq_reserve, is_off_duty")
+    .eq("planning_id", id);
 
-  if (assignmentError) throw assignmentError;
+  if (assignmentError) {
+    console.error("[history] assignments query failed", {
+      planningId: id,
+      table: "planning_assignments",
+      query: { planning_id: id },
+      error: assignmentError,
+    });
+    throw restError(assignmentError, `SELECT planning_assignments WHERE planning_id = ${id}`);
+  }
+
+  const assignments = (assignmentRows ?? []) as Array<{
+    id: string;
+    planning_id: string;
+    checkpoint_post_id: string | null;
+    agent_id: string;
+    dog_id: string | null;
+    is_hq_reserve: boolean;
+    is_off_duty: boolean;
+  }>;
+
+  console.info("[history] loadStoredPlanningDetail:assignments", {
+    planningId: id,
+    table: "planning_assignments",
+    count: assignments.length,
+  });
+
+  const [agents, dogs, posts] = await Promise.all([
+    fetchRowsByIds<Record<string, unknown>>(
+      client,
+      "agents",
+      "id, first_name, last_name, professional_number, grade, gender",
+      assignments.map((row) => row.agent_id),
+    ),
+    fetchRowsByIds<Record<string, unknown>>(
+      client,
+      "dogs",
+      "id, name, specialty",
+      assignments.map((row) => row.dog_id),
+    ),
+    fetchRowsByIds<Record<string, unknown>>(
+      client,
+      "checkpoint_posts",
+      "id, specialty_required, required_agents, shift, checkpoint_id",
+      assignments.map((row) => row.checkpoint_post_id),
+    ),
+  ]);
+
+  const checkpoints = await fetchRowsByIds<Record<string, unknown>>(
+    client,
+    "checkpoints",
+    "id, name, night_only",
+    posts.map((post) => String(post.checkpoint_id ?? "")),
+  );
+
+  const hydrated = attachAssignmentRelations(
+    assignments,
+    new Map(
+      agents.map((agent) => [
+        String(agent.id),
+        {
+          id: String(agent.id),
+          first_name: String(agent.first_name ?? ""),
+          last_name: String(agent.last_name ?? ""),
+          professional_number: String(agent.professional_number ?? ""),
+          grade: String(agent.grade ?? ""),
+          gender: String(agent.gender ?? "male"),
+        },
+      ]),
+    ),
+    new Map(
+      dogs.map((dog) => [
+        String(dog.id),
+        {
+          id: String(dog.id),
+          name: String(dog.name ?? ""),
+          specialty: String(dog.specialty ?? ""),
+        },
+      ]),
+    ),
+    new Map(
+      posts.map((post) => [
+        String(post.id),
+        {
+          id: String(post.id),
+          specialty_required: toTeamSpecialty(String(post.specialty_required ?? "")),
+          required_agents: Number(post.required_agents ?? 0),
+          shift: (post.shift === "night" ? "night" : "day") as Shift,
+          checkpoint_id: String(post.checkpoint_id ?? ""),
+        },
+      ]),
+    ),
+    new Map(
+      checkpoints.map((checkpoint) => [
+        String(checkpoint.id),
+        {
+          id: String(checkpoint.id),
+          name: String(checkpoint.name ?? ""),
+          night_only: Boolean(checkpoint.night_only),
+        },
+      ]),
+    ),
+  );
 
   const row: StoredPlanningRow = {
     ...planningRow,
     sections: section,
   };
 
-  const sections = await getSections();
-  const schedule = buildSectionRotationSchedule(
-    sections.filter((entry) => entry.active),
-    parseISO(row.planning_date),
-  );
-  const sectionEntry = schedule.list.find((entry) => entry.id === row.section_id);
+  let sectionIndex = 0;
+  try {
+    const sections = await getSections();
+    const schedule = buildSectionRotationSchedule(
+      sections.filter((entry) => entry.active),
+      parseISO(row.planning_date),
+    );
+    sectionIndex = schedule.list.find((entry) => entry.id === row.section_id)?.index ?? 0;
+  } catch (rotationError) {
+    console.error("[history] section rotation lookup failed (detail still loads)", rotationError);
+  }
 
-  const engineResult = buildEngineResultFromAssignments(
-    (assignments ?? []) as StoredAssignmentRow[],
-  );
+  const engineResult = buildEngineResultFromAssignments(hydrated);
+
+  console.info("[history] loadStoredPlanningDetail:ok", {
+    planningId: row.id,
+    planning_date: row.planning_date,
+    shift: row.shift,
+    section: section.name,
+    assignmentCount: hydrated.length,
+  });
 
   return {
     id: row.id,
@@ -352,7 +574,7 @@ export async function loadStoredPlanningDetail(
       commander_full_name: section.commander_full_name ?? "",
       commander_grade: section.commander_grade ?? "",
       commander_mle: section.commander_mle ?? "",
-      index: sectionEntry?.index ?? 0,
+      index: sectionIndex,
     },
     engineResult,
   };

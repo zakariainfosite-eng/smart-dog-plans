@@ -35,13 +35,19 @@ export function useExclusionReturnNotificationsSync() {
       void syncAndInvalidate(queryClient);
     };
 
+    const onPageShow = () => {
+      void syncAndInvalidate(queryClient);
+    };
+
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", onFocus);
+    window.addEventListener("pageshow", onPageShow);
 
     return () => {
       cancelled = true;
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onFocus);
+      window.removeEventListener("pageshow", onPageShow);
     };
   }, [queryClient]);
 }

@@ -86,6 +86,15 @@ app.whenReady().then(async () => {
     }
     ok("fresh database — all migrations recorded with name/date/success");
 
+    const endDateCol = database
+      .prepare(`PRAGMA table_info(agent_exclusions)`)
+      .all()
+      .find((column) => column.name === "end_date");
+    if (!endDateCol || endDateCol.notnull !== 0) {
+      fail(`agent_exclusions.end_date must be nullable after 019, got ${JSON.stringify(endDateCol)}`);
+    }
+    ok("agent_exclusions.end_date is nullable");
+
     const backupsAfterFirst = listBackups(tempUserData, isMigrationBackupFileName);
     if (backupsAfterFirst.length !== 1) {
       fail(`expected 1 pre-migration backup, found ${backupsAfterFirst.length}`);

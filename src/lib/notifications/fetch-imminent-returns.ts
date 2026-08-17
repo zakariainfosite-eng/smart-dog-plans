@@ -1,6 +1,7 @@
 import type { DbClient } from "@/integrations/database/client";
 import {
   exclusionApplyTarget,
+  isOpenEndedExclusionType,
   planningDayISO,
   type ExclusionType,
 } from "@/lib/agent-exclusions";
@@ -104,6 +105,7 @@ export async function fetchImminentReturns(
 
   const items: ImminentReturnItem[] = [];
   for (const row of rows) {
+    if (isOpenEndedExclusionType(row.exclusion_type)) continue;
     const returnDate = exclusionReturnDateISO(row.end_date);
     if (!returnDate) continue;
     const daysUntil = daysUntilReturn(returnDate, todayISO);

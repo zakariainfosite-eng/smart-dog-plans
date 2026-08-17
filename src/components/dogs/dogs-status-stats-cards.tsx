@@ -12,6 +12,12 @@ type DogsStatusStatsCardsProps = {
   active: DogsStatusStatsCardData;
   excluded: DogsStatusStatsCardData;
   loading?: boolean;
+  onActiveNarcoticsClick?: () => void;
+  onActiveExplosivesClick?: () => void;
+  onActiveTotalClick?: () => void;
+  onExcludedNarcoticsClick?: () => void;
+  onExcludedExplosivesClick?: () => void;
+  onExcludedTotalClick?: () => void;
 };
 
 function StatRow({
@@ -19,14 +25,16 @@ function StatRow({
   label,
   value,
   valueClassName,
+  onClick,
 }: {
   emoji: string;
   label: string;
   value: number;
   valueClassName?: string;
+  onClick?: () => void;
 }) {
-  return (
-    <div className="flex items-center justify-between gap-3 text-sm">
+  const content = (
+    <>
       <span className="flex min-w-0 items-center gap-2 text-muted-foreground">
         {emoji ? (
           <span aria-hidden className="text-base leading-none">
@@ -43,7 +51,22 @@ function StatRow({
       >
         {value}
       </span>
-    </div>
+    </>
+  );
+
+  if (!onClick) {
+    return <div className="flex items-center justify-between gap-3 text-sm">{content}</div>;
+  }
+
+  return (
+    <button
+      type="button"
+      className="-mx-1 flex w-[calc(100%+0.5rem)] items-center justify-between gap-3 rounded-lg px-1 py-0.5 text-left text-sm hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      onClick={onClick}
+      aria-label={label}
+    >
+      {content}
+    </button>
   );
 }
 
@@ -55,6 +78,9 @@ function DogsStatusStatsCard({
   totalLabel,
   loading,
   valueClassName,
+  onNarcoticsClick,
+  onExplosivesClick,
+  onTotalClick,
 }: {
   title: string;
   narcotics: number;
@@ -63,6 +89,9 @@ function DogsStatusStatsCard({
   totalLabel: string;
   loading?: boolean;
   valueClassName?: string;
+  onNarcoticsClick?: () => void;
+  onExplosivesClick?: () => void;
+  onTotalClick?: () => void;
 }) {
   const { t } = useI18n();
 
@@ -82,12 +111,14 @@ function DogsStatusStatsCard({
             label={t("dogs.stat.narcotics")}
             value={narcotics}
             valueClassName={valueClassName}
+            onClick={onNarcoticsClick}
           />
           <StatRow
             emoji="💣"
             label={t("dogs.stat.explosives")}
             value={explosives}
             valueClassName={valueClassName}
+            onClick={onExplosivesClick}
           />
           <div className="mt-3 border-t border-border/60 pt-3">
             <StatRow
@@ -95,6 +126,7 @@ function DogsStatusStatsCard({
               label={totalLabel}
               value={total}
               valueClassName={cn("text-base", valueClassName ?? "text-foreground")}
+              onClick={onTotalClick}
             />
           </div>
         </div>
@@ -103,7 +135,17 @@ function DogsStatusStatsCard({
   );
 }
 
-export function DogsStatusStatsCards({ active, excluded, loading }: DogsStatusStatsCardsProps) {
+export function DogsStatusStatsCards({
+  active,
+  excluded,
+  loading,
+  onActiveNarcoticsClick,
+  onActiveExplosivesClick,
+  onActiveTotalClick,
+  onExcludedNarcoticsClick,
+  onExcludedExplosivesClick,
+  onExcludedTotalClick,
+}: DogsStatusStatsCardsProps) {
   const { t } = useI18n();
 
   return (
@@ -116,6 +158,9 @@ export function DogsStatusStatsCards({ active, excluded, loading }: DogsStatusSt
         totalLabel={t("dogs.statistics.totalActive")}
         loading={loading}
         valueClassName="text-emerald-700 dark:text-emerald-400"
+        onNarcoticsClick={onActiveNarcoticsClick}
+        onExplosivesClick={onActiveExplosivesClick}
+        onTotalClick={onActiveTotalClick}
       />
       <DogsStatusStatsCard
         title={t("dogs.stat.excluded")}
@@ -125,6 +170,9 @@ export function DogsStatusStatsCards({ active, excluded, loading }: DogsStatusSt
         totalLabel={t("dogs.statistics.totalExcluded")}
         loading={loading}
         valueClassName="text-destructive"
+        onNarcoticsClick={onExcludedNarcoticsClick}
+        onExplosivesClick={onExcludedExplosivesClick}
+        onTotalClick={onExcludedTotalClick}
       />
     </div>
   );

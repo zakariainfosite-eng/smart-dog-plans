@@ -53,6 +53,7 @@ const EXCLUSION_REASON_GROUPS: Record<string, ExclusionType[]> = {
     "dog_injured",
     "dog_temporary_retirement",
     "dog_vet_visit",
+    "dog_without_handler",
     "dog_training",
     "dog_other",
   ],

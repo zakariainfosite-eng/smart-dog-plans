@@ -20,6 +20,7 @@ import {
   convertMillimetersToTwip,
 } from "docx";
 import { assertDocxZipIntegrity, toZipSafeUint8Array } from "@/lib/documents/docx-binary";
+import { applyWord2007DocxCompatibility } from "@/lib/documents/docx-word2007-compat";
 import {
   FP_CHEF_ADJOINT_REPLACEMENT_TITLE,
   FP_CHEF_MANUAL_FILL_DOTS,
@@ -191,7 +192,6 @@ function pageWatermarkAnchorParagraph(
           id: "2",
           name: "watermark",
           description: "Official attendance sheet watermark",
-          title: "Police Cynotechnique",
         },
         floating: {
           behindDocument: true,
@@ -484,7 +484,6 @@ export async function generateFeuillePresenceDocx(
                 id: "1",
                 name: "logo",
                 description: "Official seal",
-                title: "Police Cynotechnique",
               },
             }),
           ],
@@ -564,6 +563,8 @@ export async function generateFeuillePresenceDocx(
   });
 
   const doc = new Document({
+    compatibilityModeVersion: 12,
+    compatibility: { version: 12 },
     sections: [
       {
         headers: watermarkHeader ? { default: watermarkHeader } : undefined,
@@ -626,6 +627,7 @@ export async function generateFeuillePresenceDocx(
     } else {
       packed = toZipSafeUint8Array(await Packer.toArrayBuffer(doc));
     }
+    packed = await applyWord2007DocxCompatibility(packed);
     // Re-open with JSZip before any IPC/save — fail here if Packer output is corrupt.
     await assertDocxZipIntegrity(packed, "docx-generate");
     return packed;

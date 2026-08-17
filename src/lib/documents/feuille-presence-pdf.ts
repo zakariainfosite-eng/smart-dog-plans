@@ -1,4 +1,6 @@
 import { jsPDF } from "jspdf";
+import { db } from "@/integrations/database/client";
+import { loadDocumentLogoBytes } from "@/lib/document-logo-api";
 import { exportJsPdf } from "@/lib/documents/export-jspdf";
 import { FP_OFFICIAL_LOGO_URL } from "@/lib/documents/feuille-presence-layout";
 import type { FeuillePresenceLogoSources } from "@/lib/documents/feuille-presence-logo";
@@ -103,32 +105,34 @@ export async function loadFeuillePresenceLogos(
   return { header: raw.bytes };
 }
 
+async function resolveLogoDataUrl(
+  options: { logoDataUrl?: string | Uint8Array; logoUrl?: string },
+): Promise<string | Uint8Array | undefined> {
+  if (options.logoDataUrl) return options.logoDataUrl;
+  if (options.logoUrl) {
+    const logos = await loadFeuillePresenceLogos(options.logoUrl);
+    return logos.header;
+  }
+  return loadDocumentLogoBytes(db);
+}
+
 export async function downloadFeuillePresencePdfWithLogo(
   options: FeuillePresenceOptions & { logoUrl?: string } = {},
 ): Promise<void> {
-  if (options.logoDataUrl) {
-    downloadFeuillePresencePdf(options);
-    return;
-  }
-
-  const logos = await loadFeuillePresenceLogos(options.logoUrl ?? FP_OFFICIAL_LOGO_URL);
+  const logoDataUrl = await resolveLogoDataUrl(options);
   downloadFeuillePresencePdf({
     ...options,
-    logoDataUrl: logos.header,
+    logoDataUrl,
   });
 }
 
 export async function generateFeuillePresencePdfWithLogo(
   options: FeuillePresenceOptions & { logoUrl?: string } = {},
 ): Promise<jsPDF> {
-  if (options.logoDataUrl) {
-    return generateFeuillePresencePdf(options);
-  }
-
-  const logos = await loadFeuillePresenceLogos(options.logoUrl ?? FP_OFFICIAL_LOGO_URL);
+  const logoDataUrl = await resolveLogoDataUrl(options);
   return generateFeuillePresencePdf({
     ...options,
-    logoDataUrl: logos.header,
+    logoDataUrl,
   });
 }
 
@@ -151,15 +155,10 @@ export async function downloadCynotechniciansListPdf(
 export async function downloadCynotechniciansListPdfWithLogo(
   options: CynotechniciansListPdfOptions,
 ): Promise<void> {
-  if (options.logoDataUrl) {
-    await downloadCynotechniciansListPdf(options);
-    return;
-  }
-
-  const logos = await loadFeuillePresenceLogos(options.logoUrl ?? FP_OFFICIAL_LOGO_URL);
+  const logoDataUrl = await resolveLogoDataUrl(options);
   await downloadCynotechniciansListPdf({
     ...options,
-    logoDataUrl: logos.header,
+    logoDataUrl,
   });
 }
 
@@ -180,14 +179,9 @@ export async function downloadDogsListPdf(options: DogsListPdfOptions): Promise<
 export async function downloadDogsListPdfWithLogo(
   options: DogsListPdfOptions,
 ): Promise<void> {
-  if (options.logoDataUrl) {
-    await downloadDogsListPdf(options);
-    return;
-  }
-
-  const logos = await loadFeuillePresenceLogos(options.logoUrl ?? FP_OFFICIAL_LOGO_URL);
+  const logoDataUrl = await resolveLogoDataUrl(options);
   await downloadDogsListPdf({
     ...options,
-    logoDataUrl: logos.header,
+    logoDataUrl,
   });
 }

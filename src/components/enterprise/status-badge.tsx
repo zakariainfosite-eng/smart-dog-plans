@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
+import type { StatusTone } from "@/lib/ui/semantic-badge-tone";
 
-type StatusTone = "success" | "warning" | "danger" | "neutral" | "primary" | "info" | "purple";
+export type { StatusTone };
 
 const toneStyles: Record<StatusTone, string> = {
   success: "border-success/20 bg-success/10 text-[#15803d]",
@@ -24,7 +25,7 @@ export function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex min-w-0 max-w-full items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+        "inline-flex min-w-0 max-w-full items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-none tracking-wide",
         toneStyles[tone],
         className,
       )}

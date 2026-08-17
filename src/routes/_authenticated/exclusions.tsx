@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { TFunction } from "i18next";
 import { z } from "zod";
@@ -20,14 +20,26 @@ import {
   PERSONNEL_EXCLUSION_FORM_TYPES,
   deleteAgentExclusion,
   exclusionApplyTarget,
+  exclusionDateRangesOverlap,
+  exclusionTypeI18nKey,
   expirePastExclusions,
   fetchAgentExclusionHistory,
   isAgentExclusionActive,
   isAgentLevelExclusionType,
   isDogLevelExclusionType,
+  isOpenEndedExclusionType,
   todayISODate,
   type ExclusionApplyTarget,
 } from "@/lib/agent-exclusions";
+import {
+  DEFAULT_EXCLUSION_SETTINGS,
+  EXCLUSION_SETTINGS_QUERY_KEY,
+  availableExclusionFormTypes,
+  defaultExclusionFormType,
+  fetchExclusionSettings,
+  isExclusionTypeEnabledForCreation,
+  type ExclusionSettings,
+} from "@/lib/exclusion-settings";
 import {
   invalidateExclusionNotificationQueries,
   runExclusionNotificationSync,
@@ -86,6 +98,7 @@ import { EnterpriseDataTable } from "@/components/enterprise/data-table";
 import { CellTooltip, TableTooltipProvider } from "@/components/enterprise/cell-tooltip";
 import { StatusBadge } from "@/components/enterprise/status-badge";
 import { AgentAvatar } from "@/components/agents/agent-avatar";
+import { SpecialtyBreakdownLines } from "@/components/agents/specialty-breakdown-lines";
 import { DogAvatar } from "@/components/dogs/dog-avatar";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -102,7 +115,19 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/database/schema-types";
-
+import {
+  computeUniqueDogExclusionSpecialtyStats,
+  countExclusionCynoSpecialties,
+  computeExcludedPersonnelCardStats,
+  listExcludedPersonnelRows,
+  listExclusionRowsByCynoSpecialty,
+  listUniqueExcludedDogRows,
+} from "@/lib/exclusions-specialty-stats";
+import { StatisticDetailsDialog } from "@/components/statistics/statistic-details-dialog";
+import { useStatisticDetailsDialog } from "@/hooks/use-statistic-details-dialog";
+import { exclusionStatisticColumns } from "@/lib/statistics/statistic-detail-columns";
+import { mapExclusionDetailRows } from "@/lib/statistics/map-statistic-detail-rows";
+import { STATISTICS_QUERY_KEY } from "@/lib/statistics/fetch-statistics";
 type ExclusionType = Database["public"]["Enums"]["exclusion_type"];
 type ExclusionRow = Database["public"]["Tables"]["agent_exclusions"]["Row"];
 type DogSpecialty = Database["public"]["Enums"]["dog_specialty"];
@@ -204,14 +229,23 @@ export const Route = createFileRoute("/_authenticated/exclusions")({
   component: ExclusionsPage,
 });
 
+/** Official display label for any stored exclusion type (create, edit, table, filters). */
 export function exclusionLabel(
   type: ExclusionType | string | null | undefined,
   t: TFunction,
 ): string {
   if (!type) return "—";
-  const key = `exclusions.type.${type}`;
+  const key = exclusionTypeI18nKey(type);
   const translated = t(key);
   return translated === key ? String(type) : translated;
+}
+
+/** Same official labels as the table — stored type codes are unchanged. */
+export function exclusionFormTypeLabel(
+  type: ExclusionType | string | null | undefined,
+  t: TFunction,
+): string {
+  return exclusionLabel(type, t);
 }
 
 function exclusionSchema(t: TFunction) {
@@ -225,11 +259,12 @@ function exclusionSchema(t: TFunction) {
         "training", "dog_sick", "female_dog_heat", "other",
         "absence", "special_leave", "suspension",
         "dog_injured", "dog_temporary_retirement", "dog_vet_visit",
+        "dog_without_handler",
         "dog_training", "dog_other",
       ]),
       start_date: z.string().min(1, t("validation.startDateRequired")),
-      end_date: z.string().min(1, t("validation.endDateRequired")),
-      duration_days: z.number().int().min(MIN_EXCLUSION_DURATION_DAYS, t("validation.durationMin")),
+      end_date: z.string().optional().nullable(),
+      duration_days: z.number().int().optional(),
       notes: z.string().max(500).optional().or(z.literal("")),
       active: z.boolean(),
     })
@@ -262,18 +297,31 @@ function exclusionSchema(t: TFunction) {
           path: ["exclusion_type"],
         });
       }
-    })
-    .refine((v) => v.end_date >= v.start_date, {
-      message: t("validation.endBeforeStart"),
-      path: ["end_date"],
-    })
-    .refine(
-      (v) => exclusionDurationDays(v.start_date, v.end_date) >= MIN_EXCLUSION_DURATION_DAYS,
-      {
-        message: t("validation.durationMin"),
-        path: ["duration_days"],
-      },
-    );
+      if (isOpenEndedExclusionType(v.exclusion_type)) return;
+      const end = v.end_date?.trim() ?? "";
+      if (!end) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: t("validation.endDateRequired"),
+          path: ["end_date"],
+        });
+        return;
+      }
+      if (end < v.start_date) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: t("validation.endBeforeStart"),
+          path: ["end_date"],
+        });
+      }
+      if (exclusionDurationDays(v.start_date, end) < MIN_EXCLUSION_DURATION_DAYS) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: t("validation.durationMin"),
+          path: ["duration_days"],
+        });
+      }
+    });
 }
 type ExclusionForm = z.infer<ReturnType<typeof exclusionSchema>>;
 
@@ -283,17 +331,48 @@ function isExclusionRowEnabled(active: boolean | number | null | undefined): boo
 }
 
 function isCurrentlyActiveExclusionRow(
-  exclusion: Pick<ExclusionRow, "start_date" | "end_date" | "active">,
+  exclusion: Pick<ExclusionRow, "start_date" | "end_date" | "active" | "exclusion_type">,
 ): boolean {
   if (!isExclusionRowEnabled(exclusion.active)) return false;
-  const start = exclusion.start_date?.trim();
-  const end = exclusion.end_date?.trim();
-  if (!start || !end) return false;
-  const today = todayISODate();
-  return start <= today && today <= end;
+  return isAgentExclusionActive(
+    {
+      agent_id: null,
+      dog_id: null,
+      exclusion_type: exclusion.exclusion_type,
+      start_date: exclusion.start_date,
+      end_date: exclusion.end_date,
+      active: true,
+    },
+    todayISODate(),
+  );
+}
+
+function formatExclusionEndTableDate(
+  type: string,
+  endDate: string | null | undefined,
+): string {
+  if (isOpenEndedExclusionType(type)) return "—";
+  return formatExclusionTableDate(endDate);
 }
 
 const PAGE_SIZE = 15;
+
+function invalidateExclusionAssignmentQueries(queryClient: QueryClient) {
+  queryClient.invalidateQueries({ queryKey: ["exclusions-with-agent"] });
+  queryClient.invalidateQueries({ queryKey: ACTIVE_EXCLUSIONS_TODAY_QUERY_KEY });
+  queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+  queryClient.invalidateQueries({ queryKey: ["operational-summary"] });
+  queryClient.invalidateQueries({ queryKey: ["agent-details"] });
+  queryClient.invalidateQueries({ queryKey: ["dog-details"] });
+  queryClient.invalidateQueries({ queryKey: ["dogs-with-agent"] });
+  queryClient.invalidateQueries({ queryKey: ["dogs-basic-exclusions"] });
+  queryClient.invalidateQueries({ queryKey: ["dogs"] });
+  queryClient.invalidateQueries({ queryKey: ["dogs", "select"] });
+  queryClient.invalidateQueries({ queryKey: ["agents-full"] });
+  queryClient.invalidateQueries({ queryKey: ["agents-basic"] });
+  queryClient.invalidateQueries({ queryKey: ["agents-basic-exclusions"] });
+  queryClient.invalidateQueries({ queryKey: [STATISTICS_QUERY_KEY] });
+}
 
 function formatExclusionTableDate(value: string | null | undefined): string {
   if (!value?.trim()) return "—";
@@ -321,6 +400,21 @@ function ExclusionsPage() {
       }
     })();
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        await runExclusionNotificationSync(db);
+        if (!cancelled) invalidateExclusionNotificationQueries(queryClient);
+      } catch (error) {
+        console.warn("[notifications] exclusions page sync failed", error);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [queryClient]);
   const [personnelPage, setPersonnelPage] = useState(1);
   const [dogsPage, setDogsPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -332,6 +426,13 @@ function ExclusionsPage() {
   const [createTarget, setCreateTarget] = useState<ExclusionApplyTarget>("agent");
   const [editing, setEditing] = useState<ExclusionRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ExclusionWithAgent | null>(null);
+  const details = useStatisticDetailsDialog();
+
+  const { data: exclusionSettings } = useQuery({
+    queryKey: EXCLUSION_SETTINGS_QUERY_KEY,
+    queryFn: () => fetchExclusionSettings(db),
+  });
+  const creationSettings = exclusionSettings ?? DEFAULT_EXCLUSION_SETTINGS;
 
   const { data, isLoading, dataUpdatedAt } = useQuery({
     queryKey: ["exclusions-with-agent"],
@@ -435,41 +536,40 @@ function ExclusionsPage() {
     return map;
   }, [dogs]);
 
+  const specialtyLookups = useMemo(
+    () => ({ agentById, dogById }),
+    [agentById, dogById],
+  );
+
   const dogExclusionStats = useMemo(() => {
-    const narcoticsDogIds = new Set<string>();
-    const explosivesDogIds = new Set<string>();
-    const allDogIds = new Set<string>();
-
-    for (const row of data ?? []) {
-      if (!isDogExclusionRow(row) || !isCurrentlyActiveExclusionRow(row)) continue;
-
-      const dogId = row.dog_id ?? row.dog?.id ?? null;
-      if (!dogId) continue;
-
-      allDogIds.add(dogId);
-      const specialty = row.dog?.specialty ?? dogById.get(dogId)?.specialty ?? null;
-      if (specialty === "explosives") explosivesDogIds.add(dogId);
-      if (specialty === "narcotics" || specialty === "currency") narcoticsDogIds.add(dogId);
-    }
-
+    const activeDogRows = (data ?? []).filter(
+      (row) => isDogExclusionRow(row) && isCurrentlyActiveExclusionRow(row),
+    );
     return {
-      narcotics: narcoticsDogIds.size,
-      explosives: explosivesDogIds.size,
-      total: allDogIds.size,
+      rows: activeDogRows,
+      ...computeUniqueDogExclusionSpecialtyStats(activeDogRows, specialtyLookups),
     };
-  }, [data, dogById]);
+  }, [data, specialtyLookups]);
 
   const stats = useMemo(() => {
     const list = (data ?? []).filter(isCurrentlyActiveExclusionRow);
+    const personnel = list.filter(isPersonnelExclusionRow);
+    const dogHeat = list.filter((e) => e.exclusion_type === "female_dog_heat");
+    const dogSick = list.filter((e) => e.exclusion_type === "dog_sick");
     return {
       total: list.length,
-      sick: list.filter((e) => e.exclusion_type === "sickness").length,
-      dogHeat: list.filter((e) => e.exclusion_type === "female_dog_heat").length,
-      dogSick: list.filter((e) => e.exclusion_type === "dog_sick").length,
-      personnel: list.filter(isPersonnelExclusionRow).length,
-      dogs: list.filter(isDogExclusionRow).length,
+      list,
+      personnel,
+      dogHeat,
+      dogSick,
+      excludedPersonnel: computeExcludedPersonnelCardStats(personnel, specialtyLookups),
+      specialty: {
+        active: countExclusionCynoSpecialties(list, specialtyLookups),
+        dogHeat: countExclusionCynoSpecialties(dogHeat, specialtyLookups),
+        dogSick: countExclusionCynoSpecialties(dogSick, specialtyLookups),
+      },
     };
-  }, [data]);
+  }, [data, specialtyLookups]);
 
   const typeOptions = ALL_EXCLUSION_TYPES;
 
@@ -478,8 +578,10 @@ function ExclusionsPage() {
     if (typeFilter !== "all" && e.exclusion_type !== typeFilter) return false;
     if (dateFilter) {
       const start = e.start_date?.slice(0, 10);
+      if (!start || start > dateFilter) return false;
+      if (isOpenEndedExclusionType(e.exclusion_type)) return true;
       const end = e.end_date?.slice(0, 10);
-      if (!start || !end || !(start <= dateFilter && dateFilter <= end)) return false;
+      if (!end || dateFilter > end) return false;
     }
     return true;
   };
@@ -563,13 +665,18 @@ function ExclusionsPage() {
       const agentId = values.apply_to === "agent" ? values.agent_id : dogHandlerId;
       const dogId = values.apply_to === "dog" ? values.dog_id : null;
 
+      const openEnded = isOpenEndedExclusionType(values.exclusion_type);
+      const nextRecord = {
+        start_date: values.start_date,
+        end_date: openEnded ? null : (values.end_date?.trim() || null),
+        exclusion_type: values.exclusion_type,
+      };
+
       // Overlap guard: one active exclusion per agent or dog for the same period
       let overlapQuery = db
         .from("agent_exclusions")
-        .select("id")
-        .eq("active", true)
-        .lte("start_date", values.end_date)
-        .gte("end_date", values.start_date);
+        .select("id, exclusion_type, start_date, end_date")
+        .eq("active", true);
       if (values.apply_to === "agent" && agentId) {
         overlapQuery = overlapQuery.eq("agent_id", agentId);
       } else if (dogId) {
@@ -578,8 +685,22 @@ function ExclusionsPage() {
       if (values.id) overlapQuery.neq("id", values.id);
       const { data: overlaps, error: overlapErr } = await overlapQuery;
       if (overlapErr) throw overlapErr;
-      if ((overlaps?.length ?? 0) > 0) {
+      const hasOverlap = (overlaps ?? []).some((row) =>
+        exclusionDateRangesOverlap(nextRecord, {
+          start_date: row.start_date as string,
+          end_date: (row.end_date as string | null) ?? null,
+          exclusion_type: row.exclusion_type as string,
+        }),
+      );
+      if (hasOverlap) {
         throw new Error(t("exclusions.error.overlap"));
+      }
+
+      if (
+        !values.id &&
+        !isExclusionTypeEnabledForCreation(values.exclusion_type, creationSettings)
+      ) {
+        throw new Error(t("exclusions.error.typeDisabled"));
       }
 
       const payload = {
@@ -587,7 +708,7 @@ function ExclusionsPage() {
         dog_id: dogId,
         exclusion_type: values.exclusion_type,
         start_date: values.start_date,
-        end_date: values.end_date,
+        end_date: nextRecord.end_date,
         notes: values.notes?.trim() ? values.notes.trim() : null,
         active: values.active,
       };
@@ -602,12 +723,7 @@ function ExclusionsPage() {
     onSuccess: (_d, vars) => {
       toast.success(vars.id ? t("exclusions.toast.updated") : t("exclusions.toast.created"));
       setDialogOpen(false); setEditing(null);
-      queryClient.invalidateQueries({ queryKey: ["exclusions-with-agent"] });
-      queryClient.invalidateQueries({ queryKey: ACTIVE_EXCLUSIONS_TODAY_QUERY_KEY });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["agent-details"] });
-      queryClient.invalidateQueries({ queryKey: ["dog-details"] });
-      queryClient.invalidateQueries({ queryKey: ["dogs-with-agent"] });
+      invalidateExclusionAssignmentQueries(queryClient);
       refreshExclusionNotifications();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -620,11 +736,7 @@ function ExclusionsPage() {
     },
     onSuccess: (_d, vars) => {
       toast.success(vars.active ? t("exclusions.toast.enabled") : t("exclusions.toast.disabled"));
-      queryClient.invalidateQueries({ queryKey: ["exclusions-with-agent"] });
-      queryClient.invalidateQueries({ queryKey: ACTIVE_EXCLUSIONS_TODAY_QUERY_KEY });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["dog-details"] });
-      queryClient.invalidateQueries({ queryKey: ["dogs-with-agent"] });
+      invalidateExclusionAssignmentQueries(queryClient);
       refreshExclusionNotifications();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -637,12 +749,7 @@ function ExclusionsPage() {
     onSuccess: () => {
       toast.success(t("exclusions.toast.deleted"));
       setDeleteTarget(null);
-      queryClient.invalidateQueries({ queryKey: ["exclusions-with-agent"] });
-      queryClient.invalidateQueries({ queryKey: ACTIVE_EXCLUSIONS_TODAY_QUERY_KEY });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["agent-details"] });
-      queryClient.invalidateQueries({ queryKey: ["dog-details"] });
-      queryClient.invalidateQueries({ queryKey: ["dogs-with-agent"] });
+      invalidateExclusionAssignmentQueries(queryClient);
       refreshExclusionNotifications();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -785,7 +892,7 @@ function ExclusionsPage() {
         header: t("exclusions.table.end"),
         meta: { width: "9%" },
         cell: ({ row }) => {
-          const d = formatExclusionTableDate(row.original.end_date);
+          const d = formatExclusionEndTableDate(row.original.exclusion_type, row.original.end_date);
           return (
             <CellTooltip label={d}>
               <span className="truncate text-xs text-muted-foreground">{d}</span>
@@ -936,7 +1043,7 @@ function ExclusionsPage() {
         header: t("exclusions.table.end"),
         meta: { width: "9%" },
         cell: ({ row }) => {
-          const d = formatExclusionTableDate(row.original.end_date);
+          const d = formatExclusionEndTableDate(row.original.exclusion_type, row.original.end_date);
           return (
             <CellTooltip label={d}>
               <span className="truncate text-xs text-muted-foreground">{d}</span>
@@ -981,6 +1088,14 @@ function ExclusionsPage() {
   const filterTriggerClass =
     "h-10 min-w-[140px] rounded-xl border-[#E5E7EB] bg-white px-3 text-[13px] shadow-none";
 
+  const showExclusions = (title: string, rows: ExclusionWithAgent[]) => {
+    details.showDetails({
+      title,
+      columns: exclusionStatisticColumns(t),
+      rows: mapExclusionDetailRows(rows, t, todayISODate()),
+    });
+  };
+
   return (
     <div className="space-y-4">
       <PageTitle
@@ -999,30 +1114,119 @@ function ExclusionsPage() {
           value={stats.total}
           accent="primary"
           loading={isLoading}
+          onDetailsClick={() => showExclusions(t("exclusions.stat.active"), stats.list)}
+          footer={
+            <SpecialtyBreakdownLines
+              specialty={stats.specialty.active}
+              loading={isLoading}
+              onNarcoticsClick={() =>
+                showExclusions(
+                  `${t("exclusions.stat.active")} — ${t("specialty.narcotics")}`,
+                  listExclusionRowsByCynoSpecialty(stats.list, specialtyLookups, "narcotics"),
+                )
+              }
+              onExplosivesClick={() =>
+                showExclusions(
+                  `${t("exclusions.stat.active")} — ${t("specialty.explosives")}`,
+                  listExclusionRowsByCynoSpecialty(stats.list, specialtyLookups, "explosives"),
+                )
+              }
+            />
+          }
         />
         <KpiCard
           variant="minimal"
           icon={HeartPulse}
           label={t("exclusions.stat.sickAgents")}
-          value={stats.sick}
+          value={stats.excludedPersonnel.total}
           accent="primary"
           loading={isLoading}
+          onDetailsClick={() =>
+            showExclusions(
+              t("exclusions.stat.sickAgents"),
+              listExcludedPersonnelRows(stats.personnel, specialtyLookups),
+            )
+          }
+          footer={
+            <SpecialtyBreakdownLines
+              specialty={stats.excludedPersonnel}
+              administrative={stats.excludedPersonnel.administrative}
+              explosivesFirst
+              loading={isLoading}
+              onNarcoticsClick={() =>
+                showExclusions(
+                  `${t("exclusions.stat.sickAgents")} — ${t("specialty.narcotics")}`,
+                  listExcludedPersonnelRows(stats.personnel, specialtyLookups, "narcotics"),
+                )
+              }
+              onExplosivesClick={() =>
+                showExclusions(
+                  `${t("exclusions.stat.sickAgents")} — ${t("specialty.explosives")}`,
+                  listExcludedPersonnelRows(stats.personnel, specialtyLookups, "explosives"),
+                )
+              }
+              onAdministrativeClick={() =>
+                showExclusions(
+                  `${t("exclusions.stat.sickAgents")} — ${t("employees.stat.administrative")}`,
+                  listExcludedPersonnelRows(stats.personnel, specialtyLookups, "administrative"),
+                )
+              }
+            />
+          }
         />
         <KpiCard
           variant="minimal"
           icon={Flame}
           label={t("exclusions.stat.dogsInHeat")}
-          value={stats.dogHeat}
+          value={stats.dogHeat.length}
           accent="primary"
           loading={isLoading}
+          onDetailsClick={() => showExclusions(t("exclusions.stat.dogsInHeat"), stats.dogHeat)}
+          footer={
+            <SpecialtyBreakdownLines
+              specialty={stats.specialty.dogHeat}
+              loading={isLoading}
+              onNarcoticsClick={() =>
+                showExclusions(
+                  `${t("exclusions.stat.dogsInHeat")} — ${t("specialty.narcotics")}`,
+                  listExclusionRowsByCynoSpecialty(stats.dogHeat, specialtyLookups, "narcotics"),
+                )
+              }
+              onExplosivesClick={() =>
+                showExclusions(
+                  `${t("exclusions.stat.dogsInHeat")} — ${t("specialty.explosives")}`,
+                  listExclusionRowsByCynoSpecialty(stats.dogHeat, specialtyLookups, "explosives"),
+                )
+              }
+            />
+          }
         />
         <KpiCard
           variant="minimal"
           icon={Stethoscope}
           label={t("exclusions.stat.sickDogs")}
-          value={stats.dogSick}
+          value={stats.dogSick.length}
           accent="primary"
           loading={isLoading}
+          onDetailsClick={() => showExclusions(t("exclusions.stat.sickDogs"), stats.dogSick)}
+          footer={
+            <SpecialtyBreakdownLines
+              specialty={stats.specialty.dogSick}
+              loading={isLoading}
+              onNarcoticsClick={() =>
+                showExclusions(
+                  `${t("exclusions.stat.sickDogs")} — ${t("specialty.narcotics")}`,
+                  listExclusionRowsByCynoSpecialty(stats.dogSick, specialtyLookups, "narcotics"),
+                )
+              }
+              onExplosivesClick={() =>
+                showExclusions(
+                  `${t("exclusions.stat.sickDogs")} — ${t("specialty.explosives")}`,
+                  listExclusionRowsByCynoSpecialty(stats.dogSick, specialtyLookups, "explosives"),
+                )
+              }
+            />
+          }
         />
       </div>
 
@@ -1038,6 +1242,12 @@ function ExclusionsPage() {
             value={dogExclusionStats.narcotics}
             accent="warning"
             loading={isLoading}
+            onDetailsClick={() =>
+              showExclusions(
+                t("dogs.stat.narcotics"),
+                listUniqueExcludedDogRows(dogExclusionStats.rows, specialtyLookups, "narcotics"),
+              )
+            }
           />
           <KpiCard
             variant="minimal"
@@ -1046,6 +1256,12 @@ function ExclusionsPage() {
             value={dogExclusionStats.explosives}
             accent="danger"
             loading={isLoading}
+            onDetailsClick={() =>
+              showExclusions(
+                t("dogs.stat.explosives"),
+                listUniqueExcludedDogRows(dogExclusionStats.rows, specialtyLookups, "explosives"),
+              )
+            }
           />
           <KpiCard
             variant="minimal"
@@ -1055,6 +1271,30 @@ function ExclusionsPage() {
             accent="primary"
             loading={isLoading}
             className="col-span-2 md:col-span-1"
+            onDetailsClick={() =>
+              showExclusions(
+                t("exclusions.stat.excludedDogsTotal"),
+                listUniqueExcludedDogRows(dogExclusionStats.rows, specialtyLookups),
+              )
+            }
+            footer={
+              <SpecialtyBreakdownLines
+                specialty={dogExclusionStats}
+                loading={isLoading}
+                onNarcoticsClick={() =>
+                  showExclusions(
+                    `${t("exclusions.stat.excludedDogsTotal")} — ${t("specialty.narcotics")}`,
+                    listUniqueExcludedDogRows(dogExclusionStats.rows, specialtyLookups, "narcotics"),
+                  )
+                }
+                onExplosivesClick={() =>
+                  showExclusions(
+                    `${t("exclusions.stat.excludedDogsTotal")} — ${t("specialty.explosives")}`,
+                    listUniqueExcludedDogRows(dogExclusionStats.rows, specialtyLookups, "explosives"),
+                  )
+                }
+              />
+            }
           />
         </div>
       </section>
@@ -1259,6 +1499,7 @@ function ExclusionsPage() {
         dogs={dogs ?? []}
         sectionNameById={sectionNameById}
         exclusions={data ?? []}
+        exclusionSettings={creationSettings}
         onSubmit={(v) => upsert.mutate(v)}
         submitting={upsert.isPending}
       />
@@ -1286,6 +1527,11 @@ function ExclusionsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <StatisticDetailsDialog
+        open={details.open}
+        onOpenChange={details.onOpenChange}
+        payload={details.payload}
+      />
     </div>
   );
 }
@@ -1343,6 +1589,7 @@ function ExclusionDialog({
   dogs,
   sectionNameById,
   exclusions,
+  exclusionSettings = DEFAULT_EXCLUSION_SETTINGS,
   onSubmit,
   submitting,
 }: {
@@ -1355,6 +1602,7 @@ function ExclusionDialog({
   /** Live section names from the Sections table (id → name). */
   sectionNameById: Map<string, string>;
   exclusions: ExclusionRow[];
+  exclusionSettings?: ExclusionSettings;
   onSubmit: (v: ExclusionForm & { id?: string }) => void;
   submitting: boolean;
 }) {
@@ -1378,9 +1626,12 @@ function ExclusionDialog({
 
   useEffect(() => {
     if (open) {
+      const openEnded = initial ? isOpenEndedExclusionType(initial.exclusion_type) : false;
       const startDate = initial?.start_date ?? today;
-      const endDate = initial?.end_date ?? today;
-      const initialDuration = exclusionDurationDays(startDate, endDate);
+      const endDate = openEnded ? "" : (initial?.end_date ?? today);
+      const initialDuration = endDate
+        ? exclusionDurationDays(startDate, endDate)
+        : MIN_EXCLUSION_DURATION_DAYS;
       const target = initial
         ? exclusionApplyTarget(initial.exclusion_type, initial.dog_id)
         : defaultApplyTo;
@@ -1389,7 +1640,11 @@ function ExclusionDialog({
       setDogId(initial?.dog_id ?? "");
       setType(
         initial?.exclusion_type ??
-          (target === "dog" ? "dog_sick" : "sickness"),
+          defaultExclusionFormType(
+            target === "dog" ? DOG_EXCLUSION_FORM_TYPES : PERSONNEL_EXCLUSION_FORM_TYPES,
+            exclusionSettings,
+            target === "dog" ? "dog_sick" : "sickness",
+          ),
       );
       setStart(startDate);
       setDuration(initialDuration);
@@ -1401,23 +1656,25 @@ function ExclusionDialog({
       setAgentOpen(false);
       setDogOpen(false);
     }
-  }, [open, initial, today, defaultApplyTo]);
+  }, [open, initial, today, defaultApplyTo, exclusionSettings]);
 
   const handleApplyToChange = (next: ExclusionApplyTarget) => {
     setApplyTo(next);
     setErrors({});
     if (next === "agent") {
       setDogId("");
-      setType("sickness");
+      setType(defaultExclusionFormType(PERSONNEL_EXCLUSION_FORM_TYPES, exclusionSettings, "sickness"));
     } else {
       setAgentId("");
-      setType("dog_sick");
+      setType(defaultExclusionFormType(DOG_EXCLUSION_FORM_TYPES, exclusionSettings, "dog_sick"));
     }
   };
 
   const handleStartChange = (value: string) => {
     setStart(value);
-    setEnd(exclusionEndFromDuration(value, duration));
+    if (!isOpenEndedExclusionType(type)) {
+      setEnd(exclusionEndFromDuration(value, duration));
+    }
   };
 
   const handleDurationChange = (raw: string) => {
@@ -1439,10 +1696,12 @@ function ExclusionDialog({
     }
   };
 
-  const datesValid =
-    Boolean(start && end) &&
-    end >= start &&
-    duration >= MIN_EXCLUSION_DURATION_DAYS;
+  const openEnded = isOpenEndedExclusionType(type);
+  const datesValid = openEnded
+    ? Boolean(start)
+    : Boolean(start && end) &&
+      end >= start &&
+      duration >= MIN_EXCLUSION_DURATION_DAYS;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1452,8 +1711,8 @@ function ExclusionDialog({
       dog_id: applyTo === "dog" ? dogId || null : null,
       exclusion_type: type,
       start_date: start,
-      end_date: end,
-      duration_days: duration,
+      end_date: isOpenEndedExclusionType(type) ? null : end,
+      duration_days: isOpenEndedExclusionType(type) ? undefined : duration,
       notes,
       active,
     });
@@ -1467,15 +1726,16 @@ function ExclusionDialog({
   };
 
   const loadPersonnelExclusionIntoForm = (row: ExclusionRow) => {
+    const openEnded = isOpenEndedExclusionType(row.exclusion_type);
     const startDate = row.start_date;
-    const endDate = row.end_date;
+    const endDate = openEnded ? "" : (row.end_date ?? "");
     setReplaceId(row.id);
     setApplyTo("agent");
     setAgentId(row.agent_id ?? "");
     setDogId("");
     setType(row.exclusion_type);
     setStart(startDate);
-    setDuration(exclusionDurationDays(startDate, endDate));
+    setDuration(endDate ? exclusionDurationDays(startDate, endDate) : MIN_EXCLUSION_DURATION_DAYS);
     setEnd(endDate);
     setNotes(row.notes ?? "");
     setActive(row.active);
@@ -1513,7 +1773,11 @@ function ExclusionDialog({
       : activeDogs;
   const selectedAgent = allAgents.find((a) => a.id === agentId);
   const selectedDog = activeDogs.find((d) => d.id === dogId);
-  const typeOptions = applyTo === "dog" ? DOG_EXCLUSION_FORM_TYPES : PERSONNEL_EXCLUSION_FORM_TYPES;
+  const typeOptions = availableExclusionFormTypes(
+    applyTo === "dog" ? DOG_EXCLUSION_FORM_TYPES : PERSONNEL_EXCLUSION_FORM_TYPES,
+    exclusionSettings,
+    initial?.exclusion_type,
+  );
 
   useEffect(() => {
     if (type !== "female_dog_heat" || !dogId) return;
@@ -1558,22 +1822,26 @@ function ExclusionDialog({
               {formatExclusionSummaryDate(start, locale)}
             </dd>
           </div>
-          <div>
-            <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              {t("exclusions.summary.ends")}
-            </dt>
-            <dd className="mt-0.5 text-sm font-medium text-foreground">
-              {formatExclusionSummaryDate(end, locale)}
-            </dd>
-          </div>
-          <div className="border-t border-border/60 pt-2.5">
-            <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              {t("exclusions.summary.durationLabel")}
-            </dt>
-            <dd className="mt-0.5 text-sm font-semibold text-primary">
-              {t("exclusions.summary.duration", { count: duration })}
-            </dd>
-          </div>
+          {!openEnded ? (
+            <>
+              <div>
+                <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  {t("exclusions.summary.ends")}
+                </dt>
+                <dd className="mt-0.5 text-sm font-medium text-foreground">
+                  {formatExclusionSummaryDate(end, locale)}
+                </dd>
+              </div>
+              <div className="border-t border-border/60 pt-2.5">
+                <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  {t("exclusions.summary.durationLabel")}
+                </dt>
+                <dd className="mt-0.5 text-sm font-semibold text-primary">
+                  {t("exclusions.summary.duration", { count: duration })}
+                </dd>
+              </div>
+            </>
+          ) : null}
           {applyTo === "agent" && selectedAgent && selectedAgentLabel ? (
             <div className="border-t border-border/60 pt-2.5">
               <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -1636,6 +1904,11 @@ function ExclusionDialog({
                   </ExclusionFormField>
 
                   <ExclusionFormField label={t("exclusions.field.exclusionType")}>
+                    {typeOptions.length === 0 ? (
+                      <p className="rounded-[var(--radius)] border border-border/70 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                        {t("exclusions.form.noTypesAvailable")}
+                      </p>
+                    ) : (
                     <Select
                       value={type}
                       onValueChange={(v) => {
@@ -1645,6 +1918,13 @@ function ExclusionDialog({
                           const selected = dogs.find((d) => d.id === dogId);
                           if (selected?.gender !== "female") setDogId("");
                         }
+                        if (!isOpenEndedExclusionType(nextType) && start) {
+                          const days = duration >= MIN_EXCLUSION_DURATION_DAYS
+                            ? duration
+                            : MIN_EXCLUSION_DURATION_DAYS;
+                          setDuration(days);
+                          setEnd(exclusionEndFromDuration(start, days));
+                        }
                       }}
                     >
                       <SelectTrigger className="h-10 w-full">
@@ -1653,11 +1933,12 @@ function ExclusionDialog({
                       <SelectContent>
                         {typeOptions.map((exType) => (
                           <SelectItem key={exType} value={exType}>
-                            {exclusionLabel(exType, t)}
+                            {exclusionFormTypeLabel(exType, t)}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    )}
                   </ExclusionFormField>
                 </div>
 
@@ -1806,25 +2087,45 @@ function ExclusionDialog({
                     />
                   </ExclusionFormField>
 
-                  <ExclusionFormField
-                    label={t("exclusions.field.durationDays")}
-                    required
-                    error={errors.duration_days}
-                    htmlFor="duration"
-                  >
-                    <Input
-                      id="duration"
-                      type="number"
-                      className="h-10"
-                      min={MIN_EXCLUSION_DURATION_DAYS}
-                      step={1}
-                      inputMode="numeric"
-                      value={duration === 0 ? "" : duration}
-                      onChange={(e) => handleDurationChange(e.target.value)}
-                    />
-                  </ExclusionFormField>
+                  {!openEnded ? (
+                    <ExclusionFormField
+                      label={t("exclusions.field.durationDays")}
+                      required
+                      error={errors.duration_days}
+                      htmlFor="duration"
+                    >
+                      <Input
+                        id="duration"
+                        type="number"
+                        className="h-10"
+                        min={MIN_EXCLUSION_DURATION_DAYS}
+                        step={1}
+                        inputMode="numeric"
+                        value={duration === 0 ? "" : duration}
+                        onChange={(e) => handleDurationChange(e.target.value)}
+                      />
+                    </ExclusionFormField>
+                  ) : (
+                    <ExclusionFormField label={t("exclusions.table.enabled")}>
+                      <div className="flex h-10 items-center justify-between rounded-lg border border-border/70 bg-background px-3 shadow-sm">
+                        <span className="text-sm text-foreground">{t("exclusions.table.enabled")}</span>
+                        <Switch
+                          id="exclusion-active-open-ended"
+                          checked={active}
+                          onCheckedChange={setActive}
+                          aria-label={
+                            active ? t("exclusions.aria.disable") : t("exclusions.aria.enable")
+                          }
+                        />
+                      </div>
+                      <p className="text-[11px] leading-snug text-muted-foreground">
+                        {t("exclusions.hint.disabledIgnored")}
+                      </p>
+                    </ExclusionFormField>
+                  )}
                 </div>
 
+                {!openEnded ? (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <ExclusionFormField
                     label={t("exclusions.field.endDateCalculated")}
@@ -1860,6 +2161,7 @@ function ExclusionDialog({
                     </p>
                   </ExclusionFormField>
                 </div>
+                ) : null}
 
                 <aside className="lg:hidden">{summaryCard}</aside>
 
@@ -1886,7 +2188,7 @@ function ExclusionDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {t("action.cancel")}
             </Button>
-            <Button type="submit" disabled={submitting}>
+            <Button type="submit" disabled={submitting || (!initial && typeOptions.length === 0)}>
               {submitting ? t("action.saving") : initial ? t("action.saveChanges") : t("exclusions.submit.create")}
             </Button>
           </DialogFooter>
@@ -1963,7 +2265,7 @@ export function AgentExclusionsHistory({ agentId }: { agentId: string }) {
                   {formatExclusionTableDate(e.start_date)}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {formatExclusionTableDate(e.end_date)}
+                  {formatExclusionEndTableDate(e.exclusion_type, e.end_date)}
                 </TableCell>
                 <TableCell>
                   <Badge variant={active ? "default" : "secondary"}>{active ? t("status.active") : t("status.expired")}</Badge>

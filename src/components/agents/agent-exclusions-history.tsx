@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-import { isAgentExclusionActive } from "@/lib/agent-exclusions";
+import { isAgentExclusionActive, isOpenEndedExclusionType } from "@/lib/agent-exclusions";
 import type { AgentExclusionHistoryItem } from "@/lib/agent-details";
 import { exclusionLabel } from "@/routes/_authenticated/exclusions";
 import { useI18n } from "@/hooks/use-i18n";
@@ -100,7 +100,11 @@ function ExclusionCard({ row }: { row: AgentExclusionHistoryItem }) {
             </p>
             <p>
               <span className="text-muted-foreground">{t("agentDetails.exclusions.card.to")} </span>
-              <span className="font-medium">{format(parseISO(row.end_date), "dd/MM/yyyy")}</span>
+              <span className="font-medium">
+                {isOpenEndedExclusionType(row.exclusion_type) || !row.end_date
+                  ? "—"
+                  : format(parseISO(row.end_date), "dd/MM/yyyy")}
+              </span>
             </p>
           </div>
         </CardBlock>

@@ -1,16 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Dog, CalendarDays, MapPin } from "lucide-react";
+import { LayoutDashboard, Users, Dog, UserCheck, Unlink, Ban } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { PageTitle } from "@/components/layout/PageTitle";
 import { pageHeroLastUpdatedMeta } from "@/components/enterprise/page-layout";
 import { KpiCard } from "@/components/enterprise/kpi-card";
+import { DashboardSpecialtyKpiCard } from "@/components/dashboard/dashboard-specialty-kpi-card";
+import { SpecialtyBreakdownLines } from "@/components/agents/specialty-breakdown-lines";
 import { OperationalSummaryCard } from "@/components/dashboard/operational-summary-card";
 import { TodayPlanningCard } from "@/components/dashboard/today-planning-card";
 import { ImminentReturnsCard } from "@/components/dashboard/imminent-returns-card";
+import { StatisticDetailsDialog } from "@/components/statistics/statistic-details-dialog";
 import { formatPageLastUpdated } from "@/lib/page-ui";
 import { db } from "@/integrations/database/client";
 import { fetchDashboardStats } from "@/lib/dashboard/fetch-dashboard-stats";
+import {
+  createEmptyDashboardPersonnelGroups,
+  createEmptyDashboardPersonnelStats,
+} from "@/lib/dashboard/compute-dashboard-personnel-stats";
 import {
   createEmptyOperationalSummary,
   fetchOperationalSummary,
@@ -18,14 +25,18 @@ import {
 } from "@/lib/dashboard/fetch-operational-summary";
 import { useI18n } from "@/hooks/use-i18n";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { useStatisticDetailsDialog } from "@/hooks/use-statistic-details-dialog";
 import { cn } from "@/lib/utils";
 import {
   invalidateExclusionNotificationQueries,
   runExclusionNotificationSync,
 } from "@/lib/notifications/run-exclusion-notification-sync";
+import { personnelStatisticColumns } from "@/lib/statistics/statistic-detail-columns";
+import { mapPersonnelDetailRows } from "@/lib/statistics/map-statistic-detail-rows";
+import type { StatisticDetailsPayload } from "@/lib/statistics/statistic-details";
 
-const personnelTrendCardClass =
-  "h-full [&_p:last-child]:whitespace-pre-line [&_p:last-child]:normal-case [&_p:last-child]:text-xs [&_p:last-child]:leading-relaxed";
+const kpiCardClass =
+  "h-full min-h-[148px] [&_p]:whitespace-normal [&_p]:overflow-visible";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Tableau de bord — CynoPlanning" }] }),
@@ -52,6 +63,7 @@ function DashboardPage() {
   const queryClient = useQueryClient();
   const { data, isLoading, dataUpdatedAt } = useDashboardStats();
   const operationalSummaryQuery = useOperationalSummary();
+  const details = useStatisticDetailsDialog();
 
   useEffect(() => {
     void (async () => {
@@ -67,57 +79,21 @@ function DashboardPage() {
   const planningTotal = data?.planning.length ?? 0;
   const operationalSummary =
     operationalSummaryQuery.data ?? createEmptyOperationalSummary();
+  const personnel = data?.personnel ?? createEmptyDashboardPersonnelStats();
+  const personnelGroups = data?.personnelGroups ?? createEmptyDashboardPersonnelGroups();
+  const exclusions = data?.exclusions ?? [];
 
-  const activePersonnel = data?.activePersonnel ?? {
-    total: 0,
-    cynotechniciens: 0,
-    administrative: 0,
+  const showPersonnel = (
+    title: string,
+    rows: typeof personnelGroups.totalFonctionnaires,
+  ) => {
+    const payload: StatisticDetailsPayload = {
+      title,
+      columns: personnelStatisticColumns(t),
+      rows: mapPersonnelDetailRows(rows, t, exclusions),
+    };
+    details.showDetails(payload);
   };
-
-  const activePersonnelTrend = [
-    `🐕 ${t("dashboard.stat.activeCynotechniciens")} : ${activePersonnel.cynotechniciens}`,
-    `📋 ${t("dashboard.stat.activeAdministrative")} : ${activePersonnel.administrative}`,
-  ].join("\n");
-
-  const stats = [
-    {
-      key: "active-personnel",
-      label: t("dashboard.stat.activePersonnelTotal"),
-      value: activePersonnel.total,
-      icon: Users,
-      accent: "primary" as const,
-      trend: activePersonnelTrend,
-      className: personnelTrendCardClass,
-      stagger: "stagger-1",
-    },
-    {
-      key: "active-k9",
-      label: t("dashboard.stat.activeK9"),
-      value: data?.dogs ?? 0,
-      icon: Dog,
-      accent: "success" as const,
-      trend: t("dashboard.kpi.hint.operational"),
-      stagger: "stagger-2",
-    },
-    {
-      key: "active-checkpoints",
-      label: t("dashboard.stat.activeCheckpoints"),
-      value: data?.checkpoints ?? 0,
-      icon: MapPin,
-      accent: "warning" as const,
-      trend: t("dashboard.kpi.hint.active"),
-      stagger: "stagger-3",
-    },
-    {
-      key: "today-plannings",
-      label: t("dashboard.stat.todayPlannings"),
-      value: planningTotal,
-      icon: CalendarDays,
-      accent: "neutral" as const,
-      trend: t("dashboard.kpi.hint.today"),
-      stagger: "stagger-4",
-    },
-  ];
 
   return (
     <div className="space-y-7">
@@ -127,6 +103,7 @@ function DashboardPage() {
         description={t("dashboard.description")}
         loading={isLoading}
         meta={[
+          { label: t("dashboard.stat.totalFonctionnaires"), value: personnel.totalFonctionnaires },
           { label: t("dashboard.stat.todayPlannings"), value: planningTotal },
           pageHeroLastUpdatedMeta(
             t("common.page.lastUpdated"),
@@ -135,19 +112,106 @@ function DashboardPage() {
         ]}
       />
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:gap-3.5">
-        {stats.map((s) => (
-          <KpiCard
-            key={s.key}
-            label={s.label}
-            value={s.value}
-            icon={s.icon}
-            accent={s.accent}
-            trend={s.trend}
-            loading={isLoading}
-            className={cn("page-enter", s.stagger, s.className)}
-          />
-        ))}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 xl:gap-3.5">
+        <KpiCard
+          label={t("dashboard.stat.totalFonctionnaires")}
+          value={personnel.totalFonctionnaires}
+          icon={Users}
+          accent="primary"
+          loading={isLoading}
+          className={cn("page-enter stagger-1", kpiCardClass)}
+          onDetailsClick={() =>
+            showPersonnel(t("dashboard.stat.totalFonctionnaires"), personnelGroups.totalFonctionnaires)
+          }
+        />
+        <KpiCard
+          label={t("dashboard.stat.activeCynotechniciens")}
+          value={personnel.activeCynotechniciens}
+          icon={UserCheck}
+          accent="success"
+          loading={isLoading}
+          className={cn("page-enter stagger-2", kpiCardClass)}
+          onDetailsClick={() =>
+            showPersonnel(
+              t("dashboard.stat.activeCynotechniciens"),
+              personnelGroups.activeCynotechniciens,
+            )
+          }
+          footer={
+            <SpecialtyBreakdownLines
+              specialty={personnel.activeCynotechniciensBySpecialty}
+              loading={isLoading}
+              onNarcoticsClick={() =>
+                showPersonnel(
+                  `${t("dashboard.stat.activeCynotechniciens")} — ${t("dashboard.stat.narcotics")}`,
+                  personnelGroups.activeCynotechniciensNarcotics,
+                )
+              }
+              onExplosivesClick={() =>
+                showPersonnel(
+                  `${t("dashboard.stat.activeCynotechniciens")} — ${t("dashboard.stat.explosives")}`,
+                  personnelGroups.activeCynotechniciensExplosives,
+                )
+              }
+            />
+          }
+        />
+        <DashboardSpecialtyKpiCard
+          label={t("dashboard.stat.cynotechniciensBySpecialty")}
+          icon={Dog}
+          narcotics={personnel.cynotechniciensBySpecialty.narcotics}
+          explosives={personnel.cynotechniciensBySpecialty.explosives}
+          accent="primary"
+          loading={isLoading}
+          className="page-enter stagger-3"
+          onNarcoticsClick={() =>
+            showPersonnel(
+              `${t("dashboard.stat.cynotechniciensBySpecialty")} — ${t("dashboard.stat.narcotics")}`,
+              personnelGroups.cynotechniciensNarcotics,
+            )
+          }
+          onExplosivesClick={() =>
+            showPersonnel(
+              `${t("dashboard.stat.cynotechniciensBySpecialty")} — ${t("dashboard.stat.explosives")}`,
+              personnelGroups.cynotechniciensExplosives,
+            )
+          }
+        />
+        <KpiCard
+          label={t("dashboard.stat.cynotechniciensWithoutDog")}
+          value={personnel.cynotechniciensWithoutDog}
+          icon={Unlink}
+          accent="warning"
+          loading={isLoading}
+          className={cn("page-enter stagger-4", kpiCardClass)}
+          onDetailsClick={() =>
+            showPersonnel(
+              t("dashboard.stat.cynotechniciensWithoutDog"),
+              personnelGroups.cynotechniciensWithoutDog,
+            )
+          }
+        />
+        <DashboardSpecialtyKpiCard
+          label={t("dashboard.stat.excludedCynotechniciensBySpecialty")}
+          icon={Ban}
+          narcotics={personnel.excludedCynotechniciensBySpecialty.narcotics}
+          explosives={personnel.excludedCynotechniciensBySpecialty.explosives}
+          accent="danger"
+          loading={isLoading}
+          className="page-enter stagger-5"
+          onNarcoticsClick={() =>
+            showPersonnel(
+              `${t("dashboard.stat.excludedCynotechniciensBySpecialty")} — ${t("dashboard.stat.narcotics")}`,
+              personnelGroups.excludedCynotechniciensNarcotics,
+            )
+          }
+          onExplosivesClick={() =>
+            showPersonnel(
+              `${t("dashboard.stat.excludedCynotechniciensBySpecialty")} — ${t("dashboard.stat.explosives")}`,
+              personnelGroups.excludedCynotechniciensExplosives,
+            )
+          }
+        />
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
@@ -161,6 +225,12 @@ function DashboardPage() {
       <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
         <ImminentReturnsCard />
       </div>
+
+      <StatisticDetailsDialog
+        open={details.open}
+        onOpenChange={details.onOpenChange}
+        payload={details.payload}
+      />
     </div>
   );
 }

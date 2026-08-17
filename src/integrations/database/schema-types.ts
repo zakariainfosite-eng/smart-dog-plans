@@ -19,7 +19,7 @@ export type Database = {
           agent_id: string | null
           created_at: string
           dog_id: string | null
-          end_date: string
+          end_date: string | null
           exclusion_type: Database["public"]["Enums"]["exclusion_type"]
           id: string
           notes: string | null
@@ -31,7 +31,7 @@ export type Database = {
           agent_id?: string | null
           created_at?: string
           dog_id?: string | null
-          end_date: string
+          end_date?: string | null
           exclusion_type: Database["public"]["Enums"]["exclusion_type"]
           id?: string
           notes?: string | null
@@ -43,7 +43,7 @@ export type Database = {
           agent_id?: string | null
           created_at?: string
           dog_id?: string | null
-          end_date?: string
+          end_date?: string | null
           exclusion_type?: Database["public"]["Enums"]["exclusion_type"]
           id?: string
           notes?: string | null
@@ -856,6 +856,7 @@ export type Database = {
         | "dog_injured"
         | "dog_temporary_retirement"
         | "dog_vet_visit"
+        | "dog_without_handler"
         | "dog_training"
         | "dog_other"
       explosive_object_type:
@@ -1042,6 +1043,7 @@ export const Constants = {
         "dog_injured",
         "dog_temporary_retirement",
         "dog_vet_visit",
+        "dog_without_handler",
         "dog_training",
         "dog_other",
       ],

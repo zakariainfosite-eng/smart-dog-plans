@@ -13,6 +13,7 @@ import "@/lib/i18n";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ThemeProvider } from "@/components/theme-provider";
+import { UiPreferencesProvider } from "@/hooks/use-ui-preferences";
 import { AuthProvider } from "@/hooks/use-auth";
 import { getAuthProvider } from "@/integrations/auth";
 import { Toaster } from "@/components/ui/sonner";
@@ -115,7 +116,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="fr" dir="ltr">
+    <html lang="fr" dir="ltr" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
@@ -143,12 +144,14 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <I18nProvider>
-          <AuthProvider>
-            <Outlet />
-            <Toaster />
-          </AuthProvider>
-        </I18nProvider>
+        <UiPreferencesProvider>
+          <I18nProvider>
+            <AuthProvider>
+              <Outlet />
+              <Toaster />
+            </AuthProvider>
+          </I18nProvider>
+        </UiPreferencesProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

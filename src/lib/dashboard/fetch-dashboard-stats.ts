@@ -1,5 +1,5 @@
 import { db, type DbClient } from "@/integrations/database/client";
-import { getAgents, getCheckpoints, getDogs } from "@/integrations/database";
+import { getAgents } from "@/integrations/database";
 import {
   expirePastExclusions,
   fetchActiveExclusionsForDate,
@@ -7,9 +7,11 @@ import {
   type AgentExclusionRecord,
 } from "@/lib/agent-exclusions";
 import {
-  computeActivePersonnelCategoryStats,
-  type ActivePersonnelCategoryStats,
-} from "@/lib/personnel-fonction-stats";
+  collectDashboardPersonnelGroups,
+  dashboardPersonnelStatsFromGroups,
+  type DashboardPersonnelGroups,
+  type DashboardPersonnelStats,
+} from "@/lib/dashboard/compute-dashboard-personnel-stats";
 
 export type DashboardPlanningRow = {
   id: string;
@@ -19,22 +21,20 @@ export type DashboardPlanningRow = {
 };
 
 export type DashboardStats = {
-  /** @deprecated Use activePersonnel.total — kept for query invalidation callers. */
+  /** Total fonctionnaires (cynotechniciens + administratif). */
   agents: number;
-  activePersonnel: ActivePersonnelCategoryStats;
-  dogs: number;
-  checkpoints: number;
+  personnel: DashboardPersonnelStats;
+  personnelGroups: DashboardPersonnelGroups;
+  exclusions: AgentExclusionRecord[];
   planning: DashboardPlanningRow[];
 };
 
 /**
- * Dashboard KPIs use the SAME Electron IPC stores as the working list pages:
- * - Agents page  → getAgents()
- * - Dogs page    → getDogs()
- * - Checkpoints  → getCheckpoints()
+ * Dashboard KPIs use the same Electron IPC agent store as the Fonctionnaires page
+ * (`getAgents()`), plus today's active exclusions (`fetchActiveExclusionsForDate`).
  *
- * Counts are raw `.length` (no extra active / exclusion filters), matching the
- * unfiltered totals shown on those pages (34 / 33 / 11).
+ * Counts reuse existing fonction / availability / assignment helpers — they do
+ * not change planning, exclusion, or authentication logic.
  *
  * Today's planning still uses the SQLite REST gateway, but is loaded separately
  * so a planning query failure cannot zero out the KPI counts.
@@ -45,18 +45,16 @@ export async function fetchDashboardStats(
   // Keep exclusion flags in sync whenever the dashboard opens.
   await expirePastExclusions(client);
 
-  // Same data source + same cardinality as Employees / Dogs / Checkpoints pages.
-  const [agents, dogs, checkpoints, exclusions] = await Promise.all([
+  const [agents, exclusions] = await Promise.all([
     getAgents(),
-    getDogs(),
-    getCheckpoints(),
     fetchActiveExclusionsForDate(client, todayISODate()),
   ]);
 
-  const activePersonnel = computeActivePersonnelCategoryStats(
+  const personnelGroups = collectDashboardPersonnelGroups(
     agents,
     exclusions as AgentExclusionRecord[],
   );
+  const personnel = dashboardPersonnelStatsFromGroups(personnelGroups);
 
   let planning: DashboardPlanningRow[] = [];
   try {
@@ -102,10 +100,10 @@ export async function fetchDashboardStats(
   }
 
   return {
-    agents: activePersonnel.total,
-    activePersonnel,
-    dogs: dogs.length,
-    checkpoints: checkpoints.length,
+    agents: personnel.totalFonctionnaires,
+    personnel,
+    personnelGroups,
+    exclusions: exclusions as AgentExclusionRecord[],
     planning,
   };
 }

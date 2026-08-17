@@ -9,6 +9,7 @@ const ALLOWED_MEDIA_BUCKETS = new Set([
   "agent-photos",
   "dog-photos",
   "operational-case-attachments",
+  "document-logos",
 ]);
 
 function mediaRoot(app: App): string {

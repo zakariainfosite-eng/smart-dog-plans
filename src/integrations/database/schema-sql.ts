@@ -130,16 +130,17 @@ export const SCHEMA_STATEMENTS: readonly string[] = [
       'absence', 'sickness', 'administrative_leave', 'special_leave',
       'dog_sick', 'female_dog_heat', 'annual_leave', 'mission', 'training', 'other',
       'suspension',
-      'dog_injured', 'dog_temporary_retirement', 'dog_vet_visit', 'dog_training', 'dog_other'
+      'dog_injured', 'dog_temporary_retirement', 'dog_vet_visit', 'dog_without_handler',
+      'dog_training', 'dog_other'
     )),
     start_date TEXT NOT NULL,
-    end_date TEXT NOT NULL,
+    end_date TEXT,
     notes TEXT,
     active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
     is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-    CHECK (end_date >= start_date),
+    CHECK (end_date IS NULL OR end_date >= start_date),
     CHECK (agent_id IS NOT NULL OR dog_id IS NOT NULL)
   )`,
 
@@ -364,6 +365,7 @@ export const LOCAL_SQLITE_MIGRATIONS: readonly {
   id: string;
   name: string;
   statements: readonly string[];
+  noTransaction?: boolean;
 }[] = [
   {
     id: "015_agents_origine_column",
@@ -447,6 +449,51 @@ export const LOCAL_SQLITE_MIGRATIONS: readonly {
       `CREATE INDEX IF NOT EXISTS idx_role_documents_section ON role_documents(section_id)`,
       `CREATE INDEX IF NOT EXISTS idx_role_documents_created_at ON role_documents(created_at)`,
       `CREATE INDEX IF NOT EXISTS idx_role_documents_report_period ON role_documents(report_year, report_month)`,
+    ],
+  },
+  {
+    id: "019_open_ended_dog_exclusions",
+    name: "Open-ended dog exclusions — nullable end_date + chien sans maître",
+    noTransaction: true,
+    statements: [
+      `PRAGMA foreign_keys = OFF`,
+      `CREATE TABLE agent_exclusions__open_ended (
+        id TEXT PRIMARY KEY NOT NULL,
+        agent_id TEXT REFERENCES agents(id) ON DELETE CASCADE,
+        dog_id TEXT REFERENCES dogs(id) ON DELETE CASCADE,
+        exclusion_type TEXT NOT NULL CHECK (exclusion_type IN (
+          'absence', 'sickness', 'administrative_leave', 'special_leave',
+          'dog_sick', 'female_dog_heat', 'annual_leave', 'mission', 'training', 'other',
+          'suspension',
+          'dog_injured', 'dog_temporary_retirement', 'dog_vet_visit', 'dog_without_handler',
+          'dog_training', 'dog_other'
+        )),
+        start_date TEXT NOT NULL,
+        end_date TEXT,
+        notes TEXT,
+        active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+        is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        CHECK (end_date IS NULL OR end_date >= start_date),
+        CHECK (agent_id IS NOT NULL OR dog_id IS NOT NULL)
+      )`,
+      `INSERT INTO agent_exclusions__open_ended (
+        id, agent_id, dog_id, exclusion_type, start_date, end_date, notes,
+        active, is_deleted, created_at, updated_at
+      )
+      SELECT
+        id, agent_id, dog_id, exclusion_type, start_date, end_date, notes,
+        active, is_deleted, created_at, updated_at
+      FROM agent_exclusions`,
+      `DROP TABLE agent_exclusions`,
+      `ALTER TABLE agent_exclusions__open_ended RENAME TO agent_exclusions`,
+      `CREATE INDEX IF NOT EXISTS idx_agent_exclusions_agent ON agent_exclusions(agent_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_agent_exclusions_dog ON agent_exclusions(dog_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_agent_exclusions_dates ON agent_exclusions(start_date, end_date)`,
+      `CREATE INDEX IF NOT EXISTS idx_agent_exclusions_active ON agent_exclusions(active)`,
+      `CREATE INDEX IF NOT EXISTS idx_agent_exclusions_is_deleted ON agent_exclusions(is_deleted)`,
+      `PRAGMA foreign_keys = ON`,
     ],
   },
 ];

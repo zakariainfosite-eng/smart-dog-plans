@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
-import { FP_OFFICIAL_LOGO_URL } from "@/lib/documents/feuille-presence-layout";
+import { db } from "@/integrations/database/client";
+import { loadDocumentLogoBytes } from "@/lib/document-logo-api";
 import {
   buildFeuillePresenceLogoAsset,
   drawFeuillePresenceLogoContained,
@@ -430,10 +431,10 @@ export function renderAgentFicheIndividuellePdf(
 
 export async function generateAgentFicheIndividuellePdf(
   input: AgentFicheIndividuelleInput,
-  logoUrl: string = FP_OFFICIAL_LOGO_URL,
+  logoUrl?: string,
 ): Promise<jsPDF> {
   const [logoBytes, photoDataUrl] = await Promise.all([
-    loadFeuillePresenceLogo(logoUrl),
+    logoUrl ? loadFeuillePresenceLogo(logoUrl) : loadDocumentLogoBytes(db),
     resolveImageDataUrl(input.photoUrl),
   ]);
   return renderAgentFicheIndividuellePdf({ ...input, photoDataUrl }, logoBytes);

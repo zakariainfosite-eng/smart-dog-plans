@@ -5,6 +5,7 @@
 import { randomId } from "@/lib/random-id";
 import type { RestQueryRequest, RestQueryResult } from "./rest-query-types";
 import type { SqlExecutor } from "./sql-executor";
+import { applyUnassignIfWithoutHandlerExclusionAsync } from "./unassign-dog-handler";
 
 type FilterOp = "eq" | "neq" | "in" | "lte" | "gte" | "gt" | "lt" | "is" | "not" | "ilike";
 
@@ -141,7 +142,7 @@ function parseSelectFragment(
     }
 
     const embedMatch = part.match(
-      /^([a-z_][a-z0-9_]*)\s*:\s*([a-z_][a-z0-9_]*)(?:![a-z_][a-z0-9_]*)?\s*\((.*)\)$/i,
+      /^([a-z_][a-z0-9_]*)\s*:\s*([a-z_][a-z0-9_]*)(?:![a-z_][a-z0-9_]*)?\s*\(([\s\S]*)\)$/i,
     );
     if (embedMatch) {
       const alias = embedMatch[1]!;
@@ -188,7 +189,7 @@ function parseSelectFragment(
       continue;
     }
 
-    const shortEmbed = part.match(/^([a-z_][a-z0-9_]*)\s*\((.*)\)$/i);
+    const shortEmbed = part.match(/^([a-z_][a-z0-9_]*)\s*\(([\s\S]*)\)$/i);
     if (shortEmbed) {
       const related = shortEmbed[1]!;
       const inner = shortEmbed[2]!;
@@ -220,6 +221,14 @@ function parseSelectFragment(
     star = true;
   }
   return { columns, embeds, star };
+}
+
+/** Exported for tests — nested PostgREST embeds may span multiple lines. */
+export function parseLocalRestSelect(
+  select: string | undefined,
+  table: string,
+): { columns: string[]; embeds: Array<{ alias: string; relatedTable: string; embeds: Array<{ alias: string }> }>; star: boolean } {
+  return parseSelect(select, table);
 }
 
 function parseSelect(
@@ -550,7 +559,14 @@ export async function executeLocalRestQuery(
             `SELECT * FROM ${request.table} WHERE id = ?`,
             [String(data.id)],
           );
-          if (saved) inserted.push(mapRow(request.table, saved));
+          if (saved) {
+            if (request.table === "agent_exclusions") {
+              await applyUnassignIfWithoutHandlerExclusionAsync(saved, (sql, params) =>
+                db.run(sql, params),
+              );
+            }
+            inserted.push(mapRow(request.table, saved));
+          }
         }
       });
 
@@ -569,30 +585,37 @@ export async function executeLocalRestQuery(
       keys.forEach(assertColumn);
       const sets = keys.map((k) => `${k} = ?`).join(", ");
       const values = keys.map((k) => fromJsValue(k, payload[k]));
-      const result = await db.run(`UPDATE ${request.table} SET ${sets}${where.sql}`, [
-        ...values,
-        ...where.params,
-      ]);
-
-      if (request.single || request.maybeSingle) {
-        const row = await db.get<Record<string, unknown>>(
-          `SELECT * FROM ${request.table}${where.sql} LIMIT 1`,
+      const updated = await db.transaction(async () => {
+        const result = await db.run(`UPDATE ${request.table} SET ${sets}${where.sql}`, [
+          ...values,
+          ...where.params,
+        ]);
+        const updatedRows = await db.query<Record<string, unknown>>(
+          `SELECT * FROM ${request.table}${where.sql}`,
           where.params,
         );
+        if (request.table === "agent_exclusions") {
+          for (const row of updatedRows) {
+            await applyUnassignIfWithoutHandlerExclusionAsync(row, (sql, params) =>
+              db.run(sql, params),
+            );
+          }
+        }
+        return { result, updatedRows };
+      });
+
+      if (request.single || request.maybeSingle) {
+        const row = updated.updatedRows[0];
         return {
           data: row ? mapRow(request.table, row) : null,
           error: null,
-          count: result.changes,
+          count: updated.result.changes,
         };
       }
-      const updatedRows = await db.query<Record<string, unknown>>(
-        `SELECT * FROM ${request.table}${where.sql}`,
-        where.params,
-      );
       return {
-        data: updatedRows.map((row) => mapRow(request.table, row)),
+        data: updated.updatedRows.map((row) => mapRow(request.table, row)),
         error: null,
-        count: result.changes,
+        count: updated.result.changes,
       };
     }
 

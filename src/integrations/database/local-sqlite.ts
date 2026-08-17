@@ -18,6 +18,7 @@ import {
   SCHEMA_TABLE_STATEMENTS,
 } from "./schema-sql";
 import type { SqlExecutor } from "./sql-executor";
+import { localCalendarDayISO } from "@/lib/local-calendar-day";
 import { isNativeCapacitorRuntime } from "@/lib/runtime-platform";
 
 const DB_NAME = "cynoplanning";
@@ -33,8 +34,22 @@ const IDB_KEY = "cynoplanning.db";
 
 let executorPromise: Promise<SqlExecutor> | null = null;
 
+/** Same local calendar day as renderer `planningDayISO()` / `todayISODate()`. */
 function todayIsoDate(): string {
-  return new Date().toISOString().slice(0, 10);
+  return localCalendarDayISO();
+}
+
+async function localSqliteOpenEndedExclusionsReady(executor: SqlExecutor): Promise<boolean> {
+  const columns = await executor.query<{ name: string; notnull: number }>(
+    "PRAGMA table_info(agent_exclusions)",
+  );
+  const endDate = columns.find((column) => column.name === "end_date");
+  if (!endDate || Number(endDate.notnull) !== 0) return false;
+
+  const master = await executor.get<{ sql: string }>(
+    "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'agent_exclusions'",
+  );
+  return Boolean(master?.sql?.includes("dog_without_handler"));
 }
 
 async function idbGet(): Promise<Uint8Array | null> {
@@ -262,26 +277,63 @@ async function openCapacitorDatabaseConnection() {
   return sqlite.retrieveConnection(DB_NAME, false);
 }
 
+function toCapacitorSqlParams(params: unknown[]): unknown[] {
+  return params.map((value) => {
+    if (value == null) return null;
+    if (typeof value === "boolean") return value ? 1 : 0;
+    if (typeof value === "number" || typeof value === "string") return value;
+    return String(value);
+  });
+}
+
 async function createCapacitorExecutor(): Promise<SqlExecutor> {
   const db = await openCapacitorDatabaseConnection();
   await db.open();
-  // transaction=false: plugin defaults wrap execute/run in BEGIN, which nests badly.
+  // Serialize native SQLite calls. Concurrent query/run/transaction deadlocks
+  // the iOS plugin and leaves the Notification Center on "Chargement...".
   await db.execute("PRAGMA foreign_keys = ON;", false);
 
-  const query = async <T>(sql: string, params: unknown[] = []): Promise<T[]> => {
-    const result = await db.query(sql, params.length ? params : undefined);
+  let gate: Promise<void> = Promise.resolve();
+  let txDepth = 0;
+
+  const enqueue = async <T>(fn: () => Promise<T>): Promise<T> => {
+    if (txDepth > 0) return fn();
+    const next = gate.then(fn, fn);
+    gate = next.then(
+      () => undefined,
+      () => undefined,
+    );
+    return next;
+  };
+
+  const nativeQuery = async <T>(sql: string, params: unknown[] = []): Promise<T[]> => {
+    const values = params.length ? toCapacitorSqlParams(params) : undefined;
+    // query()'s 3rd argument is isSQL92, not transaction — never pass false here.
+    const result = await db.query(sql, values as never);
     return (result.values ?? []) as T[];
   };
+
+  const query = async <T>(sql: string, params: unknown[] = []): Promise<T[]> =>
+    enqueue(() => nativeQuery<T>(sql, params));
 
   const transaction = createNestableTransaction({
     async begin() {
       await db.beginTransaction();
+      txDepth += 1;
     },
     async commit() {
-      await db.commitTransaction();
+      try {
+        await db.commitTransaction();
+      } finally {
+        txDepth = Math.max(0, txDepth - 1);
+      }
     },
     async rollback() {
-      await db.rollbackTransaction();
+      try {
+        await db.rollbackTransaction();
+      } finally {
+        txDepth = Math.max(0, txDepth - 1);
+      }
     },
   });
 
@@ -292,14 +344,16 @@ async function createCapacitorExecutor(): Promise<SqlExecutor> {
       return rows[0];
     },
     async run(sql: string, params: unknown[] = []) {
-      // Disable plugin auto-transaction so statements can run inside our outer tx.
-      const result = await db.run(sql, params.length ? params : undefined, false);
-      return { changes: Number(result.changes?.changes ?? 0) };
+      return enqueue(async () => {
+        const values = params.length ? toCapacitorSqlParams(params) : undefined;
+        const result = await db.run(sql, values as never, false);
+        return { changes: Number(result.changes?.changes ?? 0) };
+      });
     },
     async exec(sql: string) {
-      await db.execute(sql, false);
+      await enqueue(() => db.execute(sql, false));
     },
-    transaction,
+    transaction: (fn) => enqueue(() => transaction(fn)),
   };
 }
 
@@ -351,7 +405,12 @@ async function initializeSchema(executor: SqlExecutor): Promise<void> {
   for (const migration of LOCAL_SQLITE_MIGRATIONS) {
     if (recordedIds.has(migration.id)) continue;
 
-    await executor.transaction(async () => {
+    const alreadyOpenEnded =
+      migration.id === "019_open_ended_dog_exclusions" &&
+      (await localSqliteOpenEndedExclusionsReady(executor));
+
+    const runStatements = async () => {
+      if (alreadyOpenEnded) return;
       for (const statement of migration.statements) {
         // Migration 015 is additive and idempotent: skip ALTER when the column
         // is already present (e.g. a fresh DB created from the current schema).
@@ -361,12 +420,25 @@ async function initializeSchema(executor: SqlExecutor): Promise<void> {
         }
         await executor.exec(statement);
       }
+    };
+
+    if (migration.noTransaction) {
+      await runStatements();
       await executor.run(
         `INSERT OR IGNORE INTO ${SCHEMA_MIGRATIONS_TABLE} (id, name, applied_at, success)
          VALUES (?, ?, datetime('now'), 1)`,
         [migration.id, migration.name],
       );
-    });
+    } else {
+      await executor.transaction(async () => {
+        await runStatements();
+        await executor.run(
+          `INSERT OR IGNORE INTO ${SCHEMA_MIGRATIONS_TABLE} (id, name, applied_at, success)
+           VALUES (?, ?, datetime('now'), 1)`,
+          [migration.id, migration.name],
+        );
+      });
+    }
   }
 
   for (const statement of SCHEMA_INDEX_STATEMENTS) {
@@ -377,7 +449,11 @@ async function initializeSchema(executor: SqlExecutor): Promise<void> {
     await executor.run(
       `UPDATE agent_exclusions
        SET active = 0, updated_at = datetime('now')
-       WHERE active = 1 AND end_date < ? AND is_deleted = 0`,
+       WHERE active = 1
+         AND end_date IS NOT NULL
+         AND end_date < ?
+         AND exclusion_type NOT IN ('dog_vet_visit', 'dog_without_handler')
+         AND is_deleted = 0`,
       [todayIsoDate()],
     );
   } catch {

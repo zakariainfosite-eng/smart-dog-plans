@@ -205,8 +205,8 @@ export function SectionDetailSheet({
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12">{t("sections.detail.photo")}</TableHead>
-                    <TableHead className="whitespace-nowrap">{t("employees.field.lastName")}</TableHead>
                     <TableHead className="whitespace-nowrap">{t("employees.field.firstName")}</TableHead>
+                    <TableHead className="whitespace-nowrap">{t("employees.field.lastName")}</TableHead>
                     <TableHead>{t("employees.field.professionalNumber")}</TableHead>
                     <TableHead>{t("field.grade")}</TableHead>
                     <TableHead>{t("employees.field.fonction")}</TableHead>
@@ -234,10 +234,10 @@ export function SectionDetailSheet({
                           />
                         </TableCell>
                         <TableCell className="max-w-none overflow-visible whitespace-nowrap font-medium">
-                          {agent.last_name}
+                          {agent.first_name}
                         </TableCell>
                         <TableCell className="max-w-none overflow-visible whitespace-nowrap font-medium">
-                          {agent.first_name}
+                          {agent.last_name}
                         </TableCell>
                         <TableCell className="max-w-none overflow-visible whitespace-nowrap font-mono text-xs text-muted-foreground">
                           {agent.professional_number}

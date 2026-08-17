@@ -40,7 +40,8 @@ const STATUS_PDF_LABEL: Record<string, string> = {
   female_dog_heat: "Chienne en chaleur",
   dog_injured: "Blessé",
   dog_temporary_retirement: "Chien en repos",
-  dog_vet_visit: "Visite vétérinaire",
+  dog_vet_visit: "Sous observation",
+  dog_without_handler: "Chien sans maître",
   dog_training: "Dressage",
   dog_other: "Indisponible",
 };

@@ -5,6 +5,7 @@
  */
 import { randomUUID } from "node:crypto";
 import type Database from "better-sqlite3";
+import { applyUnassignIfWithoutHandlerExclusionSync } from "../src/integrations/database/unassign-dog-handler";
 
 export type FilterOp = "eq" | "neq" | "in" | "lte" | "gte" | "gt" | "lt" | "is" | "not" | "ilike";
 
@@ -174,7 +175,7 @@ function parseSelectFragment(
 
     // Alias embed, optionally with PostgREST FK hint: agent:agents!agents_dog_id_fkey(...)
     const embedMatch = part.match(
-      /^([a-z_][a-z0-9_]*)\s*:\s*([a-z_][a-z0-9_]*)(?:![a-z_][a-z0-9_]*)?\s*\((.*)\)$/i,
+      /^([a-z_][a-z0-9_]*)\s*:\s*([a-z_][a-z0-9_]*)(?:![a-z_][a-z0-9_]*)?\s*\(([\s\S]*)\)$/i,
     );
     if (embedMatch) {
       const alias = embedMatch[1]!;
@@ -219,7 +220,7 @@ function parseSelectFragment(
     }
 
     // Shorthand embed: sections(name) / dogs(specialty)
-    const shortEmbed = part.match(/^([a-z_][a-z0-9_]*)\s*\((.*)\)$/i);
+    const shortEmbed = part.match(/^([a-z_][a-z0-9_]*)\s*\(([\s\S]*)\)$/i);
     if (shortEmbed) {
       const related = shortEmbed[1]!;
       const inner = shortEmbed[2]!;
@@ -590,6 +591,12 @@ export function executeRestQuery(db: Database.Database, request: RestQueryReques
           const saved = db
             .prepare(`SELECT * FROM ${request.table} WHERE id = ?`)
             .get(String(data.id)) as Record<string, unknown>;
+          if (request.table === "agent_exclusions" && saved) {
+            applyUnassignIfWithoutHandlerExclusionSync(saved, (sql, params) => {
+              const info = db.prepare(sql).run(...params);
+              return { changes: info.changes };
+            });
+          }
           inserted.push(mapRow(request.table, saved));
         }
       });
@@ -610,27 +617,37 @@ export function executeRestQuery(db: Database.Database, request: RestQueryReques
       keys.forEach(assertColumn);
       const sets = keys.map((k) => `${k} = ?`).join(", ");
       const values = keys.map((k) => fromJsValue(k, payload[k]));
-      const result = db
-        .prepare(`UPDATE ${request.table} SET ${sets}${where.sql}`)
-        .run(...values, ...where.params);
+      const applyUpdate = db.transaction(() => {
+        const result = db
+          .prepare(`UPDATE ${request.table} SET ${sets}${where.sql}`)
+          .run(...values, ...where.params);
+        const rows = db
+          .prepare(`SELECT * FROM ${request.table}${where.sql}`)
+          .all(...where.params) as Record<string, unknown>[];
+        if (request.table === "agent_exclusions") {
+          for (const row of rows) {
+            applyUnassignIfWithoutHandlerExclusionSync(row, (sql, params) => {
+              const info = db.prepare(sql).run(...params);
+              return { changes: info.changes };
+            });
+          }
+        }
+        return { result, rows };
+      });
+      const updated = applyUpdate();
 
       if (request.single || request.maybeSingle) {
-        const row = db
-          .prepare(`SELECT * FROM ${request.table}${where.sql} LIMIT 1`)
-          .get(...where.params) as Record<string, unknown> | undefined;
+        const row = updated.rows[0];
         return {
           data: row ? mapRow(request.table, row) : null,
           error: null,
-          count: result.changes,
+          count: updated.result.changes,
         };
       }
-      const rows = db
-        .prepare(`SELECT * FROM ${request.table}${where.sql}`)
-        .all(...where.params) as Record<string, unknown>[];
       return {
-        data: rows.map((row) => mapRow(request.table, row)),
+        data: updated.rows.map((row) => mapRow(request.table, row)),
         error: null,
-        count: result.changes,
+        count: updated.result.changes,
       };
     }
 

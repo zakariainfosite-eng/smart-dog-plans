@@ -2,11 +2,13 @@ import { Outlet } from "@tanstack/react-router";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { ExclusionReminderAlertDialog } from "@/components/notifications/exclusion-reminder-alert-dialog";
 import { useExclusionReturnNotificationsSync } from "@/hooks/use-exclusion-return-notifications-sync";
+import { useUiPreferences } from "@/hooks/use-ui-preferences";
 import { AppSidebar } from "./AppSidebar";
 import { Header } from "./Header";
 
 export function AppLayout() {
   useExclusionReturnNotificationsSync();
+  const { notificationsEnabled } = useUiPreferences();
 
   return (
     <SidebarProvider>
@@ -19,7 +21,7 @@ export function AppLayout() {
           </div>
         </main>
       </SidebarInset>
-      <ExclusionReminderAlertDialog />
+      {notificationsEnabled ? <ExclusionReminderAlertDialog /> : null}
     </SidebarProvider>
   );
 }

@@ -70,6 +70,14 @@ export function isActiveEndMilestone(milestone: ExclusionReturnMilestone): boole
   return milestone === "d2" || milestone === "d1" || milestone === "d0";
 }
 
+/** One bell row per exclusion and milestone — never recreate on refresh. */
+export function exclusionNotificationDedupeKey(
+  exclusionId: string,
+  milestone: ExclusionReturnMilestone | string,
+): string {
+  return `${exclusionId}::${milestone}`;
+}
+
 /** Map exclusion type → notification category (specific when possible). */
 export function notificationTypeForExclusion(
   exclusionType: string,

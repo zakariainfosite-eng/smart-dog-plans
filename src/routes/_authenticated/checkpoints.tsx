@@ -27,8 +27,25 @@ import {
   todayISODate,
   type AgentExclusionRecord,
 } from "@/lib/agent-exclusions";
-import { computeDogOperationalStatsFromDogs } from "@/lib/checkpoints/checkpoint-dog-stats";
+import {
+  collectDogOperationalGroupsFromDogs,
+  dogOperationalStatsFromGroups,
+} from "@/lib/checkpoints/checkpoint-dog-stats";
 import { CheckpointDogOverviewCards } from "@/components/checkpoints/checkpoint-dog-overview-cards";
+import { SpecialtyBreakdownLines } from "@/components/agents/specialty-breakdown-lines";
+import { StatisticDetailsDialog } from "@/components/statistics/statistic-details-dialog";
+import { useStatisticDetailsDialog } from "@/hooks/use-statistic-details-dialog";
+import {
+  checkpointStatisticColumns,
+  dogStatisticColumns,
+  specialtyLabel,
+} from "@/lib/statistics/statistic-detail-columns";
+import {
+  mapCheckpointDetailRows,
+  mapDogDetailRows,
+  type CheckpointDetailSource,
+} from "@/lib/statistics/map-statistic-detail-rows";
+import type { TFunction } from "i18next";
 import { PageTitle } from "@/components/layout/PageTitle";
 import {
   PageTableShell,
@@ -56,8 +73,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CheckpointConfigDialog } from "@/components/checkpoints/checkpoint-config-dialog";
 import { CheckpointOperationalSummary } from "@/components/checkpoints/checkpoint-operational-summary";
 import {
+  listRequiredK9Units,
   staffingCountsFromCheckpointRow,
+  sumRequiredK9FromActiveCheckpoints,
   type CheckpointOperationalConfig,
+  type RequiredK9Unit,
 } from "@/lib/checkpoints/operational-config";
 import { formatPageLastUpdated, paginate, totalPages } from "@/lib/page-ui";
 
@@ -70,6 +90,57 @@ type FilterValue = "all" | "active" | "inactive" | "night";
 
 const PAGE_SIZE = 15;
 
+function checkpointTypeLabel(nightOnly: boolean, t: TFunction): string {
+  return nightOnly ? t("checkpoints.stat.nightOnly") : "—";
+}
+
+function checkpointSpecialtyRequiredLabel(
+  checkpoint: CheckpointWithPosts,
+  t: TFunction,
+): { specialtyLabel: string; requiredLabel: string } {
+  const staffing = staffingCountsFromCheckpointRow(checkpoint);
+  const parts: string[] = [];
+  if (staffing.narcotics) {
+    parts.push(`${specialtyLabel(t, "narcotics")} (${staffing.narcotics})`);
+  }
+  if (staffing.explosives) {
+    parts.push(`${specialtyLabel(t, "explosives")} (${staffing.explosives})`);
+  }
+  return {
+    specialtyLabel: parts.join(" · ") || "—",
+    requiredLabel: String(staffing.total),
+  };
+}
+
+function checkpointToDetailSource(checkpoint: CheckpointWithPosts, t: TFunction): CheckpointDetailSource {
+  const labels = checkpointSpecialtyRequiredLabel(checkpoint, t);
+  return {
+    id: checkpoint.id,
+    name: checkpoint.name,
+    active: checkpoint.active,
+    night_only: checkpoint.night_only,
+    typeLabel: checkpointTypeLabel(checkpoint.night_only, t),
+    specialtyLabel: labels.specialtyLabel,
+    requiredLabel: labels.requiredLabel,
+  };
+}
+
+function requiredK9UnitToDetailSource(
+  unit: RequiredK9Unit<CheckpointWithPosts>,
+  t: TFunction,
+): CheckpointDetailSource {
+  const checkpoint = unit.source;
+  return {
+    id: `${checkpoint.id}:${unit.specialty}:${unit.index}`,
+    name: checkpoint.name,
+    active: checkpoint.active,
+    night_only: checkpoint.night_only,
+    typeLabel: checkpointTypeLabel(checkpoint.night_only, t),
+    specialtyLabel: specialtyLabel(t, unit.specialty),
+    requiredLabel: "1",
+  };
+}
+
 function CheckpointsPage() {
   const { t, locale } = useI18n();
   useDocumentTitle("meta.checkpoints.title");
@@ -81,6 +152,7 @@ function CheckpointsPage() {
   const [editing, setEditing] = useState<Checkpoint | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CheckpointWithPosts | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const details = useStatisticDetailsDialog();
 
   const statusReferenceISO = todayISODate();
 
@@ -104,14 +176,13 @@ function CheckpointsPage() {
 
   const exclusions = todayExclusions as AgentExclusionRecord[];
 
-  const aggregateDogStats = useMemo(
-    () =>
-      computeDogOperationalStatsFromDogs(
-        dogs.map((dog) => ({ id: dog.id, specialty: dog.specialty })),
-        exclusions,
-        statusReferenceISO,
-      ),
+  const dogGroups = useMemo(
+    () => collectDogOperationalGroupsFromDogs(dogs, exclusions, statusReferenceISO),
     [dogs, exclusions, statusReferenceISO],
+  );
+  const aggregateDogStats = useMemo(
+    () => dogOperationalStatsFromGroups(dogGroups),
+    [dogGroups],
   );
 
   const dogStatsLoading = isLoading || dogsLoading;
@@ -138,11 +209,17 @@ function CheckpointsPage() {
 
   const stats = useMemo(() => {
     const list = data ?? [];
+    const activeList = list.filter((checkpoint) => checkpoint.active);
+    const nightList = list.filter((checkpoint) => checkpoint.night_only);
+    const requiredK9 = sumRequiredK9FromActiveCheckpoints(list);
     return {
       total: list.length,
-      active: list.filter((c) => c.active).length,
-      night: list.filter((c) => c.night_only).length,
-      posts: list.reduce((sum, c) => sum + staffingCountsFromCheckpointRow(c).total, 0),
+      list,
+      active: activeList.length,
+      activeList,
+      night: nightList.length,
+      nightList,
+      requiredK9,
     };
   }, [data]);
 
@@ -372,6 +449,41 @@ function CheckpointsPage() {
     [t, expanded],
   );
 
+  const showCheckpoints = (title: string, rows: CheckpointWithPosts[]) => {
+    details.showDetails({
+      title,
+      columns: checkpointStatisticColumns(t),
+      rows: mapCheckpointDetailRows(
+        rows.map((checkpoint) => checkpointToDetailSource(checkpoint, t)),
+        t,
+      ),
+    });
+  };
+
+  const showRequiredK9 = (
+    title: string,
+    specialty: "all" | "narcotics" | "explosives" = "all",
+  ) => {
+    details.showDetails({
+      title,
+      columns: checkpointStatisticColumns(t),
+      rows: mapCheckpointDetailRows(
+        listRequiredK9Units(stats.list, specialty).map((unit) =>
+          requiredK9UnitToDetailSource(unit, t),
+        ),
+        t,
+      ),
+    });
+  };
+
+  const showDogs = (title: string, rows: typeof dogs) => {
+    details.showDetails({
+      title,
+      columns: dogStatisticColumns(t),
+      rows: mapDogDetailRows(rows, t, exclusions, statusReferenceISO),
+    });
+  };
+
   return (
     <div className="space-y-6">
       <PageTitle
@@ -394,13 +506,85 @@ function CheckpointsPage() {
       />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <KpiCard icon={MapPin} label={t("checkpoints.stat.total")} value={stats.total} accent="primary" loading={isLoading} />
-        <KpiCard icon={Activity} label={t("common.active")} value={stats.active} accent="success" loading={isLoading} />
-        <KpiCard icon={Moon} label={t("checkpoints.stat.nightOnly")} value={stats.night} accent="warning" loading={isLoading} />
-        <KpiCard icon={Users} label={t("checkpoints.stat.requiredTeams")} value={stats.posts} accent="neutral" loading={isLoading} />
+        <KpiCard
+          icon={MapPin}
+          label={t("checkpoints.stat.total")}
+          value={stats.total}
+          accent="primary"
+          loading={isLoading}
+          onDetailsClick={() => showCheckpoints(t("checkpoints.stat.total"), stats.list)}
+        />
+        <KpiCard
+          icon={Activity}
+          label={t("common.active")}
+          value={stats.active}
+          accent="success"
+          loading={isLoading}
+          onDetailsClick={() => showCheckpoints(t("common.active"), stats.activeList)}
+        />
+        <KpiCard
+          icon={Moon}
+          label={t("checkpoints.stat.nightOnly")}
+          value={stats.night}
+          accent="warning"
+          loading={isLoading}
+          onDetailsClick={() => showCheckpoints(t("checkpoints.stat.nightOnly"), stats.nightList)}
+        />
+        <KpiCard
+          icon={Users}
+          label={t("checkpoints.stat.requiredTeams")}
+          value={stats.requiredK9.total}
+          accent="neutral"
+          loading={isLoading}
+          onDetailsClick={() => showRequiredK9(t("checkpoints.stat.requiredTeams"))}
+          footer={
+            <SpecialtyBreakdownLines
+              specialty={stats.requiredK9}
+              loading={isLoading}
+              onNarcoticsClick={() =>
+                showRequiredK9(
+                  `${t("checkpoints.stat.requiredTeams")} — ${t("specialty.narcotics")}`,
+                  "narcotics",
+                )
+              }
+              onExplosivesClick={() =>
+                showRequiredK9(
+                  `${t("checkpoints.stat.requiredTeams")} — ${t("specialty.explosives")}`,
+                  "explosives",
+                )
+              }
+            />
+          }
+        />
       </div>
 
-      <CheckpointDogOverviewCards stats={aggregateDogStats} loading={dogStatsLoading} />
+      <CheckpointDogOverviewCards
+        stats={aggregateDogStats}
+        loading={dogStatsLoading}
+        onActiveClick={() => showDogs(t("dogs.stat.active"), dogGroups.active)}
+        onActiveNarcoticsClick={() =>
+          showDogs(`${t("dogs.stat.active")} — ${t("dogs.stat.narcotics")}`, dogGroups.narcoticsActive)
+        }
+        onActiveExplosivesClick={() =>
+          showDogs(
+            `${t("dogs.stat.active")} — ${t("dogs.stat.explosives")}`,
+            dogGroups.explosivesActive,
+          )
+        }
+        onExcludedClick={() => showDogs(t("dogs.stat.excluded"), dogGroups.excluded)}
+        onExcludedNarcoticsClick={() =>
+          showDogs(
+            `${t("dogs.stat.excluded")} — ${t("dogs.stat.narcotics")}`,
+            dogGroups.narcoticsExcluded,
+          )
+        }
+        onExcludedExplosivesClick={() =>
+          showDogs(
+            `${t("dogs.stat.excluded")} — ${t("dogs.stat.explosives")}`,
+            dogGroups.explosivesExcluded,
+          )
+        }
+      />
 
       <FilterBar
         showReset={hasFilters}
@@ -515,6 +699,11 @@ function CheckpointsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <StatisticDetailsDialog
+        open={details.open}
+        onOpenChange={details.onOpenChange}
+        payload={details.payload}
+      />
     </div>
   );
 }

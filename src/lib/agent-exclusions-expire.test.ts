@@ -104,6 +104,60 @@ describe("automatic exclusion expiration rules", () => {
     expect(stats.narcoticsTotal).toBe(1);
     expect(stats.narcotics).toBe(0);
   });
+
+  it("keeps Sous observation and Chien sans maître active without an end date", () => {
+    const observation = exclusion({
+      agent_id: null,
+      dog_id: "d1",
+      exclusion_type: "dog_vet_visit",
+      start_date: "2026-07-01",
+      end_date: null,
+      active: true,
+    });
+    const noHandler = exclusion({
+      agent_id: null,
+      dog_id: "d2",
+      exclusion_type: "dog_without_handler",
+      start_date: "2026-08-01",
+      end_date: null,
+      active: true,
+    });
+    expect(isExclusionPastEndDate(observation, today)).toBe(false);
+    expect(isAgentExclusionActive(observation, today)).toBe(true);
+    expect(isAgentExclusionActive(noHandler, today)).toBe(true);
+    expect(deriveDogOperationalStatus("d1", [observation], today)).toEqual({
+      kind: "excluded",
+      exclusionType: "dog_vet_visit",
+    });
+  });
+
+  it("ignores a leftover end_date on legacy Visite vétérinaire / Sous observation rows", () => {
+    const leftover = exclusion({
+      agent_id: null,
+      dog_id: "d1",
+      exclusion_type: "dog_vet_visit",
+      start_date: "2026-07-01",
+      end_date: "2026-08-01",
+      active: true,
+    });
+    expect(isAgentExclusionActive(leftover, today)).toBe(true);
+    expect(isExclusionPastEndDate(leftover, today)).toBe(false);
+    expect(toPlanningExclusionInputs([leftover], today)).toEqual([
+      { agent_id: leftover.agent_id, dog_id: "d1", exclusion_type: "dog_vet_visit" },
+    ]);
+  });
+
+  it("does not keep dated dog_sick active after end_date", () => {
+    const sick = exclusion({
+      agent_id: null,
+      dog_id: "d1",
+      exclusion_type: "dog_sick",
+      start_date: "2026-07-01",
+      end_date: "2026-08-05",
+      active: true,
+    });
+    expect(isAgentExclusionActive(sick, today)).toBe(false);
+  });
 });
 
 describe("planning / PDF reference date (not wall-clock today)", () => {

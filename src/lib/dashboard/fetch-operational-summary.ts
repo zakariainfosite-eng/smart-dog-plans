@@ -11,6 +11,7 @@ import {
   buildSectionRotationSchedule,
   currentOperationalShift,
 } from "@/lib/planning/section-rotation";
+import { fetchPlanningSettings, type PlanningShiftHours } from "@/lib/planning-settings";
 import { resolveSectionCommanderDisplay } from "@/lib/section-commander-display";
 import { parseISO } from "date-fns";
 
@@ -39,13 +40,14 @@ const CONGE_EXCLUSION_TYPES = new Set([
 
 export function createEmptyOperationalSummary(
   referenceDate = new Date(),
+  hours?: PlanningShiftHours,
 ): OperationalSummary {
   return {
     dateISO: todayISODate(),
     hasPlanning: false,
     hasActiveSection: false,
     sectionName: "—",
-    shift: currentOperationalShift(referenceDate),
+    shift: currentOperationalShift(referenceDate, hours),
     commanderName: "",
     commanderGrade: "",
     commanderMle: "",
@@ -95,8 +97,9 @@ export async function fetchOperationalSummary(
   // Dashboard reference date is always today — persist expired flags then evaluate.
   await expirePastExclusions(db);
   const dateISO = todayISODate();
-  const shift = currentOperationalShift(referenceDate);
-  const empty = createEmptyOperationalSummary(referenceDate);
+  const hours = await fetchPlanningSettings(db);
+  const shift = currentOperationalShift(referenceDate, hours);
+  const empty = createEmptyOperationalSummary(referenceDate, hours);
 
   // Same IPC source as Sections / Daily Planning pages.
   const sectionRows = await getSections();

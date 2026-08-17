@@ -38,10 +38,12 @@ describe("exclusion return dates", () => {
     expect(daysUntilEnd("2026-08-09", "2026-08-08")).toBe(1);
     expect(daysUntilEnd("2026-08-08", "2026-08-08")).toBe(0);
     expect(daysUntilEnd("2026-08-07", "2026-08-08")).toBe(-1);
+    expect(daysUntilEnd("2026-08-11", "2026-08-08")).toBe(3);
     expect(milestoneForDaysUntilEnd(2)).toBe("d2");
     expect(milestoneForDaysUntilEnd(1)).toBe("d1");
     expect(milestoneForDaysUntilEnd(0)).toBe("d0");
     expect(milestoneForDaysUntilEnd(3)).toBeNull();
+    expect(milestoneForDaysUntilEnd(-1)).toBeNull();
   });
 
   it("scans active exclusions ending within the next 2 days", () => {

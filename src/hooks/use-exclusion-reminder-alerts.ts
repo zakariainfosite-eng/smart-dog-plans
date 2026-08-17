@@ -35,9 +35,11 @@ export function useExclusionReminderAlerts() {
 
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", onFocus);
+    window.addEventListener("pageshow", onFocus);
     return () => {
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onFocus);
+      window.removeEventListener("pageshow", onFocus);
     };
   }, [alertsQuery]);
 

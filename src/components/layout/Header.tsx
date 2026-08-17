@@ -18,11 +18,13 @@ import { useI18n } from "@/hooks/use-i18n";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { NotificationCenter } from "@/components/notifications/notification-center";
+import { useUiPreferences } from "@/hooks/use-ui-preferences";
 import { getAuthProvider } from "@/integrations/auth";
 
 export function Header() {
   const { user } = useAuth();
   const { t } = useI18n();
+  const { notificationsEnabled } = useUiPreferences();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -47,7 +49,7 @@ export function Header() {
 
       <div className="ml-auto flex items-center gap-1">
         <LanguageSwitcher />
-        <NotificationCenter />
+        {notificationsEnabled ? <NotificationCenter /> : null}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="gap-2 px-3">

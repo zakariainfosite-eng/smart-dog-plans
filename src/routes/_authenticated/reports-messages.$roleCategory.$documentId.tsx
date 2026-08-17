@@ -178,9 +178,9 @@ function ReportDocumentPage() {
     });
   };
 
-  const printPdf = () => {
+  const printPdf = async () => {
     if (!document || !template) return;
-    printRoleDocumentPdf({
+    await printRoleDocumentPdf({
       document: { ...document, title, payload },
       template,
       t,
@@ -235,7 +235,7 @@ function ReportDocumentPage() {
           onPreview={() => setShowPreview((value) => !value)}
           onEdit={() => setEditing(true)}
           onExportPdf={() => void exportPdf()}
-          onPrint={printPdf}
+          onPrint={() => void printPdf()}
           onDuplicate={() => duplicateMutation.mutate()}
           onFinalize={() => finalizeMutation.mutate()}
           onDelete={() => deleteMutation.mutate()}

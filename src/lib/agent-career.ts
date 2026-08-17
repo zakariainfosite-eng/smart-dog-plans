@@ -19,6 +19,7 @@ export const EXCLUSION_DOG_TYPES: ExclusionType[] = [
   "dog_injured",
   "dog_temporary_retirement",
   "dog_vet_visit",
+  "dog_without_handler",
   "dog_training",
   "dog_other",
 ];

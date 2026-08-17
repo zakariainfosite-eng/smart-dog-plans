@@ -1,5 +1,5 @@
 import type { DbClient } from "@/integrations/database/client";
-import { planningDayISO, type ExclusionType } from "@/lib/agent-exclusions";
+import { planningDayISO, isOpenEndedExclusionType, type ExclusionType } from "@/lib/agent-exclusions";
 import { isMissingSoftDeleteColumn } from "@/lib/soft-delete";
 import { exclusionScanWindow } from "@/lib/notifications/exclusion-return-dates";
 
@@ -70,5 +70,9 @@ export async function loadActiveExclusionsInReminderWindow(
     throw error;
   }
 
-  return rows.filter((row) => isCurrentlyActiveExclusionForNotifications(row, reference));
+  return rows.filter(
+    (row) =>
+      !isOpenEndedExclusionType(row.exclusion_type) &&
+      isCurrentlyActiveExclusionForNotifications(row, reference),
+  );
 }

@@ -174,6 +174,7 @@ export function availabilityBadgeTone(
     case "absence":
     case "female_dog_heat":
     case "dog_vet_visit":
+    case "dog_without_handler":
       return "warning";
     case "training":
     case "dog_training":
@@ -208,4 +209,23 @@ export function agentSpecialty(agent: {
   const s = agent.dogs?.specialty;
   if (s === "narcotics" || s === "explosives") return s;
   return null;
+}
+
+/** Currency / billets de banque is grouped with narcotics (same as Chiens page). */
+export function normalizeK9Specialty(
+  specialty: string | null | undefined,
+): "narcotics" | "explosives" | null {
+  if (specialty === "explosives") return "explosives";
+  if (specialty === "narcotics" || specialty === "currency") return "narcotics";
+  return null;
+}
+
+/**
+ * Handler specialty inherited from the assigned dog.
+ * Currency / billets de banque is grouped with narcotics (same as Chiens page).
+ */
+export function cynotechnicienSpecialty(agent: {
+  dogs?: { specialty?: string | null } | null;
+}): "narcotics" | "explosives" | null {
+  return normalizeK9Specialty(agent.dogs?.specialty);
 }

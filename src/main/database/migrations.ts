@@ -95,8 +95,47 @@ export function formatMigrationFailureDetail(error: unknown): string {
 }
 
 function tableColumnNames(database: Database.Database, table: string): Set<string> {
-  const columns = database.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
-  return new Set(columns.map((column) => column.name));
+  return new Set(tableColumnInfo(database, table).map((column) => column.name));
+}
+
+function tableColumnInfo(
+  database: Database.Database,
+  table: string,
+): Array<{ name: string; notnull: number; type: string }> {
+  return database.prepare(`PRAGMA table_info(${table})`).all() as Array<{
+    name: string;
+    notnull: number;
+    type: string;
+  }>;
+}
+
+function agentExclusionsCreateSql(database: Database.Database): string {
+  const row = database
+    .prepare(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'agent_exclusions'`)
+    .get() as { sql?: string } | undefined;
+  return row?.sql ?? "";
+}
+
+/** True when end_date still rejects NULL or chien-sans-maître is not in the CHECK. */
+export function agentExclusionsNeedsOpenEndedRebuild(database: Database.Database): boolean {
+  const names = tableColumnNames(database, "agent_exclusions");
+  if (!names.has("end_date")) return false;
+  const endDate = tableColumnInfo(database, "agent_exclusions").find(
+    (column) => column.name === "end_date",
+  );
+  if (!endDate || Number(endDate.notnull) !== 0) return true;
+  return !agentExclusionsCreateSql(database).includes("dog_without_handler");
+}
+
+export function assertAgentExclusionsOpenEndedSchema(database: Database.Database): void {
+  if (agentExclusionsNeedsOpenEndedRebuild(database)) {
+    throw new Error(
+      "SQLite schema error: agent_exclusions.end_date is still NOT NULL " +
+        "(or dog_without_handler is missing from exclusion_type). " +
+        "Pending migration 019_open_ended_dog_exclusions was not applied. " +
+        "Quit the app, then run: npm run electron:build:main && npm run electron:apply-migrations",
+    );
+  }
 }
 
 /**
@@ -855,6 +894,71 @@ function migrateRoleDocumentsEquipmentChiefCategory(database: Database.Database)
   `);
 }
 
+/**
+ * Allow NULL end_date for open-ended dog exclusions and add `dog_without_handler`.
+ * Existing rows keep every stored value, including existing end dates.
+ */
+function migrateOpenEndedDogExclusions(database: Database.Database): void {
+  if (!agentExclusionsNeedsOpenEndedRebuild(database)) return;
+
+  const beforeCount = (
+    database.prepare(`SELECT COUNT(*) AS n FROM agent_exclusions`).get() as { n: number }
+  ).n;
+
+  runCrashAtomicTableRebuild(database, () => {
+    database.exec(`
+      CREATE TABLE agent_exclusions__open_ended (
+        id TEXT PRIMARY KEY NOT NULL,
+        agent_id TEXT REFERENCES agents(id) ON DELETE CASCADE,
+        dog_id TEXT REFERENCES dogs(id) ON DELETE CASCADE,
+        exclusion_type TEXT NOT NULL CHECK (exclusion_type IN (
+          'absence', 'sickness', 'administrative_leave', 'special_leave',
+          'dog_sick', 'female_dog_heat', 'annual_leave', 'mission', 'training', 'other',
+          'suspension',
+          'dog_injured', 'dog_temporary_retirement', 'dog_vet_visit', 'dog_without_handler',
+          'dog_training', 'dog_other'
+        )),
+        start_date TEXT NOT NULL,
+        end_date TEXT,
+        notes TEXT,
+        active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+        is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        CHECK (end_date IS NULL OR end_date >= start_date),
+        CHECK (agent_id IS NOT NULL OR dog_id IS NOT NULL)
+      );
+      INSERT INTO agent_exclusions__open_ended (
+        id, agent_id, dog_id, exclusion_type, start_date, end_date, notes,
+        active, is_deleted, created_at, updated_at
+      )
+      SELECT
+        id, agent_id, dog_id, exclusion_type, start_date, end_date, notes,
+        active, is_deleted, created_at, updated_at
+      FROM agent_exclusions;
+      DROP TABLE agent_exclusions;
+      ALTER TABLE agent_exclusions__open_ended RENAME TO agent_exclusions;
+      CREATE INDEX IF NOT EXISTS idx_agent_exclusions_agent ON agent_exclusions(agent_id);
+      CREATE INDEX IF NOT EXISTS idx_agent_exclusions_dog ON agent_exclusions(dog_id);
+      CREATE INDEX IF NOT EXISTS idx_agent_exclusions_dates ON agent_exclusions(start_date, end_date);
+      CREATE INDEX IF NOT EXISTS idx_agent_exclusions_active ON agent_exclusions(active);
+      CREATE INDEX IF NOT EXISTS idx_agent_exclusions_is_deleted ON agent_exclusions(is_deleted);
+    `);
+  });
+
+  const afterCount = (
+    database.prepare(`SELECT COUNT(*) AS n FROM agent_exclusions`).get() as { n: number }
+  ).n;
+  if (afterCount !== beforeCount) {
+    throw new Error(
+      `019_open_ended_dog_exclusions: row count changed (${beforeCount} → ${afterCount})`,
+    );
+  }
+  if (agentExclusionsNeedsOpenEndedRebuild(database)) {
+    throw new Error("019_open_ended_dog_exclusions: end_date is still NOT NULL after rebuild");
+  }
+}
+
 /** Ordered migration history — append only; never reorder or rename released ids. */
 export const SQLITE_MIGRATIONS: readonly SqliteMigration[] = [
   {
@@ -952,6 +1056,12 @@ export const SQLITE_MIGRATIONS: readonly SqliteMigration[] = [
     id: "018_exclusion_notifications_d2_milestone",
     description: "Exclusion end reminders — add d2 milestone (2 days before end)",
     up: migrateExclusionNotificationsD2Milestone,
+  },
+  {
+    id: "019_open_ended_dog_exclusions",
+    description: "Open-ended dog exclusions — nullable end_date + chien sans maître",
+    up: migrateOpenEndedDogExclusions,
+    noTransaction: true,
   },
 ];
 
@@ -1228,4 +1338,6 @@ export function runPendingMigrations(options: RunMigrationsOptions): void {
   log?.("runPendingMigrations: agents.fonction schema OK");
   assertCheckpointsMandatorySchema(database);
   log?.("runPendingMigrations: checkpoints.mandatory schema OK");
+  assertAgentExclusionsOpenEndedSchema(database);
+  log?.("runPendingMigrations: agent_exclusions.end_date nullable schema OK");
 }

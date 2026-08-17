@@ -1,19 +1,31 @@
 import { Ban, Dog as DogIcon } from "lucide-react";
 
+import { SpecialtyBreakdownLines } from "@/components/agents/specialty-breakdown-lines";
 import { KpiCard } from "@/components/enterprise/kpi-card";
 import type { CheckpointDogStats } from "@/lib/checkpoints/checkpoint-dog-stats";
 import { useI18n } from "@/hooks/use-i18n";
-import { cn } from "@/lib/utils";
 
 type CheckpointDogOverviewCardsProps = {
   stats: CheckpointDogStats;
   loading?: boolean;
+  onActiveClick?: () => void;
+  onActiveNarcoticsClick?: () => void;
+  onActiveExplosivesClick?: () => void;
+  onExcludedClick?: () => void;
+  onExcludedNarcoticsClick?: () => void;
+  onExcludedExplosivesClick?: () => void;
 };
 
-const trendCardClass =
-  "h-full [&_p:last-child]:whitespace-pre-line [&_p:last-child]:normal-case [&_p:last-child]:text-xs [&_p:last-child]:leading-relaxed";
-
-export function CheckpointDogOverviewCards({ stats, loading }: CheckpointDogOverviewCardsProps) {
+export function CheckpointDogOverviewCards({
+  stats,
+  loading,
+  onActiveClick,
+  onActiveNarcoticsClick,
+  onActiveExplosivesClick,
+  onExcludedClick,
+  onExcludedNarcoticsClick,
+  onExcludedExplosivesClick,
+}: CheckpointDogOverviewCardsProps) {
   const { t } = useI18n();
 
   const activeTotal =
@@ -21,35 +33,47 @@ export function CheckpointDogOverviewCards({ stats, loading }: CheckpointDogOver
   const excludedTotal =
     stats.excludedTotal ?? stats.narcotics.excluded + stats.explosives.excluded;
 
-  const activeTrend = [
-    `${t("dogs.stat.narcotics")} : ${stats.narcotics.active}`,
-    `${t("dogs.stat.explosives")} : ${stats.explosives.active}`,
-  ].join("\n");
-
-  const excludedTrend = [
-    `${t("dogs.stat.narcotics")} : ${stats.narcotics.excluded}`,
-    `${t("dogs.stat.explosives")} : ${stats.explosives.excluded}`,
-  ].join("\n");
-
   return (
     <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
       <KpiCard
         icon={DogIcon}
         label={t("dogs.stat.active")}
         value={activeTotal}
-        trend={activeTrend}
         accent="success"
         loading={loading}
-        className={cn(trendCardClass)}
+        className="h-full"
+        onDetailsClick={onActiveClick}
+        footer={
+          <SpecialtyBreakdownLines
+            specialty={{
+              narcotics: stats.narcotics.active,
+              explosives: stats.explosives.active,
+            }}
+            loading={loading}
+            onNarcoticsClick={onActiveNarcoticsClick}
+            onExplosivesClick={onActiveExplosivesClick}
+          />
+        }
       />
       <KpiCard
         icon={Ban}
         label={t("dogs.stat.excluded")}
         value={excludedTotal}
-        trend={excludedTrend}
         accent="danger"
         loading={loading}
-        className={cn(trendCardClass)}
+        className="h-full"
+        onDetailsClick={onExcludedClick}
+        footer={
+          <SpecialtyBreakdownLines
+            specialty={{
+              narcotics: stats.narcotics.excluded,
+              explosives: stats.explosives.excluded,
+            }}
+            loading={loading}
+            onNarcoticsClick={onExcludedNarcoticsClick}
+            onExplosivesClick={onExcludedExplosivesClick}
+          />
+        }
       />
     </div>
   );

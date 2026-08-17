@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { format } from "date-fns";
 import { isValidPlanningDayISO, planningDayISO, todayISODate } from "@/lib/agent-exclusions";
+import { localCalendarDayISO } from "@/lib/local-calendar-day";
 
 describe("todayISODate", () => {
   it("matches the local calendar day (not UTC)", () => {
     expect(todayISODate()).toBe(format(new Date(), "yyyy-MM-dd"));
+    expect(todayISODate()).toBe(localCalendarDayISO());
   });
 });
 

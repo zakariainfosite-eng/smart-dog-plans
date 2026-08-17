@@ -20,6 +20,58 @@
     "reportsMessages": "Reports & Messages",
     "settings": "Settings"
   },
+  "statisticDetails": {
+    "title": "Statistic details",
+    "subtitle": "{{count}} record(s) matching this statistic",
+    "subtitleDogs": "{{count}} dog(s) matching this statistic",
+    "subtitlePersonnel": "{{count}} staff member(s) matching this statistic",
+    "subtitleExclusions": "{{count}} exclusion(s) matching this statistic",
+    "subtitleCheckpoints": "{{count}} checkpoint(s) matching this statistic",
+    "description": "Details of the records matching this statistic",
+    "descriptionDogs": "Details of the dogs matching this statistic",
+    "descriptionPersonnel": "Details of the staff matching this statistic",
+    "descriptionExclusions": "Details of the exclusions matching this statistic",
+    "descriptionCheckpoints": "Details of the checkpoints matching this statistic",
+    "total": "Total: {{count}}",
+    "summaryTotal": "Total",
+    "summaryNoun": "Records",
+    "summaryNounDogs": "Dogs",
+    "summaryNounPersonnel": "Staff",
+    "summaryNounExclusions": "Exclusions",
+    "summaryNounCheckpoints": "Checkpoints",
+    "resultsHeading": "Results",
+    "resultsCaption": "Records matching this statistic",
+    "resultsCaptionDogs": "Dogs matching this statistic",
+    "resultsCaptionPersonnel": "Staff matching this statistic",
+    "resultsCaptionExclusions": "Exclusions matching this statistic",
+    "resultsCaptionCheckpoints": "Checkpoints matching this statistic",
+    "results": "{{count}} result(s)",
+    "empty": "No records in this statistic.",
+    "noResults": "No results",
+    "close": "Close",
+    "openAria": "View details: {{label}}",
+    "columns": {
+      "firstName": "First name",
+      "lastName": "Last name",
+      "fonction": "Role",
+      "specialty": "Specialty",
+      "status": "Status",
+      "section": "Section",
+      "dogName": "Dog",
+      "handler": "Handler",
+      "exclusionType": "Exclusion type",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "checkpoint": "Checkpoint",
+      "name": "Name",
+      "type": "Type",
+      "nightOnly": "Night only",
+      "required": "Required dogs / teams",
+      "assigned": "Assigned",
+      "date": "Date",
+      "caseNumber": "Case number"
+    }
+  },
   "auth": {
     "brandName": "CynoPlanning",
     "tagline": "Operational planning & cynotechnician management",
@@ -36,6 +88,7 @@
     "footer": "Restricted Access • Authorized Personnel Only"
   },
   "specialty": {
+    "total": "Total",
     "narcotics": "Narcotics & Banknotes",
     "narcoticsDetection": "Narcotics & Banknotes",
     "explosives": "Explosives",
@@ -47,10 +100,10 @@
     "day": "Day",
     "night": "Night",
     "rest": "Rest",
-    "dayHours": "Day (09:00–21:00)",
-    "nightHours": "Night (21:00–09:00)",
-    "dayShort": "Day (09→21)",
-    "nightShort": "Night (21→09)"
+    "dayHours": "Day ({{dayStart}}–{{dayEnd}})",
+    "nightHours": "Night ({{nightStart}}–{{nightEnd}})",
+    "dayShort": "Day ({{dayStart}}→{{dayEnd}})",
+    "nightShort": "Night ({{nightStart}}→{{nightEnd}})"
   },
   "dogs": {
     "export": {
@@ -94,10 +147,17 @@
     "search": "Search by name, breed, microchip or sex…",
     "field": {
       "sex": "Sex",
-      "statusFromExclusions": "Computed automatically from active exclusions."
+      "statusFromExclusions": "Computed automatically from active exclusions.",
+      "currentAgent": "Assigned handler"
+    },
+    "select": {
+      "unassigned": "Unassigned"
     }
   },
   "checkpoints": {
+    "stat": {
+      "requiredTeams": "Required K9 dogs"
+    },
     "tooltip": {
       "narcoticsExplosives": "Narcotics & Banknotes / Explosives"
     },
@@ -256,7 +316,7 @@
     "searchPersonnel": "Search name or professional number…",
     "searchDogs": "Search dog name or ID…",
     "stat": {
-      "sickAgents": "Sick personnel",
+      "sickAgents": "Excluded personnel",
       "dogBySpecialty": "Dog exclusions by specialty",
       "excludedDogsTotal": "Total excluded dogs"
     },
@@ -325,7 +385,11 @@
       "noFonction": "No function"
     },
     "error": {
-      "overlap": "This staff member already has an exclusion for this period."
+      "overlap": "This staff member already has an exclusion for this period.",
+      "typeDisabled": "This exclusion type is no longer available for new records."
+    },
+    "form": {
+      "noTypesAvailable": "No exclusion type is currently available for this category. An administrator can re-enable types in Settings."
     },
     "type": {
       "sickness": "Sick",
@@ -341,9 +405,13 @@
       "suspension": "Suspension",
       "dog_injured": "Injured",
       "dog_temporary_retirement": "Temporarily retired",
-      "dog_vet_visit": "Veterinary visit",
+      "dog_vet_visit": "Under observation",
+      "dog_without_handler": "Dog without handler",
       "dog_training": "Training",
       "dog_other": "Other"
+    },
+    "formType": {
+      "dog_vet_visit": "Under observation"
     },
     "hint": {
       "endDateEditable": "Calculated automatically from duration. You may edit it manually."
@@ -374,6 +442,10 @@
   "employees": {
     "title": "Personnel",
     "description": "Cynotechnical brigade personnel.",
+    "stat": {
+      "excluded": "Excluded personnel",
+      "administrative": "Administrative personnel"
+    },
     "addAgent": "Add personnel",
     "hero": {
       "title": "Personnel management",
@@ -582,9 +654,13 @@
     "title": "Dashboard",
     "description": "Operations and planning overview.",
     "stat": {
-      "activeAgents": "Active cynotechnicians",
-      "activeK9": "Active K9 units",
-      "activeCheckpoints": "Active checkpoints",
+      "totalFonctionnaires": "Total personnel — Cynotechnical brigade",
+      "cynotechniciensBySpecialty": "Cynotechnicians by specialty",
+      "activeCynotechniciens": "Active cynotechnicians",
+      "cynotechniciensWithoutDog": "Cynotechnicians without a dog",
+      "excludedCynotechniciensBySpecialty": "Excluded cynotechnicians by specialty",
+      "narcotics": "Narcotics & Banknotes",
+      "explosives": "Explosives",
       "todayPlannings": "Today's plannings"
     },
     "kpi": {
@@ -620,6 +696,8 @@
     "title": "Alert center",
     "subtitle": "Upcoming exclusion returns",
     "empty": "No notifications right now.",
+    "loadError": "Could not load notifications.",
+    "retry": "Try again",
     "markAllRead": "Mark all as read",
     "filter": {
       "all": "All",
@@ -883,8 +961,309 @@
       "controls": "controls"
     }
   },
+  "settings": {
+    "title": "Settings",
+    "description": "Configure the console and preferences.",
+    "appearance": {
+      "title": "Appearance & user preferences",
+      "description": "Language, theme, density and notification display for this device.",
+      "darkMode": "Dark mode",
+      "language": "Interface language",
+      "languageDescription": "French or Arabic. Arabic automatically enables RTL.",
+      "theme": "Appearance",
+      "themeDescription": "Light, dark, or follow the system.",
+      "themeLight": "Light",
+      "themeDark": "Dark",
+      "themeSystem": "System",
+      "density": "Interface density",
+      "densityDescription": "Slightly adjust spacing for tables, cards and components.",
+      "densityCompact": "Compact",
+      "densityNormal": "Normal",
+      "densityComfortable": "Comfortable",
+      "notifications": "Notifications",
+      "notificationsDescription": "Show notifications in the interface. Alert generation is unchanged.",
+      "notificationsEnable": "Enable notifications"
+    },
+    "organization": {
+      "title": "Organization",
+      "description": "General information about the CynoPlanning unit.",
+      "placeholder": "Additional settings will appear here.",
+      "loading": "Loading information…",
+      "loadError": "Unable to load organisation information.",
+      "viewOnly": "View only. Administrators can modify this information.",
+      "idleHint": "Click Edit to update the unit information.",
+      "editingHint": "Fields are editable. Save to keep the changes.",
+      "fields": {
+        "unitName": {
+          "label": "Organisation / unit name",
+          "description": "Official unit name, for example Brigade cynotechnique."
+        },
+        "serviceName": {
+          "label": "Service name",
+          "description": "Service or brigade as it should appear in the console."
+        },
+        "city": {
+          "label": "City",
+          "description": "City where the unit is based."
+        },
+        "country": {
+          "label": "Country",
+          "description": "Unit country. Defaults to Morocco."
+        },
+        "address": {
+          "label": "Address",
+          "description": "Optional postal address."
+        },
+        "phone": {
+          "label": "Phone",
+          "description": "Optional number in Moroccan or international format."
+        },
+        "email": {
+          "label": "Email",
+          "description": "Optional contact email address."
+        },
+        "notes": {
+          "label": "Additional information",
+          "description": "Optional notes about the unit (internal reference, affiliation, etc.)."
+        }
+      },
+      "errors": {
+        "required": "This field is required.",
+        "email": "Enter a valid email address.",
+        "phone": "Enter a valid phone number."
+      },
+      "toast": {
+        "saved": "Organisation information saved.",
+        "saveFailed": "Save failed. Try again."
+      },
+      "discard": {
+        "title": "Discard changes?",
+        "description": "Unsaved changes will be lost.",
+        "keepEditing": "Keep editing",
+        "confirm": "Discard changes"
+      }
+    },
+    "planning": {
+      "title": "Planning",
+      "description": "Settings used to generate future plannings.",
+      "loading": "Loading settings…",
+      "loadError": "Unable to load planning settings.",
+      "viewOnly": "View only. Administrators can modify these settings.",
+      "idleHint": "Click Edit to adjust hours for future plannings.",
+      "editingHint": "Hours are editable. Already generated history is not changed.",
+      "groups": {
+        "hours": "Hours",
+        "hoursDescription": "Day and night windows shown in planning. Night may cross midnight.",
+        "rotation": "Rotation",
+        "rotationDescription": "Rules already applied by the engine. They cannot be disabled without rewriting it.",
+        "info": "Information"
+      },
+      "fields": {
+        "start": "Start time",
+        "end": "End time"
+      },
+      "rotation": {
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "smart": {
+          "title": "Smart Rotation",
+          "description": "Mandatory engine cycle. An agent revisits a checkpoint only after covering compatible points. Disabling this would weaken operational coverage."
+        },
+        "avoidRepeat": {
+          "title": "Avoid the same checkpoint on consecutive days",
+          "description": "This preference is already built into rotation (Smart Rotation cycle and female ranking). It is not an independent switch."
+        },
+        "fair": {
+          "title": "Fair checkpoint rotation",
+          "description": "The engine already ranks agents by lowest visit count. That ranking is not a configurable switch."
+        }
+      },
+      "info": {
+        "nightOnly": "Night-only checkpoints are configured from the Checkpoints page."
+      },
+      "errors": {
+        "format": "Enter a valid time as HH:mm.",
+        "same": "Start and end times cannot be identical."
+      },
+      "toast": {
+        "saved": "Planning settings saved. They apply to future plannings.",
+        "saveFailed": "Save failed. Try again."
+      },
+      "discard": {
+        "title": "Discard changes?",
+        "description": "Unsaved hours will be lost.",
+        "keepEditing": "Keep editing",
+        "confirm": "Discard changes"
+      },
+      "reset": {
+        "action": "Restore default settings",
+        "title": "Restore default hours?",
+        "description": "Day 09:00–21:00 and night 21:00–09:00 will be restored. Already generated planning history is not modified. Only future plannings will use these hours.",
+        "confirm": "Restore"
+      }
+    },
+    "exclusions": {
+      "title": "Exclusions",
+      "description": "Configure available exclusion types and the related reminders.",
+      "loading": "Loading settings…",
+      "loadError": "Unable to load exclusion settings.",
+      "viewOnly": "View only. Administrators can modify these settings.",
+      "idleHint": "Click Edit to enable or disable a type, or to adjust reminders.",
+      "editingHint": "These settings apply to new exclusions. Existing records are not modified.",
+      "groups": {
+        "types": "Exclusion types",
+        "typesDescription": "Types already supported by the application. Disabling a type removes it from the creation form only.",
+        "reminders": "Exclusion end reminders",
+        "remindersDescription": "Existing notification-engine milestones. Open-ended exclusions never generate these reminders.",
+        "rules": "General rules",
+        "info": "Information / protection"
+      },
+      "columns": {
+        "type": "Type",
+        "category": "Category",
+        "duration": "Duration",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "category": {
+        "dog": "Dog",
+        "personnel": "Officer"
+      },
+      "duration": {
+        "dated": "With end date",
+        "openEnded": "No end date"
+      },
+      "status": {
+        "enabled": "Enabled",
+        "disabled": "Disabled"
+      },
+      "actions": {
+        "toggleType": "Available for new exclusions: {{type}}"
+      },
+      "reminders": {
+        "d2": {
+          "title": "2 days before",
+          "description": "Reminder when the end date is two days away."
+        },
+        "d1": {
+          "title": "1 day before",
+          "description": "Reminder the day before the end date."
+        },
+        "d0": {
+          "title": "On the day",
+          "description": "Reminder on the day the exclusion ends."
+        }
+      },
+      "rules": {
+        "openEnded": "“Under observation” and “Dog without handler” stay open-ended: start date required, no automatic expiration, no d2 / d1 / d0 reminder. This rule is not configurable.",
+        "disableCreationOnly": "Disabling a type hides it from creation only. Already recorded exclusions stay valid and visible in history, tables, statistics and reports."
+      },
+      "info": {
+        "activeStatus": "An exclusion is considered active when its activation conditions are met. Expired exclusions must not appear in statistics or active-exclusion lists.",
+        "dataSafety": "These settings never modify existing exclusions, planning, assignments, already stored notifications, statistics or reports."
+      },
+      "customTypes": {
+        "title": "Custom types",
+        "description": "Adding custom exclusion types is not available. Types are a schema and engine enumeration; inventing them here would break records, statistics and notifications."
+      },
+      "toast": {
+        "saved": "Exclusion settings saved. They apply to new exclusions and upcoming reminders.",
+        "saveFailed": "Save failed. Try again."
+      },
+      "discard": {
+        "title": "Discard changes?",
+        "description": "Unsaved settings will be lost.",
+        "keepEditing": "Keep editing",
+        "confirm": "Discard changes"
+      },
+      "reset": {
+        "action": "Restore default settings",
+        "title": "Restore default exclusion settings?",
+        "description": "Every type becomes available for creation again and the 2-day / 1-day / same-day reminders are turned back on. Already recorded exclusions are not modified.",
+        "confirm": "Restore"
+      }
+    },
+    "documents": {
+      "title": "Documents & PDF",
+      "description": "Configure the information and format used for documents, reports and exports.",
+      "loading": "Loading settings…",
+      "loadError": "Unable to load document settings.",
+      "viewOnly": "View only. Administrators can modify these settings.",
+      "idleHint": "Click Edit to change the logo, orientation, footer or document language.",
+      "editingHint": "These settings apply to documents generated in the future. Already exported files are not modified.",
+      "groups": {
+        "identity": "Document information",
+        "identityDescription": "These fields come from Settings → Organization. They are not duplicated here.",
+        "logo": "Visual identity",
+        "logoDescription": "Logo used in generated document headers. The application logo is not changed.",
+        "layout": "Layout",
+        "layoutDescription": "A4 format. Orientation applies to generic reports. Official attendance sheets stay portrait.",
+        "footer": "Footer",
+        "footerDescription": "Optional text for generic PDF reports. Official attendance-sheet signatures stay unchanged.",
+        "language": "Language",
+        "languageDescription": "Independent from the interface language. Official attendance templates stay in French."
+      },
+      "fields": {
+        "pageFormat": "Page format",
+        "pageFormatDescription": "The only format already supported by the export engine.",
+        "orientation": "Orientation",
+        "orientationDescription": "Applies to generic PDF reports. Official templates stay portrait.",
+        "margins": "Margins",
+        "marginsDescription": "Calibrated official-template margins. They cannot be changed without rewriting the engine.",
+        "footerText": "Footer text",
+        "footerPlaceholder": "Brigade cynotechnique — CynoPlanning",
+        "pageNumbers": "Page numbering",
+        "pageNumbersDescription": "Shows Page X / Y on generic PDF reports. Official Word export keeps its current behavior.",
+        "documentLanguage": "Document language"
+      },
+      "orientation": {
+        "portrait": "Portrait",
+        "landscape": "Landscape"
+      },
+      "margins": {
+        "top": "Top",
+        "bottom": "Bottom",
+        "left": "Left",
+        "right": "Right"
+      },
+      "logo": {
+        "upload": "Upload a logo",
+        "replace": "Replace the logo",
+        "remove": "Remove the logo",
+        "previewAlt": "Document logo preview",
+        "officialInUse": "Official seal in use. PNG with a transparent background is recommended.",
+        "customInUse": "Custom logo. PNG with a transparent background is recommended.",
+        "errors": {
+          "invalidType": "Use a PNG or JPEG file.",
+          "tooLarge": "The logo must not exceed {{maxMb}} MB."
+        }
+      },
+      "preview": {
+        "action": "Document preview",
+        "title": "Document preview",
+        "description": "Presentation of the settings. No file is saved.",
+        "emptyFooter": "No custom footer",
+        "pageNumber": "Page {{page}} / {{total}}"
+      },
+      "info": {
+        "futureOnly": "These settings affect only documents generated in the future. Employees, dogs, plannings, exclusions, reports and already exported files are not modified."
+      },
+      "toast": {
+        "saved": "Document settings saved. They apply to the next exports.",
+        "saveFailed": "Save failed. Try again."
+      },
+      "discard": {
+        "title": "Discard changes?",
+        "description": "Unsaved settings and logo will be lost.",
+        "keepEditing": "Keep editing",
+        "confirm": "Discard changes"
+      }
+    }
+  },
   "language": {
-    "english": "English"
+    "french": "Français",
+    "english": "English",
+    "arabic": "العربية"
   },
   "history": {
     "title": "History",

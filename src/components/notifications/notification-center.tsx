@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Bell, Dog, ExternalLink, FileText, Mail, UserRound } from "lucide-react";
@@ -32,12 +32,13 @@ import {
   type ExclusionNotificationSeverity,
 } from "@/lib/notifications/exclusion-return-types";
 import {
-  fetchExclusionNotifications,
   markAllExclusionNotificationsRead,
   markExclusionNotificationsRead,
 } from "@/lib/notifications/sync-exclusion-return-notifications";
-import { runExclusionNotificationSync } from "@/lib/notifications/run-exclusion-notification-sync";
+import { loadExclusionNotificationFeed } from "@/lib/notifications/run-exclusion-notification-sync";
 import { todayISODate } from "@/lib/agent-exclusions";
+import { formatUnknownError, stackUnknownError } from "@/lib/documents/export-error";
+import { getRuntimePlatform } from "@/lib/runtime-platform";
 
 const severityStyles: Record<
   ExclusionNotificationSeverity,
@@ -233,12 +234,27 @@ export function NotificationCenter() {
 
   const notificationsQuery = useQuery({
     queryKey: EXCLUSION_NOTIFICATIONS_QUERY_KEY,
-    queryFn: async () => {
-      await runExclusionNotificationSync(db);
-      return fetchExclusionNotifications(db);
-    },
+    queryFn: () => loadExclusionNotificationFeed(db),
     staleTime: 30_000,
+    retry: 1,
   });
+
+  const showLoading =
+    notificationsQuery.isFetching && notificationsQuery.data === undefined;
+  const showError =
+    notificationsQuery.isError &&
+    notificationsQuery.data === undefined &&
+    !notificationsQuery.isFetching;
+
+  useEffect(() => {
+    if (!notificationsQuery.isError) return;
+    console.error("[notifications] NotificationCenter query failed", {
+      platform: getRuntimePlatform(),
+      message: formatUnknownError(notificationsQuery.error),
+      stack: stackUnknownError(notificationsQuery.error),
+      error: notificationsQuery.error,
+    });
+  }, [notificationsQuery.isError, notificationsQuery.error]);
 
   const notifications = notificationsQuery.data ?? [];
   const expiringNotifications = useMemo(
@@ -283,11 +299,57 @@ export function NotificationCenter() {
 
   async function handleOpenChange(next: boolean) {
     setOpen(next);
-    if (next) {
-      const unreadIds = expiringNotifications.filter((n) => !n.is_read).map((n) => n.id);
-      if (unreadIds.length > 0) {
-        await markReadMutation.mutateAsync(unreadIds);
+    if (!next) return;
+    try {
+      const result = await notificationsQuery.refetch();
+      if (result.error) {
+        console.error("[notifications] NotificationCenter query failed", {
+          platform: getRuntimePlatform(),
+          message: formatUnknownError(result.error),
+          stack: stackUnknownError(result.error),
+          error: result.error,
+        });
+        return;
       }
+      console.info("[notifications] panel open fetch ok", {
+        platform: getRuntimePlatform(),
+        count: result.data?.length ?? 0,
+      });
+    } catch (error) {
+      console.error("[notifications] NotificationCenter query failed", {
+        platform: getRuntimePlatform(),
+        message: formatUnknownError(error),
+        stack: stackUnknownError(error),
+        error,
+      });
+      return;
+    }
+    const unreadIds = expiringNotifications.filter((n) => !n.is_read).map((n) => n.id);
+    if (unreadIds.length > 0) {
+      await markReadMutation.mutateAsync(unreadIds);
+    }
+  }
+
+  async function handleRetry() {
+    console.info("[notifications] retry start", { platform: getRuntimePlatform() });
+    try {
+      await queryClient.cancelQueries({ queryKey: EXCLUSION_NOTIFICATIONS_QUERY_KEY });
+      const rows = await queryClient.fetchQuery({
+        queryKey: EXCLUSION_NOTIFICATIONS_QUERY_KEY,
+        queryFn: () => loadExclusionNotificationFeed(db),
+        staleTime: 0,
+      });
+      console.info("[notifications] retry ok", {
+        platform: getRuntimePlatform(),
+        count: rows.length,
+      });
+    } catch (error) {
+      console.error("[notifications] retry failed", {
+        platform: getRuntimePlatform(),
+        message: formatUnknownError(error),
+        stack: stackUnknownError(error),
+        error,
+      });
     }
   }
 
@@ -403,9 +465,30 @@ export function NotificationCenter() {
         </div>
 
         <ScrollArea className="h-[420px]">
-          {notificationsQuery.isLoading ? (
+          {showLoading ? (
             <div className="px-4 py-10 text-center text-sm text-muted-foreground">
               {t("common.loading")}
+            </div>
+          ) : showError ? (
+            <div className="px-4 py-10 text-center">
+              <p className="text-sm text-muted-foreground">
+                {t("notifications.loadError")}
+              </p>
+              {import.meta.env.DEV ? (
+                <p className="mt-2 break-words px-2 text-[11px] text-destructive">
+                  {formatUnknownError(notificationsQuery.error)}
+                </p>
+              ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                disabled={notificationsQuery.isFetching}
+                onClick={() => void handleRetry()}
+              >
+                {t("notifications.retry")}
+              </Button>
             </div>
           ) : visible.length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-muted-foreground">

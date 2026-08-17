@@ -1,3 +1,9 @@
+import {
+  DEFAULT_PLANNING_SETTINGS,
+  isWithinDayShiftWindow,
+  type PlanningShiftHours,
+} from "@/lib/planning-settings";
+
 export type RotationShift = "day" | "night" | "rest";
 
 const ROTATION_ANCHOR = new Date(Date.UTC(2024, 0, 1));
@@ -17,10 +23,12 @@ export function shiftForSection(sectionIndex: number, date: Date): RotationShift
   return ROTATION_MATRIX[sectionIndex][rotationOffset(date)];
 }
 
-/** Operational shift window: day 09:00–21:00, night otherwise (matches planning UI). */
-export function currentOperationalShift(now = new Date()): "day" | "night" {
-  const hour = now.getHours();
-  return hour >= 9 && hour < 21 ? "day" : "night";
+/** Operational shift window from Settings → Planification (defaults 09:00–21:00). */
+export function currentOperationalShift(
+  now = new Date(),
+  hours: PlanningShiftHours = DEFAULT_PLANNING_SETTINGS,
+): "day" | "night" {
+  return isWithinDayShiftWindow(now, hours) ? "day" : "night";
 }
 
 export type SectionRotationRow = {

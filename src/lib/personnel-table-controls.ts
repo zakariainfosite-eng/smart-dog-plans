@@ -31,6 +31,7 @@ export const PERSONNEL_STATUS_FILTER_TYPES = [
   "dog_injured",
   "dog_temporary_retirement",
   "dog_vet_visit",
+  "dog_without_handler",
   "dog_training",
   "dog_other",
 ] as const;

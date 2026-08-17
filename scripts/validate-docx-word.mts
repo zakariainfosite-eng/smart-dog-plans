@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { generateFeuillePresenceDocx } from "../src/lib/documents/feuille-presence-docx.ts";
+import { inspectWord2007DocxCompliance } from "../src/lib/documents/docx-word2007-compat.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const outDir = join(root, "tmp-word-validation");
@@ -112,6 +113,16 @@ execSync(`unzip -q "${docxPath}" -d "${inspectDir}"`);
 
 const documentXml = readFileSync(join(inspectDir, "word/document.xml"), "utf8");
 const relsXml = readFileSync(join(inspectDir, "word/_rels/document.xml.rels"), "utf8");
+const settingsXml = readFileSync(join(inspectDir, "word/settings.xml"), "utf8");
+const commentsXml = readFileSync(join(inspectDir, "word/comments.xml"), "utf8");
+const fontTableXml = readFileSync(join(inspectDir, "word/fontTable.xml"), "utf8");
+
+const word2007 = inspectWord2007DocxCompliance({
+  "word/document.xml": documentXml,
+  "word/settings.xml": settingsXml,
+  "word/comments.xml": commentsXml,
+  "word/fontTable.xml": fontTableXml,
+});
 const docPrIds = [...documentXml.matchAll(/<wp:docPr[^>]*\bid="(\d+)"/g)].map((m) => m[1]);
 const embeds = [...documentXml.matchAll(/r:embed="(rId\d+)"/g)].map((m) => m[1]);
 const behindDocAnchors = [...documentXml.matchAll(/<wp:anchor[^>]*behindDoc="1"/g)].length;
@@ -132,7 +143,12 @@ const report = {
   anchorCount: (documentXml.match(/<wp:anchor/g) ?? []).length,
   behindDocAnchorCount: behindDocAnchors,
   hasNaN: documentXml.includes("NaN"),
+  word2007,
 };
 
 writeFileSync(join(outDir, "drawing-report.json"), JSON.stringify(report, null, 2));
 console.log(JSON.stringify(report, null, 2));
+if (!word2007.ok) {
+  console.error("Word 2007 compliance check failed:", word2007.issues);
+  process.exit(1);
+}

@@ -153,6 +153,11 @@
 
   html {
     scroll-behavior: smooth;
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
   }
 
   body {
@@ -234,6 +239,7 @@
   .stagger-2 { animation-delay: 80ms; }
   .stagger-3 { animation-delay: 120ms; }
   .stagger-4 { animation-delay: 160ms; }
+  .stagger-5 { animation-delay: 200ms; }
 
   .glass-header {
     background: rgb(255 255 255 / 0.92);
@@ -347,6 +353,73 @@ html[dir="rtl"] .text-right {
   text-align: left;
 }
 
+/* Density — Normal matches the current interface (no extra rules). */
+html[data-density="compact"] .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 1rem;
+}
+
+html[data-density="comfortable"] .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 1.75rem;
+}
+
+html[data-density="compact"] .cyno-content-shell.p-6 {
+  padding: 1rem;
+}
+
+html[data-density="comfortable"] .cyno-content-shell.p-6 {
+  padding: 1.75rem;
+}
+
+html[data-density="compact"] .enterprise-card {
+  padding-top: 0.9rem;
+  padding-bottom: 0.9rem;
+}
+
+html[data-density="comfortable"] .enterprise-card {
+  padding-top: 1.4rem;
+  padding-bottom: 1.4rem;
+}
+
+html[data-density="compact"] .cyno-page-hero {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+html[data-density="comfortable"] .cyno-page-hero {
+  padding-top: 1.35rem;
+  padding-bottom: 1.35rem;
+}
+
+html[data-density="compact"] main .page-enter {
+  padding-bottom: 1.25rem;
+}
+
+html[data-density="comfortable"] main .page-enter {
+  padding-bottom: 2rem;
+}
+
+html[data-density="compact"] [role="row"] {
+  height: auto;
+  min-height: 52px;
+}
+
+html[data-density="comfortable"] [role="row"] {
+  height: auto;
+  min-height: 76px;
+}
+
+html[data-density="compact"] [role="cell"],
+html[data-density="compact"] [role="columnheader"] {
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+}
+
+html[data-density="comfortable"] [role="cell"],
+html[data-density="comfortable"] [role="columnheader"] {
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+}
+
 .cyno-app-sidebar {
   border: none !important;
   border-right: 1px solid #f1f5f9 !important;
@@ -364,7 +437,30 @@ html[dir="rtl"] .text-right {
 }
 
 .dark .cyno-app-sidebar [data-sidebar="sidebar"] {
-  background: var(--color-card);
+  background: var(--color-sidebar) !important;
+}
+
+.dark [data-sidebar="menu-button"].cyno-nav-item[data-active="true"] {
+  background: var(--color-sidebar-accent) !important;
+  color: var(--color-sidebar-accent-foreground) !important;
+}
+
+.dark [data-sidebar="menu-button"].cyno-nav-item:hover:not([data-active="true"]) {
+  background: var(--color-sidebar-accent) !important;
+  color: var(--color-sidebar-accent-foreground) !important;
+}
+
+.dark [data-sidebar="menu-button"].cyno-nav-item:hover:not([data-active="true"]) svg {
+  color: var(--color-sidebar-accent-foreground) !important;
+}
+
+html[dir="rtl"] .cyno-app-sidebar {
+  border-right: none !important;
+  border-left: 1px solid #f1f5f9 !important;
+}
+
+html[dir="rtl"].dark .cyno-app-sidebar {
+  border-left-color: var(--color-border) !important;
 }
 
 [data-sidebar="menu-button"].cyno-nav-item {

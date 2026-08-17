@@ -20,8 +20,11 @@ import { StatusBadge } from "@/components/enterprise/status-badge";
 import { Button } from "@/components/ui/button";
 import { PlanningHistoryDetailSheet } from "@/components/planning/planning-history-detail-sheet";
 import { fetchPlanningHistory, type PlanningHistoryListItem } from "@/lib/planning/fetch-planning-history";
-import { loadStoredPlanningDetail } from "@/lib/planning/load-stored-planning-detail";
-import type { StoredPlanningDetail } from "@/lib/planning/load-stored-planning-detail";
+import { formatUnknownError } from "@/lib/documents/export-error";
+import {
+  loadStoredPlanningDetail,
+  type StoredPlanningDetail,
+} from "@/lib/planning/load-stored-planning-detail";
 import { formatPageLastUpdated } from "@/lib/page-ui";
 import { useI18n } from "@/hooks/use-i18n";
 import { useDocumentTitle } from "@/hooks/use-document-title";
@@ -53,13 +56,32 @@ function HistoryPage() {
     if (loadingDetail) return;
     setLoadingDetail(true);
     setSelectedPlanningId(planningId);
+    const listRow = data?.find((row) => row.id === planningId);
+    console.info("[history] open", {
+      planningId,
+      planning_date: listRow?.planning_date,
+      section: listRow?.section_name,
+      shift: listRow?.shift,
+      table: "planning",
+    });
     try {
       const loaded = await loadStoredPlanningDetail(db, planningId);
       setDetail(loaded);
       setDetailOpen(true);
     } catch (loadError) {
-      console.error("[history] failed to load planning", loadError);
-      toast.error(t("history.loadError"));
+      const message = formatUnknownError(loadError);
+      console.error("[history] failed to load planning", {
+        planningId,
+        planning_date: listRow?.planning_date,
+        section: listRow?.section_name,
+        shift: listRow?.shift,
+        table: "planning / planning_assignments",
+        error: loadError,
+        message,
+      });
+      toast.error(
+        import.meta.env.DEV ? `${t("history.loadError")}\n${message}` : t("history.loadError"),
+      );
     } finally {
       setLoadingDetail(false);
     }

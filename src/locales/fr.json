@@ -47,6 +47,58 @@
     "my": "Mon compte",
     "fallback": "Compte"
   },
+  "statisticDetails": {
+    "title": "Détail de la statistique",
+    "subtitle": "{{count}} enregistrement(s) correspondant à cette statistique",
+    "subtitleDogs": "{{count}} chien(s) correspondant à cette statistique",
+    "subtitlePersonnel": "{{count}} fonctionnaire(s) correspondant à cette statistique",
+    "subtitleExclusions": "{{count}} exclusion(s) correspondant à cette statistique",
+    "subtitleCheckpoints": "{{count}} point(s) de contrôle correspondant à cette statistique",
+    "description": "Détails des enregistrements correspondant à cette statistique",
+    "descriptionDogs": "Détails des chiens correspondant à cette statistique",
+    "descriptionPersonnel": "Détails des fonctionnaires correspondant à cette statistique",
+    "descriptionExclusions": "Détails des exclusions correspondant à cette statistique",
+    "descriptionCheckpoints": "Détails des points de contrôle correspondant à cette statistique",
+    "total": "Total : {{count}}",
+    "summaryTotal": "Total",
+    "summaryNoun": "Enregistrements",
+    "summaryNounDogs": "Chiens",
+    "summaryNounPersonnel": "Fonctionnaires",
+    "summaryNounExclusions": "Exclusions",
+    "summaryNounCheckpoints": "Points de contrôle",
+    "resultsHeading": "Résultats",
+    "resultsCaption": "Enregistrements correspondant à cette statistique",
+    "resultsCaptionDogs": "Chiens correspondant à cette statistique",
+    "resultsCaptionPersonnel": "Fonctionnaires correspondant à cette statistique",
+    "resultsCaptionExclusions": "Exclusions correspondant à cette statistique",
+    "resultsCaptionCheckpoints": "Points de contrôle correspondant à cette statistique",
+    "results": "{{count}} résultat(s)",
+    "empty": "Aucun enregistrement dans cette statistique.",
+    "noResults": "Aucun résultat",
+    "close": "Fermer",
+    "openAria": "Voir le détail : {{label}}",
+    "columns": {
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "fonction": "Fonction",
+      "specialty": "Spécialité",
+      "status": "Statut",
+      "section": "Section",
+      "dogName": "Chien",
+      "handler": "Cynotechnicien",
+      "exclusionType": "Type d'exclusion",
+      "startDate": "Date de début",
+      "endDate": "Date de fin",
+      "checkpoint": "Point",
+      "name": "Nom",
+      "type": "Type",
+      "nightOnly": "Nuit uniquement",
+      "required": "Chiens / équipes requis",
+      "assigned": "Affectés",
+      "date": "Date",
+      "caseNumber": "N° de cas"
+    }
+  },
   "common": {
     "active": "Actif",
     "inactive": "Inactif",
@@ -78,6 +130,7 @@
     "all": "Tous les genres"
   },
   "specialty": {
+    "total": "Total",
     "narcotics": "Stupéfiants & Billets de banque",
     "narcoticsDetection": "Stupéfiants & Billets de banque",
     "explosives": "Explosifs",
@@ -95,10 +148,10 @@
     "day": "Jour",
     "night": "Nuit",
     "rest": "Repos",
-    "dayHours": "Jour (09:00–21:00)",
-    "nightHours": "Nuit (21:00–09:00)",
-    "dayShort": "Jour (09→21)",
-    "nightShort": "Nuit (21→09)"
+    "dayHours": "Jour ({{dayStart}}–{{dayEnd}})",
+    "nightHours": "Nuit ({{nightStart}}–{{nightEnd}})",
+    "dayShort": "Jour ({{dayStart}}→{{dayEnd}})",
+    "nightShort": "Nuit ({{nightStart}}→{{nightEnd}})"
   },
   "weekday": {
     "monday": "Lundi",
@@ -223,12 +276,13 @@
     "title": "Tableau de bord",
     "description": "Aperçu des opérations et de la planification.",
     "stat": {
-      "activePersonnelTotal": "Personnel actif total",
+      "totalFonctionnaires": "Total fonctionnaires Brigade cynotechnique",
+      "cynotechniciensBySpecialty": "Cynotechniciens par spécialité",
       "activeCynotechniciens": "Cynotechniciens actifs",
-      "activeAdministrative": "Administratifs actifs",
-      "activeAgents": "Cynotechniciens actifs",
-      "activeK9": "Unités K9 actives",
-      "activeCheckpoints": "Points de contrôle actifs",
+      "cynotechniciensWithoutDog": "Cynotechniciens sans chien",
+      "excludedCynotechniciensBySpecialty": "Cynotechniciens exclus par spécialité",
+      "narcotics": "Stupéfiants & Billets de banque",
+      "explosives": "Explosifs",
       "todayPlannings": "Planifications du jour"
     },
     "kpi": {
@@ -267,6 +321,8 @@
     "title": "Centre d'alertes",
     "subtitle": "Exclusions arrivant à expiration",
     "empty": "Aucune notification pour le moment.",
+    "loadError": "Impossible de charger les notifications.",
+    "retry": "Réessayer",
     "markAllRead": "Tout marquer comme lu",
     "section": {
       "expiring": "Exclusions arrivant à expiration"
@@ -381,7 +437,7 @@
       "total": "Total fonctionnaires",
       "withDog": "Maîtres avec chien",
       "available": "Disponibles",
-      "excluded": "Exclus",
+      "excluded": "Fonctionnaires exclus",
       "female": "Femmes",
       "male": "Hommes",
       "narcoticsHandlers": "Maîtres stupéfiants",
@@ -848,7 +904,7 @@
     "stat": {
       "total": "Total points de contrôle",
       "nightOnly": "Nuit uniquement",
-      "requiredTeams": "Équipes K9 requises"
+      "requiredTeams": "Chiens K9 requis"
     },
     "filter": {
       "all": "Tous les points",
@@ -999,7 +1055,7 @@
     "new": "Nouvelle exclusion",
     "stat": {
       "active": "Exclusions actives",
-      "sickAgents": "Fonctionnaires malades",
+      "sickAgents": "Fonctionnaires exclus",
       "dogsInHeat": "Chiennes en chaleur",
       "sickDogs": "Chiens malades",
       "dogBySpecialty": "Exclusions chiens par spécialité",
@@ -1053,9 +1109,13 @@
       "suspension": "Suspension",
       "dog_injured": "Blessé",
       "dog_temporary_retirement": "Chien en repos",
-      "dog_vet_visit": "Visite vétérinaire",
+      "dog_vet_visit": "Sous observation",
+      "dog_without_handler": "Chien sans maître",
       "dog_training": "Dressage",
       "dog_other": "Indisponible"
+    },
+    "formType": {
+      "dog_vet_visit": "Sous observation"
     },
     "empty": {
       "noMatch": "Aucune exclusion ne correspond",
@@ -1133,7 +1193,11 @@
       "deleted": "Exclusion supprimée"
     },
     "error": {
-      "overlap": "Ce fonctionnaire a déjà une exclusion sur cette période."
+      "overlap": "Ce fonctionnaire a déjà une exclusion sur cette période.",
+      "typeDisabled": "Ce type d'exclusion n'est plus disponible pour une nouvelle création."
+    },
+    "form": {
+      "noTypesAvailable": "Aucun type d'exclusion n'est actuellement disponible pour cette catégorie. Un administrateur peut les réactiver dans Paramètres."
     }
   },
   "operationalCases": {
@@ -1528,7 +1592,7 @@
       "narcotics": "Stupéfiants",
       "explosives": "Explosifs",
       "operational": "Opérationnel",
-      "total": "Total",
+      "total": "Totale",
       "breakdown": {
         "sickness": "Maladie",
         "leave": "Congé",
@@ -1668,14 +1732,299 @@
     "title": "Paramètres",
     "description": "Configurer la console et les préférences.",
     "appearance": {
-      "title": "Apparence",
-      "description": "Basculer entre mode clair et sombre.",
-      "darkMode": "Mode sombre"
+      "title": "Apparence et préférences utilisateur",
+      "description": "Langue, thème, densité et affichage des notifications pour cet appareil.",
+      "darkMode": "Mode sombre",
+      "language": "Langue de l'interface",
+      "languageDescription": "Français ou العربية. L'arabe active automatiquement le mode RTL.",
+      "theme": "Apparence",
+      "themeDescription": "Clair, sombre, ou suivre le système.",
+      "themeLight": "Clair",
+      "themeDark": "Sombre",
+      "themeSystem": "Système",
+      "density": "Densité de l'interface",
+      "densityDescription": "Ajuste légèrement l'espacement des tableaux, cartes et composants.",
+      "densityCompact": "Compact",
+      "densityNormal": "Normal",
+      "densityComfortable": "Confortable",
+      "notifications": "Notifications",
+      "notificationsDescription": "Afficher les notifications dans l'interface. La génération des alertes n'est pas modifiée.",
+      "notificationsEnable": "Activer les notifications"
     },
     "organization": {
       "title": "Organisation",
-      "description": "Les détails seront configurables ici.",
-      "placeholder": "D'autres paramètres apparaîtront au fil du projet."
+      "description": "Informations générales de l'unité CynoPlanning.",
+      "placeholder": "D'autres paramètres apparaîtront au fil du projet.",
+      "loading": "Chargement des informations…",
+      "loadError": "Impossible de charger les informations de l'organisation.",
+      "viewOnly": "Consultation uniquement. Seuls les administrateurs peuvent modifier ces informations.",
+      "idleHint": "Cliquez sur Modifier pour mettre à jour les informations de l'unité.",
+      "editingHint": "Les champs sont éditables. Enregistrez pour conserver les modifications.",
+      "fields": {
+        "unitName": {
+          "label": "Nom de l'organisation / de l'unité",
+          "description": "Nom officiel de l'unité, par exemple Brigade cynotechnique."
+        },
+        "serviceName": {
+          "label": "Nom du service",
+          "description": "Service ou brigade tel qu'il doit apparaître dans la console."
+        },
+        "city": {
+          "label": "Ville",
+          "description": "Ville d'implantation de l'unité."
+        },
+        "country": {
+          "label": "Pays",
+          "description": "Pays de l'unité. Maroc par défaut."
+        },
+        "address": {
+          "label": "Adresse",
+          "description": "Adresse postale facultative."
+        },
+        "phone": {
+          "label": "Téléphone",
+          "description": "Numéro facultatif, format marocain ou international."
+        },
+        "email": {
+          "label": "E-mail",
+          "description": "Adresse e-mail de contact facultative."
+        },
+        "notes": {
+          "label": "Informations complémentaires",
+          "description": "Mentions facultatives pour l'unité (référence interne, rattachement, etc.)."
+        }
+      },
+      "errors": {
+        "required": "Ce champ est obligatoire.",
+        "email": "Saisissez une adresse e-mail valide.",
+        "phone": "Saisissez un numéro de téléphone valide."
+      },
+      "toast": {
+        "saved": "Informations de l'organisation enregistrées.",
+        "saveFailed": "L'enregistrement a échoué. Réessayez."
+      },
+      "discard": {
+        "title": "Annuler les modifications ?",
+        "description": "Les modifications non enregistrées seront perdues.",
+        "keepEditing": "Continuer la modification",
+        "confirm": "Annuler les modifications"
+      }
+    },
+    "planning": {
+      "title": "Planification",
+      "description": "Paramètres utilisés pour la génération des futurs plannings.",
+      "loading": "Chargement des paramètres…",
+      "loadError": "Impossible de charger les paramètres de planification.",
+      "viewOnly": "Consultation uniquement. Seuls les administrateurs peuvent modifier ces paramètres.",
+      "idleHint": "Cliquez sur Modifier pour ajuster les horaires des futurs plannings.",
+      "editingHint": "Les horaires sont éditables. L'historique déjà généré n'est pas modifié.",
+      "groups": {
+        "hours": "Horaires",
+        "hoursDescription": "Fenêtres jour et nuit affichées dans la planification. La nuit peut traverser minuit.",
+        "rotation": "Rotation",
+        "rotationDescription": "Règles déjà appliquées par le moteur. Elles ne peuvent pas être désactivées sans le réécrire.",
+        "info": "Information"
+      },
+      "fields": {
+        "start": "Heure de début",
+        "end": "Heure de fin"
+      },
+      "rotation": {
+        "enabled": "Activée",
+        "disabled": "Désactivée",
+        "smart": {
+          "title": "Smart Rotation",
+          "description": "Cycle obligatoire du moteur. Un agent ne revisite un point qu'après avoir couvert ses points compatibles. Désactiver cette règle casserait la couverture opérationnelle."
+        },
+        "avoidRepeat": {
+          "title": "Éviter le même point deux jours consécutifs",
+          "description": "Cette préférence est déjà intégrée à la rotation (cycle Smart Rotation et pénalité femelles). Elle n'existe pas comme interrupteur indépendant."
+        },
+        "fair": {
+          "title": "Rotation équitable des points",
+          "description": "Le moteur classe déjà les agents selon le plus faible nombre de passages. Ce classement n'est pas un interrupteur configurable."
+        }
+      },
+      "info": {
+        "nightOnly": "Les points de contrôle de nuit sont configurés depuis la page Points de contrôle."
+      },
+      "errors": {
+        "format": "Utilisez une heure valide au format HH:mm.",
+        "same": "L'heure de début et l'heure de fin ne peuvent pas être identiques."
+      },
+      "toast": {
+        "saved": "Paramètres de planification enregistrés. Ils s'appliquent aux futurs plannings.",
+        "saveFailed": "L'enregistrement a échoué. Réessayez."
+      },
+      "discard": {
+        "title": "Annuler les modifications ?",
+        "description": "Les horaires non enregistrés seront perdus.",
+        "keepEditing": "Continuer la modification",
+        "confirm": "Annuler les modifications"
+      },
+      "reset": {
+        "action": "Restaurer les paramètres par défaut",
+        "title": "Restaurer les horaires par défaut ?",
+        "description": "Les horaires jour 09:00–21:00 et nuit 21:00–09:00 seront rétablis. L'historique des plannings déjà générés n'est pas modifié. Seuls les futurs plannings utiliseront ces horaires.",
+        "confirm": "Restaurer"
+      }
+    },
+    "exclusions": {
+      "title": "Exclusions",
+      "description": "Configurez les types d'exclusion disponibles et les rappels associés.",
+      "loading": "Chargement des paramètres…",
+      "loadError": "Impossible de charger les paramètres d'exclusion.",
+      "viewOnly": "Consultation uniquement. Seuls les administrateurs peuvent modifier ces paramètres.",
+      "idleHint": "Cliquez sur Modifier pour activer ou désactiver un type, ou ajuster les rappels.",
+      "editingHint": "Ces réglages s'appliquent aux nouvelles exclusions. Les enregistrements existants ne sont pas modifiés.",
+      "groups": {
+        "types": "Types d'exclusion",
+        "typesDescription": "Types déjà pris en charge par l'application. Désactiver un type le retire uniquement du formulaire de création.",
+        "reminders": "Rappels de fin d'exclusion",
+        "remindersDescription": "Jalons existants du moteur de notifications. Les exclusions sans date de fin ne génèrent jamais ces rappels.",
+        "rules": "Règles générales",
+        "info": "Information / protection"
+      },
+      "columns": {
+        "type": "Type",
+        "category": "Catégorie",
+        "duration": "Durée",
+        "status": "Statut",
+        "actions": "Actions"
+      },
+      "category": {
+        "dog": "Chien",
+        "personnel": "Fonctionnaire"
+      },
+      "duration": {
+        "dated": "Avec fin",
+        "openEnded": "Sans fin"
+      },
+      "status": {
+        "enabled": "Activé",
+        "disabled": "Désactivé"
+      },
+      "actions": {
+        "toggleType": "Disponible pour les nouvelles exclusions : {{type}}"
+      },
+      "reminders": {
+        "d2": {
+          "title": "2 jours avant",
+          "description": "Rappel lorsque la date de fin est dans deux jours."
+        },
+        "d1": {
+          "title": "1 jour avant",
+          "description": "Rappel la veille de la date de fin."
+        },
+        "d0": {
+          "title": "Le jour même",
+          "description": "Rappel le jour où l'exclusion se termine."
+        }
+      },
+      "rules": {
+        "openEnded": "« Sous observation » et « Chien sans maître » restent sans date de fin : date de début obligatoire, pas d'expiration automatique, pas de rappel d2 / d1 / d0. Cette règle n'est pas configurable.",
+        "disableCreationOnly": "Désactiver un type le masque uniquement à la création. Les exclusions déjà enregistrées restent valides et visibles dans l'historique, les tableaux, les statistiques et les rapports."
+      },
+      "info": {
+        "activeStatus": "Une exclusion est considérée comme active lorsque ses conditions d'activation sont respectées. Les exclusions expirées ne doivent pas apparaître dans les statistiques ou listes d'exclusions actives.",
+        "dataSafety": "Ces paramètres ne modifient jamais les exclusions existantes, le planning, les affectations, les notifications déjà stockées, les statistiques ni les rapports."
+      },
+      "customTypes": {
+        "title": "Types personnalisés",
+        "description": "L'ajout de types d'exclusion personnalisés n'est pas disponible. Les types sont une énumération du schéma et du moteur ; les inventer ici casserait les enregistrements, les statistiques et les notifications."
+      },
+      "toast": {
+        "saved": "Paramètres d'exclusion enregistrés. Ils s'appliquent aux nouvelles exclusions et aux prochains rappels.",
+        "saveFailed": "L'enregistrement a échoué. Réessayez."
+      },
+      "discard": {
+        "title": "Annuler les modifications ?",
+        "description": "Les réglages non enregistrés seront perdus.",
+        "keepEditing": "Continuer la modification",
+        "confirm": "Annuler les modifications"
+      },
+      "reset": {
+        "action": "Restaurer les paramètres par défaut",
+        "title": "Restaurer les paramètres d'exclusion par défaut ?",
+        "description": "Tous les types redeviennent disponibles à la création et les rappels 2 jours / 1 jour / jour même sont réactivés. Les exclusions déjà enregistrées ne sont pas modifiées.",
+        "confirm": "Restaurer"
+      }
+    },
+    "documents": {
+      "title": "Documents et PDF",
+      "description": "Configurez les informations et le format utilisés pour les documents, rapports et exports.",
+      "loading": "Chargement des paramètres…",
+      "loadError": "Impossible de charger les paramètres des documents.",
+      "viewOnly": "Consultation uniquement. Seuls les administrateurs peuvent modifier ces paramètres.",
+      "idleHint": "Cliquez sur Modifier pour changer le logo, l'orientation, le pied de page ou la langue des documents.",
+      "editingHint": "Ces réglages s'appliquent aux documents générés à l'avenir. Les fichiers déjà exportés ne sont pas modifiés.",
+      "groups": {
+        "identity": "Informations du document",
+        "identityDescription": "Ces champs proviennent de Paramètres → Organisation. Ils ne sont pas dupliqués ici.",
+        "logo": "Identité visuelle",
+        "logoDescription": "Logo utilisé dans les en-têtes des documents générés. Le logo de l'application n'est pas modifié.",
+        "layout": "Mise en page",
+        "layoutDescription": "Format A4. L'orientation s'applique aux rapports génériques. Les feuilles de présence officielles restent en portrait.",
+        "footer": "Pied de page",
+        "footerDescription": "Texte facultatif pour les rapports PDF. Les signatures des feuilles de présence officielles restent inchangées.",
+        "language": "Langue",
+        "languageDescription": "Indépendante de la langue de l'interface. Les modèles officiels (feuille de présence) restent en français."
+      },
+      "fields": {
+        "pageFormat": "Format de page",
+        "pageFormatDescription": "Seul le format déjà pris en charge par le moteur d'export.",
+        "orientation": "Orientation",
+        "orientationDescription": "S'applique aux rapports PDF génériques. Les modèles officiels restent en portrait.",
+        "margins": "Marges",
+        "marginsDescription": "Marges calibrées des modèles officiels. Elles ne sont pas modifiables sans réécrire le moteur.",
+        "footerText": "Texte du pied de page",
+        "footerPlaceholder": "Brigade cynotechnique — CynoPlanning",
+        "pageNumbers": "Numérotation des pages",
+        "pageNumbersDescription": "Affiche Page X / Y sur les rapports PDF. L'export Word officiel conserve son comportement actuel.",
+        "documentLanguage": "Langue des documents"
+      },
+      "orientation": {
+        "portrait": "Portrait",
+        "landscape": "Paysage"
+      },
+      "margins": {
+        "top": "Haut",
+        "bottom": "Bas",
+        "left": "Gauche",
+        "right": "Droite"
+      },
+      "logo": {
+        "upload": "Téléverser un logo",
+        "replace": "Remplacer le logo",
+        "remove": "Retirer le logo",
+        "previewAlt": "Aperçu du logo des documents",
+        "officialInUse": "Sceau officiel utilisé. PNG recommandé, fond transparent.",
+        "customInUse": "Logo personnalisé. PNG recommandé, fond transparent.",
+        "errors": {
+          "invalidType": "Utilisez un fichier PNG ou JPEG.",
+          "tooLarge": "Le logo ne doit pas dépasser {{maxMb}} Mo."
+        }
+      },
+      "preview": {
+        "action": "Aperçu du document",
+        "title": "Aperçu du document",
+        "description": "Présentation des réglages. Aucun fichier n'est enregistré.",
+        "emptyFooter": "Aucun pied de page personnalisé",
+        "pageNumber": "Page {{page}} / {{total}}"
+      },
+      "info": {
+        "futureOnly": "Ces paramètres n'affectent que les documents générés à l'avenir. Les employés, chiens, plannings, exclusions, rapports et fichiers déjà exportés ne sont pas modifiés."
+      },
+      "toast": {
+        "saved": "Paramètres des documents enregistrés. Ils s'appliquent aux prochains exports.",
+        "saveFailed": "L'enregistrement a échoué. Réessayez."
+      },
+      "discard": {
+        "title": "Annuler les modifications ?",
+        "description": "Les réglages et le logo non enregistrés seront perdus.",
+        "keepEditing": "Continuer la modification",
+        "confirm": "Annuler les modifications"
+      }
     }
   },
   "statistics": {

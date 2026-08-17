@@ -186,6 +186,71 @@ export function computeCheckpointDogStatsMap(
   return map;
 }
 
+export type DogOperationalGroups<T extends DogStatsInput = DogStatsInput> = {
+  active: T[];
+  excluded: T[];
+  narcoticsActive: T[];
+  narcoticsExcluded: T[];
+  explosivesActive: T[];
+  explosivesExcluded: T[];
+};
+
+/**
+ * Same membership as {@link computeDogOperationalStatsFromDogs}.
+ * Counts are always `group.length` so dialog rows cannot drift from the card.
+ */
+export function collectDogOperationalGroupsFromDogs<T extends DogStatsInput>(
+  dogs: ReadonlyArray<T>,
+  exclusions: AgentExclusionRecord[],
+  reference: Date | string = new Date(),
+): DogOperationalGroups<T> {
+  const groups: DogOperationalGroups<T> = {
+    active: [],
+    excluded: [],
+    narcoticsActive: [],
+    narcoticsExcluded: [],
+    explosivesActive: [],
+    explosivesExcluded: [],
+  };
+
+  for (const dog of dogs) {
+    const operational = deriveDogOperationalStatus(dog.id, exclusions, reference);
+    const isExcluded = operational.kind === "excluded";
+    if (isExcluded) groups.excluded.push(dog);
+    else groups.active.push(dog);
+
+    if (isNarcoticsSpecialty(dog.specialty)) {
+      if (isExcluded) groups.narcoticsExcluded.push(dog);
+      else groups.narcoticsActive.push(dog);
+    }
+    if (dog.specialty === "explosives") {
+      if (isExcluded) groups.explosivesExcluded.push(dog);
+      else groups.explosivesActive.push(dog);
+    }
+  }
+
+  return groups;
+}
+
+export function dogOperationalStatsFromGroups(
+  groups: DogOperationalGroups,
+): CheckpointDogStats {
+  return {
+    narcotics: {
+      total: groups.narcoticsActive.length + groups.narcoticsExcluded.length,
+      active: groups.narcoticsActive.length,
+      excluded: groups.narcoticsExcluded.length,
+    },
+    explosives: {
+      total: groups.explosivesActive.length + groups.explosivesExcluded.length,
+      active: groups.explosivesActive.length,
+      excluded: groups.explosivesExcluded.length,
+    },
+    activeTotal: groups.active.length,
+    excludedTotal: groups.excluded.length,
+  };
+}
+
 /**
  * Page-level dog stats — same source and rules as the Chiens page:
  * all dogs from getDogs(), active/excluded via deriveDogOperationalStatus.
@@ -195,57 +260,19 @@ export function computeDogOperationalStatsFromDogs(
   exclusions: AgentExclusionRecord[],
   reference: Date | string = new Date(),
 ): CheckpointDogStats {
-  let activeTotal = 0;
-  let excludedTotal = 0;
-  let narcoticsActive = 0;
-  let narcoticsExcluded = 0;
-  let explosivesActive = 0;
-  let explosivesExcluded = 0;
-  const narcoticsDogIds = new Set<string>();
-  const explosivesDogIds = new Set<string>();
-  const debugRows: Array<{ id: string; specialty: string; status: "active" | "excluded" }> = [];
-
-  for (const dog of dogs) {
-    const operational = deriveDogOperationalStatus(dog.id, exclusions, reference);
-    const isExcluded = operational.kind === "excluded";
-    const status = isExcluded ? "excluded" : "active";
-
-    debugRows.push({ id: dog.id, specialty: dog.specialty, status });
-
-    if (isExcluded) excludedTotal += 1;
-    else activeTotal += 1;
-
-    if (isNarcoticsSpecialty(dog.specialty)) {
-      narcoticsDogIds.add(dog.id);
-      if (isExcluded) narcoticsExcluded += 1;
-      else narcoticsActive += 1;
-    }
-    if (dog.specialty === "explosives") {
-      explosivesDogIds.add(dog.id);
-      if (isExcluded) explosivesExcluded += 1;
-      else explosivesActive += 1;
-    }
-  }
-
-  const stats: CheckpointDogStats = {
-    narcotics: {
-      total: narcoticsDogIds.size,
-      active: narcoticsActive,
-      excluded: narcoticsExcluded,
-    },
-    explosives: {
-      total: explosivesDogIds.size,
-      active: explosivesActive,
-      excluded: explosivesExcluded,
-    },
-    activeTotal,
-    excludedTotal,
-  };
+  const groups = collectDogOperationalGroupsFromDogs(dogs, exclusions, reference);
+  const stats = dogOperationalStatsFromGroups(groups);
 
   if (DEBUG) {
     console.log("[checkpoint-dog-stats] from-dogs", {
       totalDogsLoaded: dogs.length,
-      dogs: debugRows,
+      dogs: dogs.map((dog) => ({
+        id: dog.id,
+        specialty: dog.specialty,
+        status: deriveDogOperationalStatus(dog.id, exclusions, reference).kind === "excluded"
+          ? "excluded"
+          : "active",
+      })),
       finalCounts: stats,
     });
   }

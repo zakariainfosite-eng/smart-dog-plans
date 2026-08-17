@@ -21,6 +21,10 @@ import {
   pageHeroLastUpdatedMeta,
 } from "@/components/enterprise/page-layout";
 import { formatPageLastUpdated } from "@/lib/page-ui";
+import { useI18n } from "@/hooks/use-i18n";
+import { useDocumentTitle } from "@/hooks/use-document-title";
+import { usePlanningSettings } from "@/hooks/use-planning-settings";
+import { shiftHoursI18nParams } from "@/lib/planning-settings";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -61,8 +65,6 @@ import {
   SECTION_COMMANDER_MANUAL_FILL_DOTS,
   type SectionCommanderDisplay,
 } from "@/lib/section-commander-display";
-import { useI18n } from "@/hooks/use-i18n";
-import { useDocumentTitle } from "@/hooks/use-document-title";
 
 const EMPTY_SECTION_BREAKDOWN = emptySectionExclusionBreakdown();
 
@@ -91,6 +93,8 @@ type SectionWithCount = SectionWithAgentCount;
 function SectionsPage() {
   const { t, locale } = useI18n();
   useDocumentTitle("meta.sections.title");
+  const { hours: planningHours } = usePlanningSettings();
+  const shiftHourLabels = shiftHoursI18nParams(planningHours);
 
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -410,8 +414,8 @@ function SectionsPage() {
                       : commander?.mle || s.commander_mle
                   }
                   commanderManualFill={commanderManualFill}
-                  shiftDayLabel={t("shift.dayShort")}
-                  shiftNightLabel={t("shift.nightShort")}
+                  shiftDayLabel={t("shift.dayShort", shiftHourLabels)}
+                  shiftNightLabel={t("shift.nightShort", shiftHourLabels)}
                   activeLabel={t("common.active")}
                   inactiveLabel={t("common.inactive")}
                   agentsLabel={t("sections.stat.assigned")}
@@ -531,6 +535,8 @@ function SectionDialog({
   submitting: boolean;
 }) {
   const { t } = useI18n();
+  const { hours: planningHours } = usePlanningSettings();
+  const shiftHourLabels = shiftHoursI18nParams(planningHours);
   const sectionSchema = useMemo(() => createSectionSchema(t), [t]);
 
   const [name, setName] = useState("");
@@ -600,8 +606,8 @@ function SectionDialog({
               <Select value={shiftType} onValueChange={(v) => setShiftType(v as ShiftType)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="day">{t("shift.dayHours")}</SelectItem>
-                  <SelectItem value="night">{t("shift.nightHours")}</SelectItem>
+                  <SelectItem value="day">{t("shift.dayHours", shiftHourLabels)}</SelectItem>
+                  <SelectItem value="night">{t("shift.nightHours", shiftHourLabels)}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

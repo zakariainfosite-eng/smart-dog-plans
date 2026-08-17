@@ -1,6 +1,36 @@
-import { usesOperationalPersonnelColumns } from "@/lib/personnel-fonction";
-import { deriveAgentAvailabilityForAgent } from "@/lib/agent-ui";
+import { isCynotechnicienFonction, usesOperationalPersonnelColumns } from "@/lib/personnel-fonction";
+import { cynotechnicienSpecialty, deriveAgentAvailabilityForAgent } from "@/lib/agent-ui";
 import type { AgentExclusionRecord } from "@/lib/agent-exclusions";
+
+export type SpecialtyPairStats = {
+  narcotics: number;
+  explosives: number;
+};
+
+export function emptySpecialtyPair(): SpecialtyPairStats {
+  return { narcotics: 0, explosives: 0 };
+}
+
+export type CynotechnicienSpecialtyAgentInput = {
+  fonction: string | null | undefined;
+  dogs?: { specialty?: string | null } | null;
+};
+
+/**
+ * Specialty counts for cynotechniciens only.
+ * Administrative personnel are never included.
+ */
+export function countCynotechnicienSpecialties(
+  agents: ReadonlyArray<CynotechnicienSpecialtyAgentInput>,
+): SpecialtyPairStats {
+  const counts = emptySpecialtyPair();
+  for (const agent of agents) {
+    if (!isCynotechnicienFonction(agent.fonction)) continue;
+    const specialty = cynotechnicienSpecialty(agent);
+    if (specialty) counts[specialty] += 1;
+  }
+  return counts;
+}
 
 export type PersonnelCategoryStats = {
   cynotechniciens: number;

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { AgentRow } from "@/integrations/database";
 import type { AgentExclusionRecord } from "@/lib/agent-exclusions";
 import {
+  collectDogOperationalGroupsFromDogs,
   computeAggregateCheckpointDogStats,
   computeCheckpointDogStats,
   computeCheckpointDogStatsMap,
@@ -176,6 +177,36 @@ describe("computeDogOperationalStatsFromDogs", () => {
     expect(stats.excludedTotal).toBe(1);
     expect(stats.explosives).toEqual({ total: 2, active: 1, excluded: 1 });
     expect(stats.narcotics).toEqual({ total: 2, active: 2, excluded: 0 });
+  });
+
+  it("collects the same dogs counted by the overview cards", () => {
+    const dogs = [
+      { id: "dog-exp1", specialty: "explosives" },
+      { id: "dog-exp2", specialty: "explosives" },
+      { id: "dog-nar1", specialty: "narcotics" },
+      { id: "dog-cur1", specialty: "currency" },
+      { id: "dog-other", specialty: "search" },
+    ];
+    const exclusions: AgentExclusionRecord[] = [
+      {
+        id: "ex-1",
+        agent_id: null,
+        dog_id: "dog-exp2",
+        exclusion_type: "dog_sick",
+        start_date: "2026-08-01",
+        end_date: "2026-08-31",
+        active: true,
+        is_deleted: false,
+        created_at: "2026-08-01T00:00:00Z",
+        updated_at: "2026-08-01T00:00:00Z",
+      },
+    ];
+    const groups = collectDogOperationalGroupsFromDogs(dogs, exclusions, "2026-08-13");
+    const stats = computeDogOperationalStatsFromDogs(dogs, exclusions, "2026-08-13");
+    expect(groups.active).toHaveLength(stats.activeTotal ?? 0);
+    expect(groups.excluded).toHaveLength(stats.excludedTotal ?? 0);
+    expect(groups.narcoticsActive).toHaveLength(stats.narcotics.active);
+    expect(groups.explosivesExcluded).toHaveLength(stats.explosives.excluded);
   });
 
   it("ignores expired dog exclusions", () => {

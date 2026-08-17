@@ -1,4 +1,5 @@
 import {
+  exclusionTypeI18nKey,
   filterActiveExclusions,
   isDogLevelExclusionType,
   type AgentExclusionRecord,
@@ -22,6 +23,7 @@ export const DOG_EXCLUSION_STATUS_PRIORITY: Record<string, number> = {
   dog_sick: 1,
   dog_injured: 2,
   dog_vet_visit: 3,
+  dog_without_handler: 3.5,
   dog_training: 4,
   dog_temporary_retirement: 5,
   dog_other: 6,
@@ -101,6 +103,7 @@ export function dogOperationalStatusTone(
       return "danger";
     case "female_dog_heat":
     case "dog_vet_visit":
+    case "dog_without_handler":
       return "warning";
     case "dog_training":
       return "info";
@@ -114,5 +117,5 @@ export function dogOperationalStatusTone(
 /** i18n key for badge / details label. */
 export function dogOperationalStatusLabelKey(status: DogOperationalStatus): string {
   if (status.kind === "available") return "dogStatus.available";
-  return `exclusions.type.${status.exclusionType}`;
+  return exclusionTypeI18nKey(status.exclusionType);
 }

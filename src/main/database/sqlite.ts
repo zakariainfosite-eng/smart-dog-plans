@@ -15,6 +15,7 @@ import {
   SCHEMA_STATEMENTS,
   SCHEMA_TABLE_STATEMENTS,
 } from "../../integrations/database/schema-sql";
+import { localCalendarDayISO } from "../../lib/local-calendar-day";
 import {
   formatMigrationFailureDetail,
   isSqliteMigrationError,
@@ -25,6 +26,8 @@ export {
   SCHEMA_MIGRATIONS_TABLE,
   SQLITE_MIGRATIONS,
   SqliteMigrationError,
+  agentExclusionsNeedsOpenEndedRebuild,
+  assertAgentExclusionsOpenEndedSchema,
   createPreMigrationBackup,
   formatMigrationFailureDetail,
   isMigrationBackupFileName,
@@ -56,19 +59,24 @@ export const SQLITE_SCHEMA_INIT_MESSAGE = "SQLite schema initialized successfull
 
 /**
  * On app startup: deactivate exclusions whose end_date is strictly before today.
- * Persisted expiration always uses wall-clock today (never a future planning date).
+ * Persisted expiration always uses the local wall-clock calendar day
+ * (`localCalendarDayISO` / renderer `planningDayISO`) — never UTC `toISOString()`.
  * Mirrors renderer `expirePastExclusions` without going through the REST bridge.
  */
 export function expirePastExclusionsInSqlite(
   database: Database.Database,
-  todayISO: string = new Date().toISOString().slice(0, 10),
+  todayISO: string = localCalendarDayISO(),
 ): number {
   try {
     const result = database
       .prepare(
         `UPDATE agent_exclusions
          SET active = 0, updated_at = datetime('now')
-         WHERE active = 1 AND end_date < ? AND is_deleted = 0`,
+         WHERE active = 1
+           AND end_date IS NOT NULL
+           AND end_date < ?
+           AND exclusion_type NOT IN ('dog_vet_visit', 'dog_without_handler')
+           AND is_deleted = 0`,
       )
       .run(todayISO);
     return result.changes;
@@ -79,7 +87,10 @@ export function expirePastExclusionsInSqlite(
       .prepare(
         `UPDATE agent_exclusions
          SET active = 0, updated_at = datetime('now')
-         WHERE active = 1 AND end_date < ?`,
+         WHERE active = 1
+           AND end_date IS NOT NULL
+           AND end_date < ?
+           AND exclusion_type NOT IN ('dog_vet_visit', 'dog_without_handler')`,
       )
       .run(todayISO);
     return legacy.changes;

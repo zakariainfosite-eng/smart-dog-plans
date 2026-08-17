@@ -191,7 +191,73 @@ export type PageStatCardProps = {
   variant?: "default" | "minimal";
   loading?: boolean;
   className?: string;
+  /** Compact extra lines under the label (e.g. specialty breakdown). */
+  footer?: ReactNode;
+  /** Opens statistic details. Makes the main number/label an accessible button. */
+  onDetailsClick?: () => void;
+  detailsAriaLabel?: string;
 };
+
+function PageStatCardBody({
+  Icon,
+  value,
+  label,
+  trend,
+  percentage,
+  iconClassName,
+  iconBgClassName,
+  minimal,
+  loading,
+}: {
+  Icon: LucideIcon;
+  value: number | string;
+  label: string;
+  trend?: string;
+  percentage?: string;
+  iconClassName?: string;
+  iconBgClassName: string;
+  minimal: boolean;
+  loading?: boolean;
+}) {
+  return (
+    <>
+      <span
+        className={cn(
+          "flex shrink-0 items-center justify-center rounded-full",
+          minimal
+            ? "h-9 w-9 bg-[#023A84]/10 text-[#023A84]"
+            : cn(
+                "mt-0.5 h-9 w-9 shadow-sm ring-1 ring-inset ring-black/5 transition-transform duration-200 group-hover:scale-105",
+                iconBgClassName,
+              ),
+        )}
+      >
+        <Icon className={cn("h-4 w-4", iconClassName)} strokeWidth={2.25} />
+      </span>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <p className="font-brand text-[32px] font-bold leading-none tracking-tight text-[#0B1F3A] tabular-nums dark:text-foreground">
+            {loading ? "—" : value}
+          </p>
+          {percentage ? (
+            <span className="mt-1 shrink-0 rounded-full bg-[#023A84]/8 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-[#023A84]">
+              {percentage}
+            </span>
+          ) : null}
+        </div>
+        <p className="mt-1 truncate text-[13px] font-medium leading-tight text-[#6B7280]">
+          {label}
+        </p>
+        {!minimal && trend ? (
+          <p className="mt-1 whitespace-pre-line text-[10px] font-medium uppercase tracking-[0.06em] text-[#023A84]/75">
+            {trend}
+          </p>
+        ) : null}
+      </div>
+    </>
+  );
+}
 
 export function PageStatCard({
   icon: Icon,
@@ -205,17 +271,28 @@ export function PageStatCard({
   variant = "default",
   loading,
   className,
+  footer,
+  onDetailsClick,
+  detailsAriaLabel,
 }: PageStatCardProps) {
   const minimal = variant === "minimal";
+  const hasFooter = Boolean(footer);
+  const clickable = Boolean(onDetailsClick);
 
   return (
     <article
       className={cn(
         "group relative flex flex-col overflow-hidden bg-white dark:bg-card",
+        clickable &&
+          "cursor-pointer transition-colors hover:border-[#023A84]/35 focus-within:ring-2 focus-within:ring-ring",
         minimal
-          ? "h-[90px] justify-center rounded-xl border border-[#E5E7EB] px-4 shadow-none"
+          ? cn(
+              "rounded-xl border border-[#E5E7EB] px-4 shadow-none",
+              hasFooter ? "min-h-[90px] justify-start py-3" : "h-[90px] justify-center",
+            )
           : [
-              "h-[122px] rounded-[18px] border border-[#023A84]/10 px-4 pb-2.5 pt-3.5",
+              hasFooter ? "min-h-[122px]" : "h-[122px]",
+              "rounded-[18px] border border-[#023A84]/10 px-4 pb-2.5 pt-3.5",
               "shadow-[0_3px_14px_-4px_rgba(2,58,132,0.10)]",
               "transition-all duration-200 ease-out",
               "hover:-translate-y-0.5 hover:border-[#023A84]/25 hover:shadow-[0_8px_20px_-6px_rgba(2,58,132,0.16)]",
@@ -234,43 +311,43 @@ export function PageStatCard({
       ) : null}
 
       <div className="relative flex min-h-0 items-center gap-3">
-        <span
-          className={cn(
-            "flex shrink-0 items-center justify-center rounded-full",
-            minimal
-              ? "h-9 w-9 bg-[#023A84]/10 text-[#023A84]"
-              : cn(
-                  "mt-0.5 h-9 w-9 shadow-sm ring-1 ring-inset ring-black/5 transition-transform duration-200 group-hover:scale-105",
-                  iconBgClassName,
-                ),
-          )}
-        >
-          <Icon className={cn("h-4 w-4", iconClassName)} strokeWidth={2.25} />
-        </span>
-
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <p className="font-brand text-[32px] font-bold leading-none tracking-tight text-[#0B1F3A] tabular-nums dark:text-foreground">
-              {loading ? "—" : value}
-            </p>
-            {percentage ? (
-              <span className="mt-1 shrink-0 rounded-full bg-[#023A84]/8 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-[#023A84]">
-                {percentage}
-              </span>
-            ) : null}
-          </div>
-          <p className="mt-1 truncate text-[13px] font-medium leading-tight text-[#6B7280]">
-            {label}
-          </p>
-          {!minimal && trend ? (
-            <p className="mt-1 truncate text-[10px] font-medium uppercase tracking-[0.06em] text-[#023A84]/75">
-              {trend}
-            </p>
-          ) : null}
-        </div>
+        {clickable ? (
+          <button
+            type="button"
+            className="flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left focus-visible:outline-none"
+            onClick={onDetailsClick}
+            aria-label={detailsAriaLabel ?? label}
+          >
+            <PageStatCardBody
+              Icon={Icon}
+              value={value}
+              label={label}
+              trend={trend}
+              percentage={percentage}
+              iconClassName={iconClassName}
+              iconBgClassName={iconBgClassName}
+              minimal={minimal}
+              loading={loading}
+            />
+          </button>
+        ) : (
+          <PageStatCardBody
+            Icon={Icon}
+            value={value}
+            label={label}
+            trend={trend}
+            percentage={percentage}
+            iconClassName={iconClassName}
+            iconBgClassName={iconBgClassName}
+            minimal={minimal}
+            loading={loading}
+          />
+        )}
       </div>
 
-      {!minimal && !trend ? (
+      {hasFooter ? <div className="relative mt-1.5 min-w-0">{footer}</div> : null}
+
+      {!minimal && !trend && !hasFooter ? (
         <div className="mt-1.5 h-[22px] shrink-0" aria-hidden />
       ) : null}
     </article>
@@ -330,7 +407,7 @@ export function PageContentShell({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-[20px] border border-border/60 bg-card shadow-soft",
+        "cyno-content-shell overflow-hidden rounded-[20px] border border-border/60 bg-card shadow-soft",
         padding && "p-6",
         className,
       )}

@@ -237,7 +237,7 @@ export function DogDetailsDrawer({
                     value={
                       data.dog.agent
                         ? `${data.dog.agent.first_name} ${data.dog.agent.last_name}`
-                        : t("dogs.sex.unspecified")
+                        : t("dogs.select.unassigned")
                     }
                   />
                   <InfoField

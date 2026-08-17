@@ -1,6 +1,7 @@
 import type { DbClient } from "@/integrations/database/client";
-import { format, isAfter, isBefore, isValid, parseISO, startOfDay } from "date-fns";
+import { isValid, parseISO, startOfDay } from "date-fns";
 import type { Database } from "@/integrations/database/schema-types";
+import { localCalendarDayISO } from "@/lib/local-calendar-day";
 import { isMissingSoftDeleteColumn } from "@/lib/soft-delete";
 
 export type ExclusionType = Database["public"]["Enums"]["exclusion_type"];
@@ -34,6 +35,7 @@ export const DOG_LEVEL_EXCLUSION_TYPES = new Set<string>([
   "dog_injured",
   "dog_temporary_retirement",
   "dog_vet_visit",
+  "dog_without_handler",
   "dog_training",
   "dog_other",
 ]);
@@ -53,7 +55,27 @@ export const DOG_EXCLUSION_FORM_TYPES: ExclusionType[] = [
   "dog_sick",
   "dog_injured",
   "dog_vet_visit",
+  "dog_without_handler",
 ];
+
+/**
+ * Dog exclusions with no end date: active while enabled and start_date <= today.
+ * Stored code `dog_vet_visit` is displayed as "Sous observation".
+ */
+export const OPEN_ENDED_EXCLUSION_TYPES = ["dog_vet_visit", "dog_without_handler"] as const;
+
+export function isOpenEndedExclusionType(type: string | null | undefined): boolean {
+  return Boolean(type && (OPEN_ENDED_EXCLUSION_TYPES as readonly string[]).includes(type));
+}
+
+/**
+ * i18n key for displaying a stored exclusion_type.
+ * `dog_vet_visit` remains the DB code; the official UI label is "Sous observation".
+ */
+export function exclusionTypeI18nKey(type: string): string {
+  if (type === "dog_vet_visit") return "exclusions.formType.dog_vet_visit";
+  return `exclusions.type.${type}`;
+}
 
 /** All known types for filters / history (includes legacy leave variants). */
 export const ALL_EXCLUSION_TYPES: ExclusionType[] = [
@@ -70,6 +92,7 @@ export const ALL_EXCLUSION_TYPES: ExclusionType[] = [
   "dog_injured",
   "dog_temporary_retirement",
   "dog_vet_visit",
+  "dog_without_handler",
   "dog_training",
   "dog_other",
   "other",
@@ -109,12 +132,12 @@ export function planningDayISO(reference: Date | string = new Date()): string {
     if (isValidPlanningDayISO(trimmed)) {
       return trimmed.slice(0, 10);
     }
-    return format(new Date(), "yyyy-MM-dd");
+    return localCalendarDayISO();
   }
   if (!(reference instanceof Date) || !isValid(reference)) {
-    return format(new Date(), "yyyy-MM-dd");
+    return localCalendarDayISO();
   }
-  return format(reference, "yyyy-MM-dd");
+  return localCalendarDayISO(reference);
 }
 
 /** Shared React Query key — invalidate after exclusion CRUD so Agents page updates immediately. */
@@ -136,47 +159,80 @@ export function exclusionReferenceDay(reference: Date | string = new Date()): Da
   return startOfDay(reference);
 }
 
-/** True when reference day falls within [start_date, end_date] inclusive. */
+/** Inclusive end date, or null when the exclusion is open-ended. */
+export function exclusionEffectiveEndDate(
+  exclusion: Pick<AgentExclusionRecord, "end_date" | "exclusion_type">,
+): string | null {
+  if (isOpenEndedExclusionType(exclusion.exclusion_type)) return null;
+  const end = exclusion.end_date?.trim().slice(0, 10) ?? "";
+  return end || null;
+}
+
+/** True when two exclusion periods overlap (open-ended = no upper bound). */
+export function exclusionDateRangesOverlap(
+  a: Pick<AgentExclusionRecord, "start_date" | "end_date" | "exclusion_type">,
+  b: Pick<AgentExclusionRecord, "start_date" | "end_date" | "exclusion_type">,
+): boolean {
+  const aStart = a.start_date.slice(0, 10);
+  const bStart = b.start_date.slice(0, 10);
+  const aEnd = exclusionEffectiveEndDate(a);
+  const bEnd = exclusionEffectiveEndDate(b);
+  if (aEnd && aEnd < bStart) return false;
+  if (bEnd && bEnd < aStart) return false;
+  return true;
+}
+
+/** True when reference day falls within the exclusion's effective period. */
 export function isExclusionInDateRange(
-  exclusion: Pick<AgentExclusionRecord, "start_date" | "end_date">,
+  exclusion: Pick<AgentExclusionRecord, "start_date" | "end_date" | "exclusion_type">,
   reference: Date | string = new Date(),
 ): boolean {
   const dayISO = planningDayISO(reference);
-  return exclusion.start_date <= dayISO && dayISO <= exclusion.end_date;
+  const start = exclusion.start_date?.trim().slice(0, 10) ?? "";
+  if (!start || start > dayISO) return false;
+  const end = exclusionEffectiveEndDate(exclusion);
+  if (!end) return true;
+  return dayISO <= end;
 }
 
 export function exclusionCalendarStatus(
-  exclusion: Pick<AgentExclusionRecord, "start_date" | "end_date">,
+  exclusion: Pick<AgentExclusionRecord, "start_date" | "end_date" | "exclusion_type">,
   reference: Date | string = new Date(),
 ): ExclusionCalendarStatus {
-  const day = exclusionReferenceDay(reference);
-  const start = startOfDay(parseISO(exclusion.start_date));
-  const end = startOfDay(parseISO(exclusion.end_date));
-  if (isAfter(start, day)) return "upcoming";
-  if (isBefore(end, day)) return "expired";
+  const dayISO = planningDayISO(reference);
+  const start = exclusion.start_date?.trim().slice(0, 10) ?? "";
+  if (start > dayISO) return "upcoming";
+  const end = exclusionEffectiveEndDate(exclusion);
+  if (!end) return "active";
+  if (end < dayISO) return "expired";
   return "active";
 }
 
 /**
  * Active exclusion = enabled (active=true) AND reference day within the date range.
+ * Open-ended types: active=true AND start_date <= reference (no end_date).
  * Single source of truth for planning, agents page, dashboard, and exclusions UI.
  */
 export function isAgentExclusionActive(
   exclusion: AgentExclusionRecord,
   reference: Date | string = new Date(),
 ): boolean {
-  return exclusion.active && isExclusionInDateRange(exclusion, reference);
+  return Boolean(exclusion.active) && isExclusionInDateRange(exclusion, reference);
 }
 
 /**
  * True when the exclusion end date is strictly before the reference day
  * (`today > date_fin`). Inclusive end dates remain active on their last day.
+ * Open-ended types never auto-expire.
  */
 export function isExclusionPastEndDate(
-  exclusion: Pick<AgentExclusionRecord, "end_date">,
+  exclusion: Pick<AgentExclusionRecord, "end_date"> & { exclusion_type?: string },
   reference: Date | string = new Date(),
 ): boolean {
-  return exclusion.end_date < planningDayISO(reference);
+  if (isOpenEndedExclusionType(exclusion.exclusion_type)) return false;
+  const end = exclusion.end_date?.trim().slice(0, 10) ?? "";
+  if (!end) return false;
+  return end < planningDayISO(reference);
 }
 
 /**
@@ -203,7 +259,9 @@ export async function expirePastExclusions(
       .from("agent_exclusions")
       .update({ active: false, updated_at: updatedAt })
       .eq("active", true)
-      .lt("end_date", referenceISO);
+      .not("end_date", "is", null)
+      .lt("end_date", referenceISO)
+      .not("exclusion_type", "in", [...OPEN_ENDED_EXCLUSION_TYPES]);
     if (withSoftDelete) {
       query = query.eq("is_deleted", false);
     }
@@ -281,8 +339,7 @@ export async function fetchActiveExclusionsForDate(
       .from("agent_exclusions")
       .select("agent_id, dog_id, exclusion_type, start_date, end_date, active")
       .eq("active", true)
-      .lte("start_date", dayISO)
-      .gte("end_date", dayISO);
+      .lte("start_date", dayISO);
 
     if (withSoftDelete) {
       query = query.eq("is_deleted", false);
@@ -294,15 +351,18 @@ export async function fetchActiveExclusionsForDate(
   };
 
   const { data, error } = await run(true);
-  if (!error) return (data ?? []) as AgentExclusionRecord[];
-
-  if (isMissingSoftDeleteColumn(error)) {
+  let rows: AgentExclusionRecord[];
+  if (!error) {
+    rows = (data ?? []) as AgentExclusionRecord[];
+  } else if (isMissingSoftDeleteColumn(error)) {
     const legacy = await run(false);
     if (legacy.error) throw legacy.error;
-    return (legacy.data ?? []) as AgentExclusionRecord[];
+    rows = (legacy.data ?? []) as AgentExclusionRecord[];
+  } else {
+    throw error;
   }
 
-  throw error;
+  return rows.filter((row) => isAgentExclusionActive(row, dayISO));
 }
 
 export type PlanningExclusionInput = {

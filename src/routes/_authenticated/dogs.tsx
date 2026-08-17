@@ -49,6 +49,10 @@ import {
 import { EmptyState } from "@/components/layout/EmptyState";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { KpiCard } from "@/components/enterprise/kpi-card";
+import { StatisticDetailsDialog } from "@/components/statistics/statistic-details-dialog";
+import { useStatisticDetailsDialog } from "@/hooks/use-statistic-details-dialog";
+import { dogStatisticColumns } from "@/lib/statistics/statistic-detail-columns";
+import { mapDogDetailRows } from "@/lib/statistics/map-statistic-detail-rows";
 import { FilterBar, FilterPills } from "@/components/enterprise/filter-bar";
 import { SearchField } from "@/components/enterprise/search-field";
 import { FilterSelectTrigger } from "@/components/enterprise/filter-select";
@@ -217,6 +221,7 @@ function DogsPage() {
   const [removePhoto, setRemovePhoto] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const details = useStatisticDetailsDialog();
 
   useEffect(() => {
     if (detailsFromSearch) {
@@ -282,10 +287,10 @@ function DogsPage() {
     const isNarcoticsGroup = (specialty: string) =>
       specialty === "narcotics" || specialty === "currency";
 
-    const activeNarcotics = activeDogs.filter((dog) => isNarcoticsGroup(dog.specialty)).length;
-    const activeExplosives = activeDogs.filter((dog) => dog.specialty === "explosives").length;
-    const excludedNarcotics = excludedDogs.filter((dog) => isNarcoticsGroup(dog.specialty)).length;
-    const excludedExplosives = excludedDogs.filter((dog) => dog.specialty === "explosives").length;
+    const activeNarcoticsDogs = activeDogs.filter((dog) => isNarcoticsGroup(dog.specialty));
+    const activeExplosivesDogs = activeDogs.filter((dog) => dog.specialty === "explosives");
+    const excludedNarcoticsDogs = excludedDogs.filter((dog) => isNarcoticsGroup(dog.specialty));
+    const excludedExplosivesDogs = excludedDogs.filter((dog) => dog.specialty === "explosives");
 
     const specialtyKeys = new Set<string>(KNOWN_DOG_SPECIALTIES);
     list.forEach((dog) => specialtyKeys.add(dog.specialty));
@@ -309,12 +314,19 @@ function DogsPage() {
 
     return {
       total: list.length,
+      list,
       active: activeDogs.length,
+      activeDogs,
       excluded: excludedDogs.length,
-      activeNarcotics,
-      activeExplosives,
-      excludedNarcotics,
-      excludedExplosives,
+      excludedDogs,
+      activeNarcotics: activeNarcoticsDogs.length,
+      activeNarcoticsDogs,
+      activeExplosives: activeExplosivesDogs.length,
+      activeExplosivesDogs,
+      excludedNarcotics: excludedNarcoticsDogs.length,
+      excludedNarcoticsDogs,
+      excludedExplosives: excludedExplosivesDogs.length,
+      excludedExplosivesDogs,
       specialties,
       exclusionReasons,
     };
@@ -679,7 +691,11 @@ function DogsPage() {
         meta: { width: "15%" },
         cell: ({ row }) => {
           const agent = row.original.agent;
-          if (!agent) return <span className="text-sm text-muted-foreground">—</span>;
+          if (!agent) {
+            return (
+              <span className="text-sm text-muted-foreground">{t("dogs.select.unassigned")}</span>
+            );
+          }
           return (
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold leading-tight">
@@ -737,6 +753,14 @@ function DogsPage() {
   const specialtyCount = (specialty: string) =>
     stats.specialties.find((entry) => entry.specialty === specialty)?.count ?? 0;
 
+  const showDogs = (title: string, rows: DogRow[]) => {
+    details.showDetails({
+      title,
+      columns: dogStatisticColumns(t),
+      rows: mapDogDetailRows(rows, t, exclusions),
+    });
+  };
+
   return (
     <div className="space-y-6">
       <PageTitle
@@ -772,56 +796,43 @@ function DogsPage() {
           {t("dogs.statistics.overview")}
         </h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <button
-            type="button"
-            className="rounded-[18px] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            onClick={resetFilters}
-          >
-            <KpiCard
-              icon={DogIcon}
-              label={t("dogs.stat.total")}
-              value={stats.total}
-              accent="primary"
-              loading={isLoading}
-              className="h-full"
-            />
-          </button>
-          <button
-            type="button"
-            className="rounded-[18px] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            onClick={() => filterBySpecialty("narcotics")}
-          >
-            <KpiCard
-              icon={Pill}
-              label={t("dogs.stat.narcotics")}
-              value={specialtyCount("narcotics")}
-              accent="warning"
-              loading={isLoading}
-              className={
-                specialtyFilter === "narcotics"
-                  ? "h-full border-primary ring-1 ring-primary/40"
-                  : "h-full"
-              }
-            />
-          </button>
-          <button
-            type="button"
-            className="rounded-[18px] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            onClick={() => filterBySpecialty("explosives")}
-          >
-            <KpiCard
-              icon={Bomb}
-              label={t("dogs.stat.explosives")}
-              value={specialtyCount("explosives")}
-              accent="danger"
-              loading={isLoading}
-              className={
-                specialtyFilter === "explosives"
-                  ? "h-full border-primary ring-1 ring-primary/40"
-                  : "h-full"
-              }
-            />
-          </button>
+          <KpiCard
+            icon={DogIcon}
+            label={t("dogs.stat.total")}
+            value={stats.total}
+            accent="primary"
+            loading={isLoading}
+            className="h-full"
+            onDetailsClick={() => showDogs(t("dogs.stat.total"), stats.list)}
+          />
+          <KpiCard
+            icon={Pill}
+            label={t("dogs.stat.narcotics")}
+            value={specialtyCount("narcotics")}
+            accent="warning"
+            loading={isLoading}
+            className="h-full"
+            onDetailsClick={() =>
+              showDogs(
+                t("dogs.stat.narcotics"),
+                stats.list.filter((dog) => dog.specialty === "narcotics"),
+              )
+            }
+          />
+          <KpiCard
+            icon={Bomb}
+            label={t("dogs.stat.explosives")}
+            value={specialtyCount("explosives")}
+            accent="danger"
+            loading={isLoading}
+            className="h-full"
+            onDetailsClick={() =>
+              showDogs(
+                t("dogs.stat.explosives"),
+                stats.list.filter((dog) => dog.specialty === "explosives"),
+              )
+            }
+          />
         </div>
       </section>
 
@@ -844,6 +855,20 @@ function DogsPage() {
             explosives: stats.excludedExplosives,
             total: stats.excluded,
           }}
+          onActiveNarcoticsClick={() =>
+            showDogs(`${t("dogs.stat.active")} — ${t("dogs.stat.narcotics")}`, stats.activeNarcoticsDogs)
+          }
+          onActiveExplosivesClick={() =>
+            showDogs(`${t("dogs.stat.active")} — ${t("dogs.stat.explosives")}`, stats.activeExplosivesDogs)
+          }
+          onActiveTotalClick={() => showDogs(t("dogs.statistics.totalActive"), stats.activeDogs)}
+          onExcludedNarcoticsClick={() =>
+            showDogs(`${t("dogs.stat.excluded")} — ${t("dogs.stat.narcotics")}`, stats.excludedNarcoticsDogs)
+          }
+          onExcludedExplosivesClick={() =>
+            showDogs(`${t("dogs.stat.excluded")} — ${t("dogs.stat.explosives")}`, stats.excludedExplosivesDogs)
+          }
+          onExcludedTotalClick={() => showDogs(t("dogs.statistics.totalExcluded"), stats.excludedDogs)}
         />
       </section>
 
@@ -1024,6 +1049,11 @@ function DogsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <StatisticDetailsDialog
+        open={details.open}
+        onOpenChange={details.onOpenChange}
+        payload={details.payload}
+      />
     </div>
   );
 }

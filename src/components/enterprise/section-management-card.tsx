@@ -248,22 +248,26 @@ export function SectionManagementCard({
             value={availableCount}
             valueClassName="text-emerald-700 dark:text-emerald-400"
           />
-          <SpecialtyStatTile
-            emoji="🐕"
-            label={narcoticsLabel}
-            operationalLabel={operationalLabel}
-            totalLabel={totalLabel}
-            operational={narcoticsOperational}
-            total={narcoticsTotal}
-          />
-          <SpecialtyStatTile
-            emoji="💣"
-            label={explosivesLabel}
-            operationalLabel={operationalLabel}
-            totalLabel={totalLabel}
-            operational={explosivesOperational}
-            total={explosivesTotal}
-          />
+          <div className="col-span-2 rounded-lg border border-[#023A84]/10 bg-[#023A84]/[0.02] px-2.5 py-1.5">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
+              <SpecialtyStatTile
+                emoji="🐕"
+                label={narcoticsLabel}
+                operationalLabel={operationalLabel}
+                totalLabel={totalLabel}
+                operational={narcoticsOperational}
+                total={narcoticsTotal}
+              />
+              <SpecialtyStatTile
+                emoji="💣"
+                label={explosivesLabel}
+                operationalLabel={operationalLabel}
+                totalLabel={totalLabel}
+                operational={explosivesOperational}
+                total={explosivesTotal}
+              />
+            </div>
+          </div>
         </div>
 
         <div
@@ -358,17 +362,23 @@ function SpecialtyStatTile({
   total: number;
 }) {
   return (
-    <div className="rounded-lg border border-[#023A84]/10 bg-[#023A84]/[0.02] px-2.5 py-1.5">
-      <div className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+    <div className="min-w-0">
+      <p className="flex items-center gap-1 text-[11px] font-semibold text-[#0B1F3A] dark:text-foreground">
         <span aria-hidden className="text-[11px] leading-none">
           {emoji}
         </span>
         <span className="truncate">{label}</span>
-      </div>
-      <dl className="mt-1 space-y-0.5">
-        <div className="flex items-baseline justify-between gap-2">
-          <dt className="truncate text-[10px] text-muted-foreground">{operationalLabel}</dt>
-          <dd
+      </p>
+      <ul className="mt-1 space-y-0.5 text-[10px] leading-snug text-muted-foreground">
+        <li className="flex items-baseline justify-between gap-2">
+          <span className="min-w-0 truncate">- {totalLabel} :</span>
+          <span className="shrink-0 text-sm font-bold tabular-nums leading-none tracking-tight text-[#0B1F3A] dark:text-foreground">
+            {total}
+          </span>
+        </li>
+        <li className="flex items-baseline justify-between gap-2">
+          <span className="min-w-0 truncate">- {operationalLabel} :</span>
+          <span
             className={cn(
               "shrink-0 text-sm font-bold tabular-nums leading-none tracking-tight",
               operational > 0
@@ -377,15 +387,9 @@ function SpecialtyStatTile({
             )}
           >
             {operational}
-          </dd>
-        </div>
-        <div className="flex items-baseline justify-between gap-2">
-          <dt className="truncate text-[10px] text-muted-foreground">{totalLabel}</dt>
-          <dd className="shrink-0 text-xs font-semibold tabular-nums leading-none tracking-tight text-foreground">
-            {total}
-          </dd>
-        </div>
-      </dl>
+          </span>
+        </li>
+      </ul>
     </div>
   );
 }

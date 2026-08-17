@@ -13,11 +13,13 @@ import {
   milestoneForDaysUntilEnd,
   exclusionScanWindow,
 } from "@/lib/notifications/exclusion-return-dates";
+import { fetchExclusionSettingsOrDefault, isConfiguredReminderMilestone } from "@/lib/exclusion-settings";
 import {
   loadActiveExclusionsInReminderWindow,
   isExclusionRowEnabled,
 } from "@/lib/notifications/exclusion-reminder-candidates";
 import {
+  exclusionNotificationDedupeKey,
   isActiveEndMilestone,
   NOTIFICATION_HISTORY_DAYS,
   notificationTypeForExclusion,
@@ -49,7 +51,7 @@ async function loadExistingKeys(
   if (error) throw error;
   const map = new Map<string, string>();
   for (const row of data ?? []) {
-    const key = `${row.exclusion_id}::${row.milestone}`;
+    const key = exclusionNotificationDedupeKey(row.exclusion_id as string, row.milestone as string);
     map.set(key, row.id as string);
   }
   return map;
@@ -130,12 +132,14 @@ async function reconcileStaleNotifications(
   const staleIds: string[] = [];
   for (const row of data) {
     const exclusion = exclusionById.get(row.exclusion_id as string);
-    const endDate = String(row.end_date).slice(0, 10);
+    const endDate = String(row.end_date ?? "").slice(0, 10);
     const milestone = row.milestone as ExclusionReturnMilestone;
+    const exclusionEnd = String(exclusion?.end_date ?? "").slice(0, 10);
     const shouldDelete =
       !exclusion ||
       !isExclusionRowEnabled(exclusion.active) ||
-      endDate !== String(exclusion.end_date).slice(0, 10) ||
+      !endDate ||
+      endDate !== exclusionEnd ||
       endDate < todayISO ||
       (isActiveEndMilestone(milestone) && !milestoneForDaysUntilEnd(daysUntilEnd(endDate, todayISO)));
     if (shouldDelete) staleIds.push(row.id as string);
@@ -170,6 +174,7 @@ export async function syncExclusionReturnNotifications(
   const cutoff = historyCutoffISO(todayISO, NOTIFICATION_HISTORY_DAYS);
 
   const exclusions = await loadActiveExclusionsInReminderWindow(db, reference);
+  const reminderSettings = await fetchExclusionSettingsOrDefault(db);
   const reconciled = await reconcileStaleNotifications(db, todayISO);
   const existing = await loadExistingKeys(db);
 
@@ -181,8 +186,8 @@ export async function syncExclusionReturnNotifications(
       exclusions: exclusions.map((row) => ({
         id: row.id,
         type: row.exclusion_type,
-        endDate: row.end_date.slice(0, 10),
-        daysUntilEnd: daysUntilEnd(row.end_date, todayISO),
+        endDate: row.end_date?.slice?.(0, 10) ?? null,
+        daysUntilEnd: row.end_date ? daysUntilEnd(row.end_date, todayISO) : null,
       })),
     });
   }
@@ -192,15 +197,16 @@ export async function syncExclusionReturnNotifications(
   const inserts: Omit<ExclusionNotificationRecord, "created_at">[] = [];
 
   for (const exclusion of exclusions) {
-    const endDate = exclusion.end_date.slice(0, 10);
+    const endDate = exclusion.end_date?.slice?.(0, 10) ?? "";
+    if (!endDate) continue;
     const daysUntil = daysUntilEnd(endDate, todayISO);
     const milestone = milestoneForDaysUntilEnd(daysUntil);
-    if (!milestone) continue;
+    if (!milestone || !isConfiguredReminderMilestone(milestone, reminderSettings)) continue;
 
     const returnDate = exclusionReturnDateISO(endDate);
     if (!returnDate) continue;
 
-    const key = `${exclusion.id}::${milestone}`;
+    const key = exclusionNotificationDedupeKey(exclusion.id, milestone);
     if (existing.has(key)) continue;
 
     const subjectKind: ExclusionNotificationSubjectKind =
@@ -244,6 +250,10 @@ export async function syncExclusionReturnNotifications(
 export async function fetchExclusionNotifications(
   db: DbClient,
 ): Promise<ExclusionNotificationRecord[]> {
+  console.info("[notifications] fetchExclusionNotifications", {
+    table: "exclusion_notifications",
+    sql: "SELECT ... FROM exclusion_notifications ORDER BY end_date ASC, created_at DESC",
+  });
   const { data, error } = await db
     .from("exclusion_notifications")
     .select(
@@ -252,7 +262,17 @@ export async function fetchExclusionNotifications(
     .order("end_date", { ascending: true })
     .order("created_at", { ascending: false });
 
-  if (error) throw error;
+  if (error) {
+    console.error("[notifications] fetchExclusionNotifications failed", {
+      table: "exclusion_notifications",
+      error,
+    });
+    throw error;
+  }
+  console.info("[notifications] fetchExclusionNotifications rows", {
+    table: "exclusion_notifications",
+    count: (data ?? []).length,
+  });
   return (data ?? []) as ExclusionNotificationRecord[];
 }
 

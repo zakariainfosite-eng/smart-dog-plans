@@ -5,6 +5,7 @@ import { Ban, Dog, Users } from "lucide-react";
 import type { AgentRow } from "@/integrations/database";
 import {
   isDogLevelExclusionType,
+  isOpenEndedExclusionType,
   planningDayISO,
   type AgentExclusionRecord,
 } from "@/lib/agent-exclusions";
@@ -46,8 +47,8 @@ type SectionExclusionDisplayRow = {
   handlerName?: string;
   exclusionType: string;
   startDate: string;
-  endDate: string;
-  remainingDays: number;
+  endDate: string | null;
+  remainingDays: number | null;
   urgency: ExclusionUrgency;
 };
 
@@ -57,7 +58,8 @@ function exclusionUrgency(remainingDays: number): ExclusionUrgency {
   return "active";
 }
 
-function remainingDaysUntilEnd(endDateISO: string, referenceISO: string): number {
+function remainingDaysUntilEnd(endDateISO: string | null | undefined, referenceISO: string): number | null {
+  if (!endDateISO?.trim()) return null;
   const end = startOfDay(parseISO(endDateISO.slice(0, 10)));
   const today = startOfDay(parseISO(planningDayISO(referenceISO)));
   return differenceInCalendarDays(end, today);
@@ -96,8 +98,11 @@ export function SectionExclusionsSheet({
     );
 
     const rows: SectionExclusionDisplayRow[] = active.map((exclusion, index) => {
-      const remainingDays = remainingDaysUntilEnd(exclusion.end_date, referenceISO);
-      const urgency = exclusionUrgency(remainingDays);
+      const openEnded = isOpenEndedExclusionType(exclusion.exclusion_type);
+      const remainingDays = openEnded
+        ? null
+        : remainingDaysUntilEnd(exclusion.end_date, referenceISO);
+      const urgency = remainingDays == null ? "active" : exclusionUrgency(remainingDays);
       const dogExclusion = isDogLevelExclusionType(exclusion.exclusion_type);
 
       if (dogExclusion) {
@@ -281,11 +286,13 @@ function ExclusionCard({
         : t("sections.exclusionsSheet.status.active");
 
   const remainingLabel =
-    row.remainingDays <= 0
-      ? t("sections.exclusionsSheet.remaining.today")
-      : row.remainingDays === 1
-        ? t("sections.exclusionsSheet.remaining.one")
-        : t("sections.exclusionsSheet.remaining.other", { count: row.remainingDays });
+    row.remainingDays == null
+      ? "—"
+      : row.remainingDays <= 0
+        ? t("sections.exclusionsSheet.remaining.today")
+        : row.remainingDays === 1
+          ? t("sections.exclusionsSheet.remaining.one")
+          : t("sections.exclusionsSheet.remaining.other", { count: row.remainingDays });
 
   return (
     <li
@@ -324,7 +331,11 @@ function ExclusionCard({
         />
         <Meta
           label={t("sections.exclusionsSheet.end")}
-          value={format(parseISO(row.endDate), "dd/MM/yyyy")}
+          value={
+            isOpenEndedExclusionType(row.exclusionType) || !row.endDate
+              ? "—"
+              : format(parseISO(row.endDate), "dd/MM/yyyy")
+          }
         />
         <Meta label={t("sections.exclusionsSheet.remainingLabel")} value={remainingLabel} />
       </div>

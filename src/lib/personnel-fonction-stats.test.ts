@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   computeActivePersonnelCategoryStats,
   computePersonnelCategoryStats,
+  countCynotechnicienSpecialties,
 } from "@/lib/personnel-fonction-stats";
 import type { AgentExclusionRecord } from "@/lib/agent-exclusions";
 
@@ -60,5 +61,26 @@ describe("computeActivePersonnelCategoryStats", () => {
       cynotechniciens: 1,
       administrative: 1,
     });
+  });
+});
+
+describe("countCynotechnicienSpecialties", () => {
+  it("counts only cynotechniciens and ignores administrative personnel", () => {
+    const stats = countCynotechnicienSpecialties([
+      { fonction: "cynotechnicien", dogs: { specialty: "narcotics" } },
+      { fonction: "cynotechnicien", dogs: { specialty: "currency" } },
+      { fonction: "cynotechnicien", dogs: { specialty: "explosives" } },
+      { fonction: "secretaire", dogs: { specialty: "narcotics" } },
+      { fonction: "chef_de_section", dogs: { specialty: "explosives" } },
+      { fonction: "cynotechnicien", dogs: null },
+    ]);
+
+    expect(stats).toEqual({ narcotics: 2, explosives: 1 });
+  });
+
+  it("returns zeros when there are no matching cynotechniciens", () => {
+    expect(
+      countCynotechnicienSpecialties([{ fonction: "secretaire", dogs: { specialty: "narcotics" } }]),
+    ).toEqual({ narcotics: 0, explosives: 0 });
   });
 });

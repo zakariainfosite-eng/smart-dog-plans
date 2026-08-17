@@ -1,10 +1,10 @@
 import { format } from "date-fns";
+import { db } from "@/integrations/database/client";
+import { loadDocumentLogoBytes } from "@/lib/document-logo-api";
 import {
   generateFeuillePresencePdfWithLogo,
-  loadFeuillePresenceLogo,
 } from "@/lib/documents/feuille-presence-pdf";
 import { generateFeuillePresenceDocx } from "@/lib/documents/feuille-presence-docx";
-import { FP_OFFICIAL_LOGO_URL } from "@/lib/documents/feuille-presence-layout";
 import {
   assertDocxZipIntegrity,
   uint8ArrayToBase64,
@@ -106,7 +106,7 @@ export async function generateFeuillePresenceExportFiles(
 ): Promise<PlanningExportFile[]> {
   const basename = input.basename ?? planningExportBasename(input.planningDate);
   const year = input.planningDate.getFullYear();
-  const logoBytes = await loadFeuillePresenceLogo(FP_OFFICIAL_LOGO_URL);
+  const logoBytes = await loadDocumentLogoBytes(db);
   const files: PlanningExportFile[] = [];
   // Sort once before any export — order is independent of planning assignment order.
   const data = sortFeuillePresenceDataByMatricule(input.data);
@@ -131,7 +131,6 @@ export async function generateFeuillePresenceExportFiles(
   if (format === "docx" || format === "both") {
     try {
       const bytes = await generateFeuillePresenceDocx(data, {
-        logoUrl: FP_OFFICIAL_LOGO_URL,
         logoBytes,
       });
       files.push({

@@ -238,3 +238,70 @@ export function staffingCountsFromCheckpointRow(
 ): CheckpointStaffingCounts {
   return computeCheckpointStaffingCounts(operationalConfigFromRow(row));
 }
+
+export type CheckpointRequiredK9Row = Pick<
+  CheckpointRowOperational,
+  | "active"
+  | "day_shift_enabled"
+  | "night_shift_enabled"
+  | "day_explosives"
+  | "day_narcotics"
+  | "night_explosives"
+  | "night_narcotics"
+>;
+
+/**
+ * K9 dogs required by configuration of every active checkpoint.
+ * Reuses staffingCountsFromCheckpointRow (enabled shifts, peak concurrent need).
+ * Total always equals narcotics + explosives.
+ */
+export function sumRequiredK9FromActiveCheckpoints(
+  rows: ReadonlyArray<CheckpointRequiredK9Row>,
+): CheckpointStaffingCounts {
+  return rows.reduce(
+    (acc, row) => {
+      if (!row.active) return acc;
+      const staffing = staffingCountsFromCheckpointRow(row);
+      acc.narcotics += staffing.narcotics;
+      acc.explosives += staffing.explosives;
+      acc.total += staffing.total;
+      return acc;
+    },
+    { narcotics: 0, explosives: 0, total: 0 },
+  );
+}
+
+export type RequiredK9Unit<T extends CheckpointRequiredK9Row = CheckpointRequiredK9Row> = {
+  source: T;
+  specialty: CheckpointSpecialty;
+  index: number;
+};
+
+/**
+ * One unit per required K9 team from {@link sumRequiredK9FromActiveCheckpoints}.
+ * `listRequiredK9Units(rows).length` equals `sumRequiredK9FromActiveCheckpoints(rows).total`.
+ */
+export function listRequiredK9Units<T extends CheckpointRequiredK9Row>(
+  rows: ReadonlyArray<T>,
+  specialty: "all" | CheckpointSpecialty = "all",
+): RequiredK9Unit<T>[] {
+  const units: RequiredK9Unit<T>[] = [];
+
+  for (const row of rows) {
+    if (!row.active) continue;
+    const staffing = staffingCountsFromCheckpointRow(row);
+
+    if (specialty === "all" || specialty === "narcotics") {
+      for (let index = 0; index < staffing.narcotics; index += 1) {
+        units.push({ source: row, specialty: "narcotics", index });
+      }
+    }
+    if (specialty === "all" || specialty === "explosives") {
+      for (let index = 0; index < staffing.explosives; index += 1) {
+        units.push({ source: row, specialty: "explosives", index });
+      }
+    }
+  }
+
+  return units;
+}

@@ -46,6 +46,11 @@ import { EmptyState } from "@/components/layout/EmptyState";
 import { AgentsPageHero, AgentsFilterToolbar, AgentsTableShell } from "@/components/agents/agents-page-hero";
 import { AgentsStatCard } from "@/components/agents/agents-stat-card";
 import { EmployeesTotalStatCard } from "@/components/agents/employees-total-stat-card";
+import { SpecialtyBreakdownLines } from "@/components/agents/specialty-breakdown-lines";
+import { StatisticDetailsDialog } from "@/components/statistics/statistic-details-dialog";
+import { useStatisticDetailsDialog } from "@/hooks/use-statistic-details-dialog";
+import { personnelStatisticColumns } from "@/lib/statistics/statistic-detail-columns";
+import { mapPersonnelDetailRows } from "@/lib/statistics/map-statistic-detail-rows";
 import {
   Pagination,
   PaginationContent,
@@ -79,6 +84,7 @@ import {
 import {
   agentSpecialty,
   availabilityBadgeTone,
+  cynotechnicienSpecialty,
   deriveAgentAvailabilityForAgent,
 } from "@/lib/agent-ui";
 import {
@@ -111,7 +117,7 @@ import {
   type PersonnelSortKey,
   type PersonnelStatusFilter,
 } from "@/lib/personnel-table-controls";
-import { computePersonnelCategoryStats } from "@/lib/personnel-fonction-stats";
+import { computePersonnelCategoryStats, countCynotechnicienSpecialties } from "@/lib/personnel-fonction-stats";
 import { splitPersonnelIntoTwoTables } from "@/lib/documents/personnel-two-tables";
 import { useI18n } from "@/hooks/use-i18n";
 import { useDocumentTitle } from "@/hooks/use-document-title";
@@ -325,6 +331,7 @@ function EmployeesPage() {
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const details = useStatisticDetailsDialog();
 
   useEffect(() => {
     if (detailsFromSearch) {
@@ -396,15 +403,15 @@ function EmployeesPage() {
     const list = agents ?? [];
     const exclusions = todayExclusions as AgentExclusionRecord[];
     const total = list.length;
-    const available = list.filter(
+    const availableList = list.filter(
       (a) => deriveAgentAvailabilityForAgent(a, exclusions).status === "available",
-    ).length;
-    const excluded = list.filter(
+    );
+    const excludedList = list.filter(
       (a) => deriveAgentAvailabilityForAgent(a, exclusions).status === "excluded",
-    ).length;
-    const female = list.filter((a) => a.gender === "female").length;
-    const male = list.filter((a) => a.gender === "male").length;
-    const withDog = list.filter((a) => a.dog_id).length;
+    );
+    const femaleList = list.filter((a) => a.gender === "female");
+    const maleList = list.filter((a) => a.gender === "male");
+    const withDogList = list.filter((a) => a.dog_id);
 
     const now = new Date();
     const thisMonth = now.getMonth();
@@ -414,17 +421,81 @@ function EmployeesPage() {
       return d.getFullYear() === thisYear && d.getMonth() === thisMonth;
     }).length;
 
+    const narcoticsList = list.filter((a) => agentSpecialty(a) === "narcotics");
+    const explosivesList = list.filter((a) => agentSpecialty(a) === "explosives");
+    const cynotechniciensList = list.filter((a) => usesOperationalPersonnelColumns(a.fonction));
+    const administrativeList = list.filter((a) => !usesOperationalPersonnelColumns(a.fonction));
+    const excludedAdministrativeList = excludedList.filter(
+      (a) => !usesOperationalPersonnelColumns(a.fonction),
+    );
+
     return {
       total,
-      available,
-      excluded,
-      female,
-      male,
-      withDog,
+      list,
+      available: availableList.length,
+      availableList,
+      excluded: excludedList.length,
+      excludedList,
+      female: femaleList.length,
+      femaleList,
+      male: maleList.length,
+      maleList,
+      withDog: withDogList.length,
+      withDogList,
       addedThisMonth,
       categoryStats: computePersonnelCategoryStats(list),
-      narcotics: list.filter((a) => agentSpecialty(a) === "narcotics").length,
-      explosives: list.filter((a) => agentSpecialty(a) === "explosives").length,
+      cynotechniciensList,
+      administrativeList,
+      excludedAdministrative: computePersonnelCategoryStats(excludedList).administrative,
+      excludedAdministrativeList,
+      narcotics: narcoticsList.length,
+      narcoticsList,
+      explosives: explosivesList.length,
+      explosivesList,
+      specialty: {
+        total: countCynotechnicienSpecialties(list),
+        available: countCynotechnicienSpecialties(availableList),
+        excluded: countCynotechnicienSpecialties(excludedList),
+        withDog: countCynotechnicienSpecialties(withDogList),
+        female: countCynotechnicienSpecialties(femaleList),
+        male: countCynotechnicienSpecialties(maleList),
+        totalNarcotics: list.filter(
+          (a) => isCynotechnicienFonction(a.fonction) && cynotechnicienSpecialty(a) === "narcotics",
+        ),
+        totalExplosives: list.filter(
+          (a) => isCynotechnicienFonction(a.fonction) && cynotechnicienSpecialty(a) === "explosives",
+        ),
+        availableNarcotics: availableList.filter(
+          (a) => isCynotechnicienFonction(a.fonction) && cynotechnicienSpecialty(a) === "narcotics",
+        ),
+        availableExplosives: availableList.filter(
+          (a) => isCynotechnicienFonction(a.fonction) && cynotechnicienSpecialty(a) === "explosives",
+        ),
+        excludedNarcotics: excludedList.filter(
+          (a) => isCynotechnicienFonction(a.fonction) && cynotechnicienSpecialty(a) === "narcotics",
+        ),
+        excludedExplosives: excludedList.filter(
+          (a) => isCynotechnicienFonction(a.fonction) && cynotechnicienSpecialty(a) === "explosives",
+        ),
+        withDogNarcotics: withDogList.filter(
+          (a) => isCynotechnicienFonction(a.fonction) && cynotechnicienSpecialty(a) === "narcotics",
+        ),
+        withDogExplosives: withDogList.filter(
+          (a) => isCynotechnicienFonction(a.fonction) && cynotechnicienSpecialty(a) === "explosives",
+        ),
+        femaleNarcotics: femaleList.filter(
+          (a) => isCynotechnicienFonction(a.fonction) && cynotechnicienSpecialty(a) === "narcotics",
+        ),
+        femaleExplosives: femaleList.filter(
+          (a) => isCynotechnicienFonction(a.fonction) && cynotechnicienSpecialty(a) === "explosives",
+        ),
+        maleNarcotics: maleList.filter(
+          (a) => isCynotechnicienFonction(a.fonction) && cynotechnicienSpecialty(a) === "narcotics",
+        ),
+        maleExplosives: maleList.filter(
+          (a) => isCynotechnicienFonction(a.fonction) && cynotechnicienSpecialty(a) === "explosives",
+        ),
+      },
     };
   }, [agents, todayExclusions]);
 
@@ -1018,6 +1089,14 @@ function EmployeesPage() {
     [agentIdentityColumn, sharedTrailingColumns, t],
   );
 
+  const showPersonnel = (title: string, rows: AgentRow[]) => {
+    details.showDetails({
+      title,
+      columns: personnelStatisticColumns(t),
+      rows: mapPersonnelDetailRows(rows, t, todayExclusions as AgentExclusionRecord[]),
+    });
+  };
+
   return (
     <div className="space-y-6 pb-8">
       <AgentsPageHero
@@ -1042,6 +1121,7 @@ function EmployeesPage() {
         <EmployeesTotalStatCard
           total={stats.total}
           categories={stats.categoryStats}
+          specialty={stats.specialty.total}
           label={t("employees.stat.total")}
           trend={
             stats.addedThisMonth > 0
@@ -1049,6 +1129,25 @@ function EmployeesPage() {
               : undefined
           }
           loading={isLoading}
+          onTotalClick={() => showPersonnel(t("employees.stat.total"), stats.list)}
+          onCynotechniciensClick={() =>
+            showPersonnel(t("employees.stat.cynotechniciens"), stats.cynotechniciensList)
+          }
+          onAdministrativeClick={() =>
+            showPersonnel(t("employees.stat.administrative"), stats.administrativeList)
+          }
+          onNarcoticsClick={() =>
+            showPersonnel(
+              `${t("employees.stat.total")} — ${t("specialty.narcotics")}`,
+              stats.specialty.totalNarcotics,
+            )
+          }
+          onExplosivesClick={() =>
+            showPersonnel(
+              `${t("employees.stat.total")} — ${t("specialty.explosives")}`,
+              stats.specialty.totalExplosives,
+            )
+          }
         />
         <AgentsStatCard
           icon={UserCheck}
@@ -1057,6 +1156,25 @@ function EmployeesPage() {
           percentage={pct(stats.available, stats.total)}
           iconBgClassName="bg-emerald-500/10 text-emerald-600"
           loading={isLoading}
+          onDetailsClick={() => showPersonnel(t("employees.stat.available"), stats.availableList)}
+          footer={
+            <SpecialtyBreakdownLines
+              specialty={stats.specialty.available}
+              loading={isLoading}
+              onNarcoticsClick={() =>
+                showPersonnel(
+                  `${t("employees.stat.available")} — ${t("specialty.narcotics")}`,
+                  stats.specialty.availableNarcotics,
+                )
+              }
+              onExplosivesClick={() =>
+                showPersonnel(
+                  `${t("employees.stat.available")} — ${t("specialty.explosives")}`,
+                  stats.specialty.availableExplosives,
+                )
+              }
+            />
+          }
         />
         <AgentsStatCard
           icon={DogIcon}
@@ -1065,6 +1183,25 @@ function EmployeesPage() {
           percentage={pct(stats.withDog, stats.total)}
           iconBgClassName="bg-sky-500/10 text-sky-600"
           loading={isLoading}
+          onDetailsClick={() => showPersonnel(t("employees.stat.withDog"), stats.withDogList)}
+          footer={
+            <SpecialtyBreakdownLines
+              specialty={stats.specialty.withDog}
+              loading={isLoading}
+              onNarcoticsClick={() =>
+                showPersonnel(
+                  `${t("employees.stat.withDog")} — ${t("specialty.narcotics")}`,
+                  stats.specialty.withDogNarcotics,
+                )
+              }
+              onExplosivesClick={() =>
+                showPersonnel(
+                  `${t("employees.stat.withDog")} — ${t("specialty.explosives")}`,
+                  stats.specialty.withDogExplosives,
+                )
+              }
+            />
+          }
         />
         <AgentsStatCard
           icon={UserX}
@@ -1073,6 +1210,32 @@ function EmployeesPage() {
           percentage={pct(stats.excluded, stats.total)}
           iconBgClassName="bg-red-500/10 text-red-600"
           loading={isLoading}
+          onDetailsClick={() => showPersonnel(t("employees.stat.excluded"), stats.excludedList)}
+          footer={
+            <SpecialtyBreakdownLines
+              specialty={stats.specialty.excluded}
+              administrative={stats.excludedAdministrative}
+              loading={isLoading}
+              onNarcoticsClick={() =>
+                showPersonnel(
+                  `${t("employees.stat.excluded")} — ${t("specialty.narcotics")}`,
+                  stats.specialty.excludedNarcotics,
+                )
+              }
+              onExplosivesClick={() =>
+                showPersonnel(
+                  `${t("employees.stat.excluded")} — ${t("specialty.explosives")}`,
+                  stats.specialty.excludedExplosives,
+                )
+              }
+              onAdministrativeClick={() =>
+                showPersonnel(
+                  `${t("employees.stat.excluded")} — ${t("employees.stat.administrative")}`,
+                  stats.excludedAdministrativeList,
+                )
+              }
+            />
+          }
         />
         <AgentsStatCard
           icon={Venus}
@@ -1081,6 +1244,25 @@ function EmployeesPage() {
           percentage={pct(stats.female, stats.total)}
           iconBgClassName="bg-pink-500/10 text-pink-600"
           loading={isLoading}
+          onDetailsClick={() => showPersonnel(t("employees.stat.female"), stats.femaleList)}
+          footer={
+            <SpecialtyBreakdownLines
+              specialty={stats.specialty.female}
+              loading={isLoading}
+              onNarcoticsClick={() =>
+                showPersonnel(
+                  `${t("employees.stat.female")} — ${t("specialty.narcotics")}`,
+                  stats.specialty.femaleNarcotics,
+                )
+              }
+              onExplosivesClick={() =>
+                showPersonnel(
+                  `${t("employees.stat.female")} — ${t("specialty.explosives")}`,
+                  stats.specialty.femaleExplosives,
+                )
+              }
+            />
+          }
         />
         <AgentsStatCard
           icon={Mars}
@@ -1089,6 +1271,25 @@ function EmployeesPage() {
           percentage={pct(stats.male, stats.total)}
           iconBgClassName="bg-indigo-500/10 text-indigo-600"
           loading={isLoading}
+          onDetailsClick={() => showPersonnel(t("employees.stat.male"), stats.maleList)}
+          footer={
+            <SpecialtyBreakdownLines
+              specialty={stats.specialty.male}
+              loading={isLoading}
+              onNarcoticsClick={() =>
+                showPersonnel(
+                  `${t("employees.stat.male")} — ${t("specialty.narcotics")}`,
+                  stats.specialty.maleNarcotics,
+                )
+              }
+              onExplosivesClick={() =>
+                showPersonnel(
+                  `${t("employees.stat.male")} — ${t("specialty.explosives")}`,
+                  stats.specialty.maleExplosives,
+                )
+              }
+            />
+          }
         />
         <AgentsStatCard
           icon={Bomb}
@@ -1097,6 +1298,7 @@ function EmployeesPage() {
           percentage={pct(stats.explosives, stats.total)}
           iconBgClassName="bg-orange-500/10 text-orange-600"
           loading={isLoading}
+          onDetailsClick={() => showPersonnel(t("employees.stat.explosives"), stats.explosivesList)}
         />
         <AgentsStatCard
           icon={Pill}
@@ -1105,6 +1307,7 @@ function EmployeesPage() {
           percentage={pct(stats.narcotics, stats.total)}
           iconBgClassName="bg-teal-500/10 text-teal-600"
           loading={isLoading}
+          onDetailsClick={() => showPersonnel(t("employees.stat.narcotics"), stats.narcoticsList)}
         />
       </div>
 
@@ -1438,6 +1641,11 @@ function EmployeesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <StatisticDetailsDialog
+        open={details.open}
+        onOpenChange={details.onOpenChange}
+        payload={details.payload}
+      />
     </div>
   );
 }

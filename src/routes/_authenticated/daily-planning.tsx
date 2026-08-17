@@ -4,6 +4,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useI18n } from "@/hooks/use-i18n";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { usePlanningSettings } from "@/hooks/use-planning-settings";
+import { shiftHoursI18nParams } from "@/lib/planning-settings";
 import { translatePlanningReason, isReserveWarning, isRestWarning, translatePoint653Reason } from "@/lib/planning-i18n";
 import {
   collectPlanningResultAgentNames,
@@ -171,6 +173,8 @@ function DailyPlanningPage() {
   const { t } = useI18n();
   const queryClient = useQueryClient();
   useDocumentTitle("meta.dailyPlanning.title");
+  const { hours: planningHours } = usePlanningSettings();
+  const shiftHourLabels = shiftHoursI18nParams(planningHours);
   const [shiftChoice, setShiftChoice] = useState<"day" | "night">("day");
   const [planningDate, setPlanningDate] = useState<Date>(new Date());
   const [roleBySectionId, setRoleBySectionId] = useState<SectionRoleMap>({});
@@ -828,8 +832,8 @@ function DailyPlanningPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="day">{t("shift.dayHours")}</SelectItem>
-                  <SelectItem value="night">{t("shift.nightHours")}</SelectItem>
+                  <SelectItem value="day">{t("shift.dayHours", shiftHourLabels)}</SelectItem>
+                  <SelectItem value="night">{t("shift.nightHours", shiftHourLabels)}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

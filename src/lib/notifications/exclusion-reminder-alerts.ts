@@ -9,6 +9,7 @@ import {
   milestoneForDaysUntilEnd,
 } from "@/lib/notifications/exclusion-return-dates";
 import { loadActiveExclusionsInReminderWindow } from "@/lib/notifications/exclusion-reminder-candidates";
+import { fetchExclusionSettingsOrDefault, isConfiguredReminderMilestone } from "@/lib/exclusion-settings";
 import type {
   ExclusionNotificationSubjectKind,
   ExclusionReturnMilestone,
@@ -207,6 +208,7 @@ export async function fetchPendingExclusionReminderAlerts(
 ): Promise<ExclusionReminderAlert[]> {
   const todayISO = planningDayISO(reference);
   const exclusions = await loadCandidateExclusions(db, reference);
+  const reminderSettings = await fetchExclusionSettingsOrDefault(db);
 
   const agentCache = new Map<string, string>();
   const dogCache = new Map<string, string>();
@@ -216,7 +218,7 @@ export async function fetchPendingExclusionReminderAlerts(
     const endDate = exclusion.end_date.slice(0, 10);
     const daysRemaining = daysUntilEnd(endDate, todayISO);
     const milestone = milestoneForDaysUntilEnd(daysRemaining);
-    if (!milestone) continue;
+    if (!milestone || !isConfiguredReminderMilestone(milestone, reminderSettings)) continue;
 
     const subjectKind: ExclusionNotificationSubjectKind =
       exclusionApplyTarget(exclusion.exclusion_type, exclusion.dog_id) === "dog"
