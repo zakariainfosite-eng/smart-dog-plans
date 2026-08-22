@@ -435,6 +435,62 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_administrative_history: {
+        Row: {
+          id: string
+          agent_id: string
+          event_type: Database["public"]["Enums"]["agent_history_event_type"]
+          start_date: string
+          end_date: string | null
+          reason: string | null
+          observation: string | null
+          reference: string | null
+          source_type: Database["public"]["Enums"]["agent_history_source_type"]
+          source_id: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          agent_id: string
+          event_type: Database["public"]["Enums"]["agent_history_event_type"]
+          start_date: string
+          end_date?: string | null
+          reason?: string | null
+          observation?: string | null
+          reference?: string | null
+          source_type?: Database["public"]["Enums"]["agent_history_source_type"]
+          source_id?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          agent_id?: string
+          event_type?: Database["public"]["Enums"]["agent_history_event_type"]
+          start_date?: string
+          end_date?: string | null
+          reason?: string | null
+          observation?: string | null
+          reference?: string | null
+          source_type?: Database["public"]["Enums"]["agent_history_source_type"]
+          source_id?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_administrative_history_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_reference_sequences: {
         Row: {
           prefix: "RAP" | "MSG"
@@ -836,6 +892,23 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      agent_history_event_type:
+        | "conge"
+        | "permission"
+        | "arret_maladie"
+        | "formation"
+        | "exclusion_formation"
+        | "autre"
+      agent_history_source_type:
+        | "manual"
+        | "import"
+        | "conge"
+        | "permission"
+        | "maladie"
+        | "formation"
+        | "exclusion"
+        | "cas_operationnel"
+        | "planning"
       /** ANY = 'all', MALE = 'male', FEMALE = 'female' */
       checkpoint_allowed_gender: "all" | "male" | "female"
       checkpoint_female_policy: "allowed" | "preferred" | "not_allowed"
@@ -1024,6 +1097,25 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      agent_history_event_type: [
+        "conge",
+        "permission",
+        "arret_maladie",
+        "formation",
+        "exclusion_formation",
+        "autre",
+      ],
+      agent_history_source_type: [
+        "manual",
+        "import",
+        "conge",
+        "permission",
+        "maladie",
+        "formation",
+        "exclusion",
+        "cas_operationnel",
+        "planning",
+      ],
       checkpoint_allowed_gender: ["all", "male", "female"],
       checkpoint_female_policy: ["allowed", "preferred", "not_allowed"],
       dog_specialty: ["narcotics", "explosives", "currency"],

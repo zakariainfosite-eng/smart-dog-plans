@@ -6,6 +6,7 @@
 import { randomUUID } from "node:crypto";
 import type Database from "better-sqlite3";
 import { applyUnassignIfWithoutHandlerExclusionSync } from "../src/integrations/database/unassign-dog-handler";
+import { REST_ALLOWED_TABLES } from "../src/integrations/database/schema-sql";
 
 export type FilterOp = "eq" | "neq" | "in" | "lte" | "gte" | "gt" | "lt" | "is" | "not" | "ilike";
 
@@ -40,24 +41,8 @@ export type RestQueryResult = {
   count: number | null;
 };
 
-const ALLOWED_TABLES = new Set([
-  "sections",
-  "dogs",
-  "agents",
-  "checkpoints",
-  "checkpoint_posts",
-  "agent_exclusions",
-  "exclusion_notifications",
-  "planning",
-  "planning_assignments",
-  "rotation_history",
-  "operational_cases",
-  "operational_case_attachments",
-  "application_settings",
-  "role_documents",
-  "document_reference_sequences",
-  "users",
-]);
+/** Derived from the canonical DDL — see REST_ALLOWED_TABLES in schema-sql.ts. */
+const ALLOWED_TABLES = REST_ALLOWED_TABLES;
 
 /** Parent table → embed alias → how to resolve related rows. */
 type EmbedSpec = {

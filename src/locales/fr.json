@@ -621,7 +621,78 @@
       "exclusionsHistory": "Historique des exclusions",
       "careerSummary": "Résumé de carrière",
       "history": "Historique",
+      "administrativeHistory": "Historique administratif",
+      "completeHistory": "Historique complet",
       "notes": "Notes"
+    },
+    "adminHistory": {
+      "subtitle": "Événements administratifs saisis manuellement, y compris antérieurs à CynoPlanning.",
+      "add": "Ajouter un historique",
+      "empty": "Aucun historique administratif enregistré.",
+      "type": {
+        "conge": "Congé",
+        "permission": "Permission",
+        "arret_maladie": "Arrêt maladie",
+        "formation": "Formation",
+        "exclusion_formation": "Exclusion formation",
+        "autre": "Autre"
+      },
+      "source": {
+        "manual": "Saisie manuelle",
+        "import": "Import",
+        "conge": "Congé",
+        "permission": "Permission",
+        "maladie": "Arrêt maladie",
+        "formation": "Formation",
+        "exclusion": "Exclusion",
+        "cas_operationnel": "Cas opérationnel",
+        "planning": "Planning"
+      },
+      "field": {
+        "type": "Type",
+        "startDate": "Date de début",
+        "endDate": "Date de fin",
+        "reason": "Motif",
+        "observation": "Observation",
+        "reference": "Référence",
+        "createdAt": "Créé le",
+        "createdBy": "Créé par"
+      },
+      "dialog": {
+        "createTitle": "Ajouter un historique",
+        "editTitle": "Modifier l'historique",
+        "description": "Enregistrer un événement administratif pour ce fonctionnaire.",
+        "hint": "Cet enregistrement est informatif : il n'applique aucune règle d'exclusion, de planning ou de rotation."
+      },
+      "validation": {
+        "typeRequired": "Le type est obligatoire.",
+        "startRequired": "La date de début est obligatoire.",
+        "endBeforeStart": "La date de fin doit être postérieure ou égale à la date de début."
+      },
+      "delete": {
+        "title": "Supprimer cet historique ?",
+        "description": "Cet enregistrement d'historique administratif sera définitivement supprimé. Les exclusions, cas opérationnels et plannings ne sont pas affectés."
+      },
+      "toast": {
+        "created": "Historique ajouté.",
+        "updated": "Historique mis à jour.",
+        "deleted": "Historique supprimé."
+      }
+    },
+    "completeHistory": {
+      "empty": "Aucun événement enregistré pour ce fonctionnaire.",
+      "emptyFilter": "Aucun événement ne correspond à la catégorie sélectionnée.",
+      "showMore": "Afficher plus",
+      "filter": {
+        "all": "Tout"
+      },
+      "category": {
+        "administrative": "Administratif",
+        "exclusion_agent": "Exclusion fonctionnaire",
+        "exclusion_dog": "Exclusion liée au chien",
+        "operational_case": "Cas opérationnel",
+        "rotation": "Rotation"
+      }
     },
     "stats": {
       "totalAssignments": "Affectations totales",
@@ -1077,7 +1148,14 @@
       "reason": "Type d'exclusion",
       "allReasons": "Tous les types",
       "allAgents": "Tous les fonctionnaires",
-      "date": "Date"
+      "date": "Date",
+      "status": "Statut",
+      "statusOption": {
+        "all": "Toutes",
+        "inForce": "En vigueur",
+        "upcoming": "À venir",
+        "expired": "Expirées"
+      }
     },
     "table": {
       "agent": "Fonctionnaire",
@@ -1117,10 +1195,20 @@
     "formType": {
       "dog_vet_visit": "Sous observation"
     },
+    "listStatus": {
+      "inForce": "En vigueur",
+      "upcoming": "À venir",
+      "expired": "Expirée",
+      "inactive": "Désactivée"
+    },
     "empty": {
       "noMatch": "Aucune exclusion ne correspond",
       "none": "Aucune exclusion",
       "noneActive": "Aucune exclusion active.",
+      "noneInForce": "Aucune exclusion en vigueur.",
+      "noneUpcoming": "Aucune exclusion à venir.",
+      "noneExpired": "Aucune exclusion expirée.",
+      "noneRecorded": "Aucune exclusion enregistrée.",
       "nonePersonnel": "Aucune exclusion personnel",
       "noneDogs": "Aucune exclusion chien",
       "recordFirst": "Ajoutez une exclusion pour commencer le suivi."
@@ -1188,6 +1276,8 @@
     "toast": {
       "updated": "Exclusion mise à jour",
       "created": "Exclusion créée",
+      "createdUpcoming": "Exclusion enregistrée avec succès.",
+      "createdUpcomingHint": "Elle sera active à partir du {{date}}.",
       "enabled": "Exclusion activée",
       "disabled": "Exclusion désactivée",
       "deleted": "Exclusion supprimée"
@@ -2758,6 +2848,417 @@
         "monthlyDesc": "Synthèse mensuelle de la gestion du matériel.",
         "adminMessage": "Message administratif matériel",
         "adminMessageDesc": "Communication administrative liée au matériel."
+      }
+    },
+    "sickDogReport": {
+      "wizardTitle": "Nouveau rapport — Chien malade",
+      "wizardDescription": "Saisie des informations variables du Radio Départ. Le modèle officiel (en-tête DGSN, tableau, typographie) reste fixe.",
+      "pageDescription": "Formulaire aligné sur le document officiel Radio Départ — Rapport de chien malade.",
+      "stepsNav": "Étapes du rapport",
+      "steps": {
+        "messageInfo": "Informations du message",
+        "dogVeterinary": "Chien et informations vétérinaires",
+        "messageBody": "Corps du message",
+        "signatures": "Signatures",
+        "preview": "Prévisualisation"
+      },
+      "sections": {
+        "documentInfo": "En-tête Radio Départ",
+        "senderRecipient": "Expéditeur / Destinataire",
+        "diffusion": "Diffusion",
+        "dog": "Chien",
+        "veterinary": "Informations vétérinaires",
+        "messageBody": "Corps du message",
+        "signatures": "Signatures",
+        "radioDepartHeader": "En-tête Radio Départ"
+      },
+      "fields": {
+        "origin": "Origine",
+        "number": "Numéro",
+        "wordCount": "Mots",
+        "departureDateTime": "Date et heure de départ",
+        "serviceMention": "Mention de servi",
+        "senderUnit": "Expéditeur",
+        "recipient": "Destinataire",
+        "city": "Ville / destination",
+        "diffusion": "Diffusion / copies",
+        "priority": "Priorité",
+        "dog": "Chien",
+        "dogName": "Nom du chien",
+        "specialty": "Spécialité",
+        "handler": "Cynotechnicien assigné",
+        "section": "Section",
+        "breed": "Race",
+        "microchip": "Puce électronique",
+        "examDate": "Date d'examen",
+        "veterinarianName": "Vétérinaire",
+        "examReason": "Motif de l'examen",
+        "clinicalObservations": "État / observations",
+        "diagnosis": "Diagnostic / constat",
+        "treatment": "Traitement prescrit",
+        "restPeriod": "Durée de repos",
+        "additionalObservations": "Observations complémentaires",
+        "signatoryName": "Nom",
+        "signatoryFunction": "Fonction",
+        "signatoryOrder": "Ordre"
+      },
+      "priority": {
+        "urgent": "URGENT",
+        "normal": "NORMAL"
+      },
+      "actions": {
+        "continue": "Continuer",
+        "back": "Retour",
+        "addDiffusion": "Ajouter un destinataire",
+        "addSignatory": "Ajouter un signataire",
+        "exportPdf": "Exporter en PDF"
+      },
+      "placeholders": {
+        "diffusion": "Service / destinataire de diffusion",
+        "messageBody": "Rédigez librement le corps du message…"
+      },
+      "hints": {
+        "selectDog": "Sélectionnez un chien existant pour afficher automatiquement ses informations.",
+        "messageBody": "Vous restez libre de rédiger et modifier le texte. Aucune rédaction automatique n’est appliquée.",
+        "wordCountAuto": "Mots détectés dans le corps : {{count}}",
+        "preview": "Prévisualisation A4 fidèle au Radio Départ. Les modifications du formulaire s'affichent immédiatement. Utilisez « Exporter en PDF » pour générer le document imprimable.",
+        "radioDepartHeader": "Ces champs correspondent au petit tableau en tête du document officiel."
+      },
+      "preview": {
+        "headerAgency": "DIRECTION GENERALE DE LA SURETE NATIONALE",
+        "documentTitle": "RAPPORT DE CHIEN MALADE",
+        "radioDepart": "RADIO DEPART",
+        "emptyBody": "(Texte officiel non renseigné)",
+        "signatureLine": "Signature",
+        "de": "EXPEDITEUR",
+        "a": "A",
+        "messageHeading": "Texte officiel",
+        "a4Label": "Prévisualisation A4 — Radio Départ",
+        "agencyLine1": "DIRECTION GENERALE",
+        "agencyLine2": "DE LA SURETE NATIONALE",
+        "expediteur": "EXPEDITEUR",
+        "destinataire": "DESTINATAIRE",
+        "diffusion": "DIFFUSION"
+      },
+      "errors": {
+        "exportPdf": "Impossible d'exporter le PDF."
+      }
+    },
+    "documentTemplates": {
+      "workflowStatus": {
+        "draft": "Brouillon",
+        "finalized": "Finalisé",
+        "exported": "Exporté"
+      },
+      "actions": {
+        "addAttachment": "Ajouter une pièce jointe"
+      },
+      "errors": {
+        "exportPdf": "Impossible d'exporter le PDF.",
+        "unknownTemplate": "Modèle de document inconnu."
+      },
+      "validation": {
+        "required": "Veuillez renseigner tous les champs obligatoires.",
+        "dogRequired": "Veuillez sélectionner un chien avant d'exporter le rapport.",
+        "signatoryRequired": "Veuillez renseigner au moins un signataire."
+      },
+      "subjects": {
+        "messageDemande": "MESSAGE / DEMANDE",
+        "heatDog": "RAPPORT DE CHIENNE EN CHALEUR",
+        "vetVisit": "RAPPORT DE VISITE VÉTÉRINAIRE",
+        "care": "RAPPORT DE SOINS",
+        "followUp": "RAPPORT DE SUIVI D'UN CHIEN",
+        "monthly": "RAPPORT MENSUEL"
+      },
+      "fields": {
+        "date": "Date",
+        "subject": "Objet",
+        "sender": "Expéditeur",
+        "recipient": "Destinataire",
+        "reference": "Référence / Numéro",
+        "priority": "Priorité",
+        "priorityNormal": "NORMAL",
+        "priorityUrgent": "URGENT",
+        "messageBody": "Contenu du message",
+        "diffusion": "Copies / destinataires en copie",
+        "signatories": "Signature / responsable",
+        "attachments": "Pièces jointes",
+        "dog": "Chien",
+        "dogName": "Nom du chien",
+        "specialty": "Spécialité",
+        "handler": "Cynotechnicien / maître",
+        "section": "Section",
+        "breed": "Race",
+        "microchip": "Puce électronique",
+        "examDate": "Date d'examen",
+        "veterinarianName": "Vétérinaire",
+        "examReason": "Motif de l'examen",
+        "clinicalObservations": "Observations cliniques",
+        "diagnosis": "Diagnostic / constat",
+        "treatment": "Traitement",
+        "medication": "Médication",
+        "restPeriod": "Durée de repos",
+        "additionalObservations": "Observations complémentaires",
+        "origin": "Origine",
+        "number": "Numéro",
+        "wordCount": "Mots",
+        "departureDateTime": "Date et heure de départ",
+        "serviceMention": "Mention de servi",
+        "city": "Ville",
+        "month": "Mois",
+        "year": "Année",
+        "monthlySummary": "Synthèse mensuelle",
+        "dogStatus": "Statut du chien",
+        "agentFirstName": "Prénom agent",
+        "agentLastName": "Nom agent",
+        "agentFullName": "Nom complet agent",
+        "agentFunction": "Fonction agent",
+        "exclusionType": "Type d'exclusion",
+        "exclusionStart": "Date début exclusion",
+        "exclusionEnd": "Date fin exclusion",
+        "exclusionStatus": "Statut d'exclusion",
+        "heatStartDate": "Date de début des chaleurs",
+        "heatEndDate": "Date prévue de fin",
+        "returnDate": "Date de reprise prévue"
+      }
+    },
+    "kinds": {
+      "report": "Rapport",
+      "message": "Message",
+      "monthly": "Mensuel"
+    },
+    "templateManagement": {
+      "title": "Gestion des modèles",
+      "description": "Configurer la structure et le contenu des modèles PDF de Rapports & Messages.",
+      "editorDescription": "Modifiez les sections, l’ordre et les textes. L’aperçu A4 se met à jour immédiatement.",
+      "viewOnly": "Consultation seule — seuls les administrateurs peuvent modifier les modèles.",
+      "neverModified": "Jamais modifié",
+      "columns": {
+        "name": "Nom",
+        "type": "Type de document",
+        "status": "Statut",
+        "sections": "Sections",
+        "updated": "Dernière modification",
+        "actions": "Action"
+      },
+      "status": {
+        "active": "Actif",
+        "inactive": "Inactif"
+      },
+      "actions": {
+        "edit": "Modifier",
+        "save": "Enregistrer le modèle",
+        "reset": "Restaurer le modèle par défaut",
+        "backToList": "Retour à la liste",
+        "hide": "Masquer",
+        "show": "Afficher",
+        "addSignature": "Ajouter un bloc signature",
+        "moveUp": "Monter",
+        "moveDown": "Descendre",
+        "removeSignature": "Supprimer la signature",
+        "addDestinataireLine": "Ajouter une ligne Destinataire",
+        "removeDestinataireLine": "Supprimer la ligne",
+        "addExpediteurLine": "Ajouter une ligne Expéditeur",
+        "removeExpediteurLine": "Supprimer la ligne"
+      },
+      "sections": {
+        "general": "Configuration générale",
+        "header": "En-tête officiel",
+        "sectionsList": "Sections du document",
+        "sectionEditor": "Édition de section",
+        "fieldsInSection": "Champs de la section",
+        "signatures": "Configuration des signatures",
+        "destinataire": "Destinataire",
+        "expediteur": "Expéditeur",
+        "reportBody": "Texte fixe du rapport",
+        "tableContent": "Contenu du tableau Radio Départ"
+      },
+      "fields": {
+        "active": "Modèle actif",
+        "subjectOverride": "Objet (titre du document)",
+        "organization": "Organisation",
+        "department": "Département / direction",
+        "radioTitle": "Titre radio / message",
+        "sectionTitle": "Titre de section",
+        "showTitle": "Afficher le titre",
+        "visible": "Section visible",
+        "defaultText": "Texte fixe / par défaut",
+        "hideWhenEmpty": "Masquer si champs vides (ids séparés par des virgules)",
+        "showWhenFilled": "Afficher seulement si champ renseigné",
+        "label": "Libellé",
+        "source": "Source du champ",
+        "binding": "Champ base de données",
+        "fixedText": "Texte fixe",
+        "required": "Obligatoire",
+        "multiline": "Multiligne",
+        "sigName": "Nom",
+        "sigFunction": "Fonction",
+        "destinataireLeft": "Ligne (gauche)",
+        "destinataireRight": "Ville (droite)",
+        "expediteurFirstLine": "Première ligne (après EXPÉDITEUR :)",
+        "expediteurLine": "Ligne Expéditeur",
+        "reportBodyTemplate": "Corps du rapport (texte fixe + placeholders)",
+        "heatStartDate": "Date de début des chaleurs",
+        "heatEndDate": "Date prévue de fin",
+        "returnDate": "Date de reprise prévue"
+      },
+      "sources": {
+        "manual": "Saisie utilisateur",
+        "database": "Base de données",
+        "fixed": "Texte fixe",
+        "calculated": "Valeur calculée"
+      },
+      "placeholders": {
+        "fixedText": "Ex. J'ai l'honneur de vous informer que…"
+      },
+      "toast": {
+        "saved": "Modèle enregistré avec succès.",
+        "reset": "Modèle restauré aux valeurs par défaut."
+      },
+      "errors": {
+        "invalidConfig": "Configuration invalide — vérifiez les sections et les identifiants de champs."
+      },
+      "signaturesHint": "Ces blocs définissent les signatures du PDF Message / Demande (ordre conservé).",
+      "destinataireHint": "Bloc Destinataire / PI du PDF Message / Demande (lignes et villes à droite).",
+      "expediteurHint": "Bloc Expéditeur du PDF Message / Demande (lignes après le libellé EXPÉDITEUR :).",
+      "reportBodyHint": "Corps du rapport = UN seul paragraphe continu (comme Message / Demande). Les {{PLACEHOLDERS}} restent dans le même paragraphe ; le PDF justifie et coupe les lignes automatiquement.",
+      "reportBodyPlaceholders": "Placeholders : {{AIDE_SOIGNANT_NOM}} {{AIDE_SOIGNANT_GRADE}} {{AIDE_SOIGNANT_MATRICULE}} {{DATE}} {{NOM_CHIENNE}} {{SPECIALITE}} {{MAITRE_NOM}} {{MAITRE_GRADE}} {{MAITRE_MATRICULE}}",
+      "heatDogNoObjetHint": "Objet / titre du document : laissé vide pour ce modèle (aucun Objet dans le PDF).",
+      "tableContentHint": "Seules les informations affichées dans le tableau existant sont configurables. Les bordures, colonnes, typographie et le reste de la page restent identiques. Les champs cochés apparaissent dans le PDF dans cet ordre.",
+      "tableFields": {
+        "origin": "Origine",
+        "number": "Numéro",
+        "words": "Mots",
+        "departureDateTime": "Date et heure de départ",
+        "serviceMention": "Mention de servi",
+        "dogName": "Nom du chien",
+        "handlerName": "Nom / Prénom du maître",
+        "handlerGrade": "Grade du maître",
+        "handlerMatricule": "Matricule du maître",
+        "specialty": "Spécialité",
+        "breed": "Race",
+        "microchip": "Identification du chien",
+        "dogBirthDate": "Date de naissance du chien",
+        "heatStartDate": "Date début des chaleurs",
+        "heatEndDate": "Date fin des chaleurs",
+        "aideSoignantName": "Nom / Prénom de l'aide-soignant vétérinaire",
+        "aideSoignantGrade": "Grade de l'aide-soignant",
+        "aideSoignantMatricule": "Matricule de l'aide-soignant",
+        "reportDate": "Date du rapport"
+      }
+    },
+    "messageDemande": {
+      "formHint": "Saisissez uniquement les informations variables. Expéditeur et Destinataire sont fixés par le modèle officiel.",
+      "signaturesHeading": "Signatures / responsables",
+      "addSignature": "Ajouter une signature",
+      "signaturesFromTemplateHint": "Les signatures du PDF sont gérées dans Rapports & Messages → Gestion des modèles → Message / Demande."
+    },
+    "heatDogReport": {
+      "formHint": "Sélectionnez l’aide-soignant et la chienne en chaleur. Le message officiel est généré automatiquement — aucun texte libre.",
+      "selectDog": "Sélectionner une chienne",
+      "templateHint": "Texte fixe du message : Gestion des modèles → Rapport de chienne en chaleur. Expéditeur, Destinataire et signatures restent configurables.",
+      "sections": {
+        "radio": "Radio Départ",
+        "identification": "Identification",
+        "period": "Période",
+        "clinical": "État / constat",
+        "care": "Prise en charge",
+        "inHeat": "Chiennes en chaleur"
+      },
+      "fields": {
+        "heatStartDate": "Date de début des chaleurs",
+        "heatEndDate": "Date de fin prévue",
+        "symptoms": "Symptômes / constat vétérinaire",
+        "returnDate": "Date de reprise prévue",
+        "dogName": "Nom de la chienne",
+        "dog": "Chienne",
+        "recommendations": "Recommandations",
+        "aideSoignant": "Aide-soignant vétérinaire"
+      },
+      "selectAide": "Sélectionner un aide-soignant vétérinaire",
+      "searchAide": "Rechercher par nom, grade ou matricule…",
+      "noAide": "Aucun aide-soignant trouvé",
+      "grade": "Grade",
+      "matricule": "Matricule",
+      "noDogsInHeat": "Aucune chienne actuellement en période de chaleur.",
+      "noMaster": "Chienne sans maître",
+      "inHeatHint": "Priorité aux chiennes dont la fin de chaleur approche (1–2 jours).",
+      "remainingOne": "Reste: {{count}} jour",
+      "remainingMany": "Reste: {{count}} jours"
+    }
+  },
+  "entityPdfTable": {
+    "manageAction": "Gestion du modèle PDF",
+    "previewTitle": "Aperçu A4",
+    "catalogHint": "{{count}} champs disponibles. Seules les cases cochées apparaissent dans le tableau, dans cet ordre.",
+    "actions": {
+      "save": "Enregistrer le modèle",
+      "reset": "Restaurer les valeurs par défaut",
+      "moveUp": "Monter",
+      "moveDown": "Descendre"
+    },
+    "toast": {
+      "saved": "Modèle PDF enregistré."
+    },
+    "chien": {
+      "title": "Modèle PDF — Chiens",
+      "hint": "Ces champs alimentent le tableau de la liste PDF des chiens, dans cet ordre. Ils sont indépendants du Rapport de chienne en chaleur et du modèle Fonctionnaires.",
+      "filters": {
+        "title": "Chiens à inclure dans le PDF",
+        "hint": "Ces critères filtrent uniquement les lignes du PDF. Les colonnes et le style du tableau restent inchangés.",
+        "sex": "Sexe",
+        "sexOptions": {
+          "all": "Tous",
+          "male": "Mâle",
+          "female": "Femelle"
+        },
+        "minAge": "Âge minimum",
+        "ageAll": "Tous",
+        "ageYears": "{{count}} ans"
+      },
+      "fields": {
+        "dogName": "Nom du chien",
+        "microchip": "N° de puce / Identification",
+        "handlerName": "Nom du maître",
+        "handlerMatricule": "Matricule du maître",
+        "handlerGrade": "Grade du maître",
+        "specialty": "Spécialité",
+        "breed": "Race",
+        "gender": "Sexe",
+        "age": "Âge",
+        "dateOfBirth": "Date de naissance",
+        "section": "Section",
+        "status": "Statut",
+        "assignmentDate": "Date d'affectation",
+        "detectionType": "Type de détection / spécialité du chien"
+      }
+    },
+    "fonctionnaire": {
+      "title": "Modèle PDF — Fonctionnaires",
+      "hint": "Ces champs alimentent le tableau de la liste PDF des fonctionnaires, dans cet ordre. Ils sont indépendants de la configuration Chiens.",
+      "listScope": {
+        "title": "Liste à exporter",
+        "hint": "Ce choix filtre uniquement les lignes du PDF. Les colonnes et le style du tableau restent inchangés.",
+        "all": "Tous les fonctionnaires",
+        "administrative": "Personnel administratif uniquement",
+        "cynotechniciens": "Cynotechniciens uniquement"
+      },
+      "fields": {
+        "lastName": "Nom",
+        "firstName": "Prénom",
+        "fullName": "Nom / Prénom",
+        "grade": "Grade",
+        "matricule": "Matricule",
+        "dogName": "Chien",
+        "specialty": "Spécialité",
+        "section": "Section",
+        "fonction": "Fonction",
+        "gender": "Sexe",
+        "dateOfBirth": "Date de naissance",
+        "origine": "Origine",
+        "phone": "Téléphone",
+        "maritalStatus": "Situation familiale",
+        "address": "Adresse"
       }
     }
   }

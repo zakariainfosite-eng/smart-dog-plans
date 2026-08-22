@@ -46,6 +46,8 @@ type DogRowDb = {
   agent_id_join: string | null;
   agent_first_name: string | null;
   agent_last_name: string | null;
+  agent_professional_number: string | null;
+  agent_grade: string | null;
   section_id_join: string | null;
   section_name: string | null;
 };
@@ -73,6 +75,8 @@ export type DogRecord = {
     id: string;
     first_name: string;
     last_name: string;
+    professional_number: string | null;
+    grade: string | null;
     section: { id: string; name: string } | null;
   } | null;
 };
@@ -100,6 +104,8 @@ const DOG_SELECT = `
     a.id AS agent_id_join,
     a.first_name AS agent_first_name,
     a.last_name AS agent_last_name,
+    a.professional_number AS agent_professional_number,
+    a.grade AS agent_grade,
     s.id AS section_id_join,
     s.name AS section_name
   FROM dogs d
@@ -137,6 +143,8 @@ function mapDogRow(row: DogRowDb): DogRecord {
             id: row.agent_id_join,
             first_name: row.agent_first_name,
             last_name: row.agent_last_name,
+            professional_number: row.agent_professional_number,
+            grade: row.agent_grade,
             section:
               row.section_id_join && row.section_name
                 ? { id: row.section_id_join, name: row.section_name }

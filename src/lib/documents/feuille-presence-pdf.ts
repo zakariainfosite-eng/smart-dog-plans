@@ -172,7 +172,7 @@ export function generateDogsListPdf(options: DogsListPdfOptions): jsPDF {
 
 export async function downloadDogsListPdf(options: DogsListPdfOptions): Promise<void> {
   const dateISO = new Date().toISOString().slice(0, 10);
-  const filename = options.filename ?? `Liste_Chiens_Cynotechniques_${dateISO}.pdf`;
+  const filename = options.filename ?? `Liste_Chiens_${dateISO}.pdf`;
   await exportJsPdf(generateDogsListPdf(options), filename);
 }
 

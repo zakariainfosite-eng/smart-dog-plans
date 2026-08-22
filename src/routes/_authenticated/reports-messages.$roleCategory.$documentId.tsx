@@ -15,6 +15,9 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ReportForm } from "@/components/reports-messages/report-form";
 import { DocumentActions, ReportPreview } from "@/components/reports-messages/document-actions";
+import { SickDogReportWizard } from "@/components/reports-messages/sick-dog-report-wizard";
+import { MessageDemandeWorkspace } from "@/components/reports-messages/message-demande-workspace";
+import { GenericRadioReportWorkspace } from "@/components/reports-messages/generic-radio-report-workspace";
 import {
   deleteRoleDocument,
   duplicateRoleDocument,
@@ -23,6 +26,13 @@ import {
   updateRoleDocument,
 } from "@/lib/reports-messages/documents-store";
 import { downloadRoleDocumentPdf, printRoleDocumentPdf } from "@/lib/reports-messages/pdf-export";
+import { SICK_DOG_REPORT_TEMPLATE_ID } from "@/lib/reports-messages/sick-dog-report";
+import {
+  getDocumentTemplateConfig,
+  getDocumentWorkflowStatus,
+  isEngineBackedTemplate,
+  markPayloadExported,
+} from "@/lib/reports-messages/document-templates";
 import { getReportTemplate } from "@/lib/reports-messages/templates";
 import type { RoleCategory, RoleDocumentPayload } from "@/lib/reports-messages/types";
 import { roleCategoryLabelKey } from "@/components/reports-messages/report-cards";
@@ -200,6 +210,211 @@ function ReportDocumentPage() {
 
   const readOnly = document.status === "finalized" && !editing;
   const currentDocument = { ...document, title, payload };
+  const engineConfig = getDocumentTemplateConfig(document.template_id);
+  const workflowStatus = getDocumentWorkflowStatus(currentDocument);
+  const isSickDogWorkflow = document.template_id === SICK_DOG_REPORT_TEMPLATE_ID;
+  const isOfficialMessageEditor =
+    engineConfig?.engineEnabled &&
+    (engineConfig.builder === "message_demande" || engineConfig.builder === "heat_dog");
+  const isGenericRadio =
+    engineConfig?.engineEnabled &&
+    engineConfig.builder === "generic_radio" &&
+    isEngineBackedTemplate(document.template_id);
+
+  const persistExported = async (nextPayload: RoleDocumentPayload) => {
+    const marked = markPayloadExported(nextPayload);
+    setPayload(marked);
+    if (document.status === "draft") {
+      try {
+        await updateRoleDocument(db, document.id, { payload: marked });
+        queryClient.invalidateQueries({ queryKey: ["role-document", documentId] });
+      } catch {
+        /* soft — export already succeeded */
+      }
+    }
+  };
+
+  if (isSickDogWorkflow) {
+    return (
+      <div className="space-y-6">
+        <PageTitle
+          title={t("reportsMessages.sickDogReport.wizardTitle")}
+          description={t("reportsMessages.sickDogReport.pageDescription")}
+          breadcrumb={[
+            { label: t("auth.brandName") },
+            { label: t("nav.reportsMessages") },
+            { label: t(roleCategoryLabelKey(category)) },
+            { label: t(template.titleKey) },
+          ]}
+          actions={
+            <Button
+              variant="outline"
+              onClick={() => void navigate({ to: roleCategoryPath(category) })}
+            >
+              {t("reportsMessages.backToRole")}
+            </Button>
+          }
+        />
+
+        <PageContentShell className="space-y-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {t(`reportsMessages.documentTemplates.workflowStatus.${workflowStatus}`)}
+          </p>
+          {document.status === "draft" ? (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={deleteMutation.isPending}
+                onClick={() => deleteMutation.mutate()}
+              >
+                {t("action.delete")}
+              </Button>
+            </div>
+          ) : null}
+
+          <SickDogReportWizard
+            initialPayload={payload}
+            dogs={dogs}
+            readOnly={document.status === "finalized"}
+            saving={saveMutation.isPending}
+            t={t}
+            onCancel={() => void navigate({ to: roleCategoryPath(category) })}
+            onSaveDraft={(nextPayload, meta) => {
+              setPayload(nextPayload);
+              setTitle(t(template.titleKey));
+              void updateRoleDocument(db, document.id, {
+                title: t(template.titleKey),
+                payload: nextPayload,
+                dogId: meta.dogId || null,
+                agentId: meta.agentId,
+                sectionId: meta.sectionId,
+              }).then(() => {
+                queryClient.invalidateQueries({ queryKey: ["role-document", documentId] });
+                queryClient.invalidateQueries({ queryKey: ["role-documents", category] });
+                toast.success(t("reportsMessages.toast.saved"));
+              }).catch((error: Error) => toast.error(error.message));
+            }}
+            onExported={(nextPayload) => void persistExported(nextPayload)}
+          />
+        </PageContentShell>
+      </div>
+    );
+  }
+
+  if (isOfficialMessageEditor && engineConfig) {
+    return (
+      <div className="space-y-6">
+        <PageTitle
+          title={t(template.titleKey)}
+          description={t(template.descriptionKey)}
+          breadcrumb={[
+            { label: t("auth.brandName") },
+            { label: t("nav.reportsMessages") },
+            { label: t(roleCategoryLabelKey(category)) },
+            { label: t(template.titleKey) },
+          ]}
+          actions={
+            <Button
+              variant="outline"
+              onClick={() => void navigate({ to: roleCategoryPath(category) })}
+            >
+              {t("reportsMessages.backToRole")}
+            </Button>
+          }
+        />
+        <PageContentShell className="space-y-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {t(`reportsMessages.documentTemplates.workflowStatus.${workflowStatus}`)}
+          </p>
+          <MessageDemandeWorkspace
+            templateId={document.template_id}
+            initialPayload={payload}
+            dogs={dogs}
+            agents={agents}
+            readOnly={document.status === "finalized"}
+            saving={saveMutation.isPending}
+            t={t}
+            onCancel={() => void navigate({ to: roleCategoryPath(category) })}
+            onSaveDraft={(nextPayload, meta) => {
+              setPayload(nextPayload);
+              void updateRoleDocument(db, document.id, {
+                title: t(template.titleKey),
+                payload: nextPayload,
+                ...(meta
+                  ? {
+                      dogId: meta.dogId || null,
+                      agentId: meta.agentId,
+                      sectionId: meta.sectionId,
+                    }
+                  : {}),
+              }).then(() => {
+                queryClient.invalidateQueries({ queryKey: ["role-document", documentId] });
+                queryClient.invalidateQueries({ queryKey: ["role-documents", category] });
+                toast.success(t("reportsMessages.toast.saved"));
+              }).catch((error: Error) => toast.error(error.message));
+            }}
+            onExported={(nextPayload) => void persistExported(nextPayload)}
+          />
+        </PageContentShell>
+      </div>
+    );
+  }
+
+  if (isGenericRadio && engineConfig) {
+    return (
+      <div className="space-y-6">
+        <PageTitle
+          title={t(template.titleKey)}
+          description={t(template.descriptionKey)}
+          breadcrumb={[
+            { label: t("auth.brandName") },
+            { label: t("nav.reportsMessages") },
+            { label: t(roleCategoryLabelKey(category)) },
+            { label: t(template.titleKey) },
+          ]}
+          actions={
+            <Button
+              variant="outline"
+              onClick={() => void navigate({ to: roleCategoryPath(category) })}
+            >
+              {t("reportsMessages.backToRole")}
+            </Button>
+          }
+        />
+        <PageContentShell className="space-y-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {t(`reportsMessages.documentTemplates.workflowStatus.${workflowStatus}`)}
+          </p>
+          <GenericRadioReportWorkspace
+            templateId={document.template_id}
+            initialPayload={payload}
+            dogs={dogs}
+            readOnly={document.status === "finalized"}
+            saving={saveMutation.isPending}
+            t={t}
+            onCancel={() => void navigate({ to: roleCategoryPath(category) })}
+            onSaveDraft={(nextPayload, meta) => {
+              setPayload(nextPayload);
+              void updateRoleDocument(db, document.id, {
+                title: t(template.titleKey),
+                payload: nextPayload,
+                dogId: meta.dogId || null,
+                agentId: meta.agentId,
+                sectionId: meta.sectionId,
+              }).then(() => {
+                queryClient.invalidateQueries({ queryKey: ["role-document", documentId] });
+                queryClient.invalidateQueries({ queryKey: ["role-documents", category] });
+                toast.success(t("reportsMessages.toast.saved"));
+              }).catch((error: Error) => toast.error(error.message));
+            }}
+            onExported={(nextPayload) => void persistExported(nextPayload)}
+          />
+        </PageContentShell>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

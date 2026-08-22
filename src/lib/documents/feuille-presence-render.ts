@@ -2,7 +2,6 @@ import type { jsPDF } from "jspdf";
 import type {
   CynotechnicianListPdfRow,
   CynotechniciansListPdfData,
-  CynotechniciansListPdfTable,
   DogListPdfRow,
   DogsListPdfData,
   FeuillePresenceData,
@@ -24,10 +23,7 @@ import {
   FP_CHEF_TITLE,
   FP_CONTENT_W,
   FP_CYNOTECHNICIANS_LIST_TITLE,
-  FP_CYNOTECHNICIANS_TABLE_COLS,
   FP_DOGS_LIST_TITLE,
-  FP_DOGS_TABLE_COLS,
-  FP_PERSONNEL_ADMIN_TABLE_COLS,
   FP_LAYOUT,
   FP_MARGIN,
   FP_ORG_HEADER_LINES,
@@ -43,6 +39,8 @@ import {
   computeFeuillePresenceOrgHeaderCenterX,
   fpOrgHeaderStartY,
 } from "@/lib/documents/feuille-presence-layout";
+import { buildFonctionnaireListTableCols } from "@/lib/reports-messages/fonctionnaire-pdf-table-fields";
+import { buildChienListTableCols } from "@/lib/reports-messages/chien-pdf-table-fields";
 
 type FontStyle = "normal" | "bold" | "italic" | "bolditalic";
 type OfficialTableCol = { key: string; label: string; w: number };
@@ -634,10 +632,14 @@ function cellValueForCynotechnician(row: CynotechnicianListPdfRow, key: string):
   switch (key) {
     case "numero":
       return String(row.numero);
+    case "lastName":
     case "nom":
       return row.nom;
+    case "firstName":
     case "prenom":
       return row.prenom;
+    case "fullName":
+      return row.fullName;
     case "matricule":
       return row.matricule;
     case "grade":
@@ -646,21 +648,34 @@ function cellValueForCynotechnician(row: CynotechnicianListPdfRow, key: string):
       return row.fonction;
     case "situation":
       return row.situation;
+    case "dogName":
     case "chien":
       return row.chien;
+    case "specialty":
     case "specialite":
       return row.specialite;
     case "section":
       return row.section;
+    case "gender":
+      return row.gender;
+    case "dateOfBirth":
+      return row.dateOfBirth;
+    case "origine":
+      return row.origine;
+    case "phone":
+      return row.phone;
+    case "maritalStatus":
+      return row.maritalStatus;
+    case "address":
+      return row.address;
     default:
       return "";
   }
 }
 
-function personnelListTableColsForLayout(
-  layout: CynotechniciansListPdfTable["layout"],
-): readonly OfficialTableCol[] {
-  return layout === "operational" ? FP_CYNOTECHNICIANS_TABLE_COLS : FP_PERSONNEL_ADMIN_TABLE_COLS;
+function personnelListColumns(data: CynotechniciansListPdfData): readonly OfficialTableCol[] {
+  if (data.columns.length > 0) return data.columns;
+  return buildFonctionnaireListTableCols(undefined, FP_CONTENT_W);
 }
 
 function drawCynotechniciansTableRows(
@@ -677,7 +692,12 @@ function drawCynotechniciansTableRows(
       drawRect(doc, cx, y, col.w, FP_TABLE.rowH);
       const value = cellValueForCynotechnician(row, col.key);
       const isNumeroCol = col.key === "numero";
-      const isNameCol = col.key === "nom" || col.key === "prenom";
+      const isNameCol =
+        col.key === "nom" ||
+        col.key === "prenom" ||
+        col.key === "lastName" ||
+        col.key === "firstName" ||
+        col.key === "fullName";
       drawCellTextCentered(
         doc,
         value,
@@ -714,13 +734,9 @@ function personnelListTableHeaderHeight(hasTitle: boolean): number {
   return titleH + FP_TABLE.headerH;
 }
 
-function countPersonnelListRows(tables: readonly CynotechniciansListPdfTable[]): number {
-  return tables.reduce((sum, table) => sum + table.rows.length, 0);
-}
-
 /**
  * Official personnel list — reuses Feuille de présence header, logo,
- * fonts, margins, table metrics, watermark and signature footer.
+ * fonts, margins, table metrics and watermark. No signature block.
  * Exactly two tables max: administrative/command, then Cynotechniciens.
  */
 export function renderCynotechniciansListPages(
@@ -732,18 +748,11 @@ export function renderCynotechniciansListPages(
   applyFeuillePresenceDefaults(doc);
   const headerAsset = logos?.header ? buildFeuillePresenceLogoAsset(doc, logos.header) : undefined;
 
-  const signatureReserve =
-    FP_LAYOUT.signatures.gapAfterTables +
-    FP_LAYOUT.signatures.signingSpaceH +
-    FP_LAYOUT.signatures.brigadeLabelOffsetY +
-    6;
   const pageBottomLimit = FP_LAYOUT.contentBottomY;
   const tables = data.tables;
-  const totalRows = countPersonnelListRows(tables);
 
   let tableIndex = 0;
   let rowIndexInTable = 0;
-  let rowsRendered = 0;
   let pageIndex = 0;
   let y = 0;
 
@@ -760,7 +769,6 @@ export function renderCynotechniciansListPages(
   startPage();
 
   if (tables.length === 0) {
-    drawFeuillePresenceSignatures(doc, y);
     return;
   }
 
@@ -779,7 +787,7 @@ export function renderCynotechniciansListPages(
       y = drawFeuillePresenceSectionTitle(doc, sectionTitle, y);
     }
 
-    const tableCols = personnelListTableColsForLayout(table.layout);
+    const tableCols = personnelListColumns(data);
     const tableTopY = y;
     drawOfficialTableHeader(doc, FP_MARGIN.left, y, tableCols);
     y += FP_TABLE.headerH;
@@ -787,11 +795,8 @@ export function renderCynotechniciansListPages(
     const chunk: CynotechnicianListPdfRow[] = [];
     while (rowIndexInTable < table.rows.length) {
       const nextY = y + (chunk.length + 1) * FP_TABLE.rowH;
-      const wouldBeLastOverall =
-        rowsRendered + chunk.length + 1 >= totalRows && tableIndex === tables.length - 1;
-      const reserve = wouldBeLastOverall ? signatureReserve : 0;
-      if (nextY + reserve > pageBottomLimit && chunk.length > 0) break;
-      if (nextY + reserve > pageBottomLimit && chunk.length === 0) {
+      if (nextY > pageBottomLimit && chunk.length > 0) break;
+      if (nextY > pageBottomLimit && chunk.length === 0) {
         chunk.push(table.rows[rowIndexInTable]!);
         rowIndexInTable += 1;
         break;
@@ -803,7 +808,6 @@ export function renderCynotechniciansListPages(
     const tableBottomY = y + Math.max(chunk.length, 1) * FP_TABLE.rowH;
     drawFeuillePresenceTableWatermark(doc, headerAsset, tableTopY, tableBottomY);
     y = drawCynotechniciansTableRows(doc, FP_MARGIN.left, y, chunk, tableCols);
-    rowsRendered += chunk.length;
 
     if (rowIndexInTable < table.rows.length) {
       startPage();
@@ -822,8 +826,6 @@ export function renderCynotechniciansListPages(
       }
     }
   }
-
-  drawFeuillePresenceSignatures(doc, y);
 }
 
 function drawDogsListTitle(doc: jsPDF, startY: number): number {
@@ -832,73 +834,303 @@ function drawDogsListTitle(doc: jsPDF, startY: number): number {
   return startY + FP_LAYOUT.titleMainGap + FP_LAYOUT.sectionTitleBottomGap;
 }
 
-function cellValueForDog(
-  row: DogListPdfRow,
-  key: (typeof FP_DOGS_TABLE_COLS)[number]["key"],
-): string {
+function cellValueForDog(row: DogListPdfRow, key: string): string {
   switch (key) {
-    case "numero":
-      return String(row.numero);
-    case "nom":
+    case "dogName":
       return row.nom;
-    case "sexe":
-      return row.sexe;
-    case "puce":
+    case "microchip":
       return row.puce;
-    case "race":
-      return row.race;
-    case "specialite":
-      return row.specialite;
-    case "cynotechnicien":
+    case "handlerName":
       return row.cynotechnicien;
+    case "handlerMatricule":
+      return row.handlerMatricule;
+    case "handlerGrade":
+      return row.handlerGrade;
+    case "specialty":
+      return row.specialite;
+    case "breed":
+      return row.race;
+    case "gender":
+      return row.sexe;
+    case "age":
+      return row.age;
+    case "dateOfBirth":
+      return row.dateOfBirth;
+    case "section":
+      return row.section;
+    case "status":
+      return row.status;
+    case "assignmentDate":
+      return row.assignmentDate;
+    case "detectionType":
+      return row.detectionType;
     default:
       return "";
   }
 }
 
-function drawDogsTableRows(doc: jsPDF, x: number, startY: number, rows: DogListPdfRow[]): number {
-  let y = startY;
-  for (const row of rows) {
-    let cx = x;
-    for (const col of FP_DOGS_TABLE_COLS) {
-      drawRect(doc, cx, y, col.w, FP_TABLE.rowH);
+type DogsCellFont = {
+  family: "times" | "helvetica";
+  style: FontStyle;
+  size: number;
+};
+
+const DOGS_TABLE_FONT = {
+  header: { family: "helvetica", style: "bold", size: 6.6 } as DogsCellFont,
+  body: { family: "times", style: "normal", size: 7.0 } as DogsCellFont,
+  name: { family: "times", style: "bold", size: 7.0 } as DogsCellFont,
+};
+
+const DOGS_TABLE_METRICS = {
+  headerMinH: 5.8,
+  rowMinH: 6.2,
+  headerPad: 0.8,
+  rowPad: 0.95,
+  maxLines: 3,
+  minFont: 5.8,
+};
+
+function dogsBodyCellFont(key: string): DogsCellFont {
+  return key === "dogName" || key === "handlerName" ? DOGS_TABLE_FONT.name : DOGS_TABLE_FONT.body;
+}
+
+function dogsListColumns(doc: jsPDF, data: DogsListPdfData): OfficialTableCol[] {
+  const source =
+    data.columns.length > 0 ? data.columns : buildChienListTableCols(undefined, FP_CONTENT_W);
+
+  const longestTokenWidth = (text: string) => {
+    const tokens = text.split(/[\s\/]+/).filter((token) => token.length > 0);
+    let max = 0;
+    for (const token of tokens) {
+      max = Math.max(max, doc.getTextWidth(token));
+    }
+    return max;
+  };
+
+  const preferred = source.map((col) => {
+    setTypo(doc, DOGS_TABLE_FONT.header.family, DOGS_TABLE_FONT.header.style, DOGS_TABLE_FONT.header.size);
+    let need = longestTokenWidth(col.label);
+    const font = dogsBodyCellFont(col.key);
+    setTypo(doc, font.family, font.style, font.size);
+    need = Math.max(need, longestTokenWidth(col.label));
+    for (const row of data.rows) {
       const value = cellValueForDog(row, col.key);
-      const isNumeroCol = col.key === "numero";
-      const isNameCol = col.key === "nom";
-      drawCellTextCentered(
-        doc,
-        value,
-        cx,
-        y,
-        col.w,
-        FP_TABLE.rowH,
-        isNumeroCol
-          ? FP_TYPO.rowIndex.family
-          : isNameCol
-            ? FP_TYPO.agentName.family
-            : FP_TYPO.workCell.family,
-        isNumeroCol
-          ? FP_TYPO.rowIndex.style
-          : isNameCol
-            ? FP_TYPO.agentName.style
-            : FP_TYPO.workCell.style,
-        isNumeroCol
-          ? FP_TYPO.rowIndex.size
-          : isNameCol
-            ? FP_TYPO.agentName.size
-            : FP_TYPO.workCell.size,
-        col.w - 1.4,
-      );
+      need = Math.max(need, Math.min(doc.getTextWidth(value), 28), longestTokenWidth(value));
+    }
+    return Math.max(8.5, need + 1.6);
+  });
+
+  const sum = preferred.reduce((acc, width) => acc + width, 0);
+  const widths = preferred.map((width) => Math.round(((width / sum) * FP_CONTENT_W) * 10) / 10);
+  const drift = Math.round((FP_CONTENT_W - widths.reduce((acc, width) => acc + width, 0)) * 10) / 10;
+  widths[widths.length - 1] = Math.round(((widths[widths.length - 1] ?? 0) + drift) * 10) / 10;
+  return source.map((col, index) => ({ key: col.key, label: col.label, w: widths[index] ?? col.w }));
+}
+
+function dogsCellMaxWidth(colW: number): number {
+  return Math.max(colW - 1.4, 2);
+}
+
+function mmBaselineGap(doc: jsPDF): number {
+  return (doc.getFontSize() * Number(doc.getLineHeightFactor()) * 25.4) / 72;
+}
+
+type FittedDogsCell = {
+  lines: string[];
+  font: DogsCellFont;
+};
+
+function forceWrapToWidth(doc: jsPDF, value: string, maxWidth: number): string[] {
+  const wrapped = doc.splitTextToSize(value, maxWidth);
+  const lines: string[] = [];
+  for (const line of wrapped) {
+    if (doc.getTextWidth(line) <= maxWidth + 0.05) {
+      lines.push(line);
+      continue;
+    }
+    let current = "";
+    for (const ch of line) {
+      const trial = current + ch;
+      if (current.length > 0 && doc.getTextWidth(trial) > maxWidth) {
+        lines.push(current);
+        current = ch;
+      } else {
+        current = trial;
+      }
+    }
+    if (current) lines.push(current);
+  }
+  return lines;
+}
+
+function wrapAtNaturalBreaks(doc: jsPDF, value: string, maxWidth: number): string[] {
+  if (doc.getTextWidth(value) <= maxWidth) return [value];
+  const tokens = value.split(/(\s+|\/)/).filter((token) => token.length > 0);
+  const lines: string[] = [];
+  let current = "";
+  const flush = () => {
+    const trimmed = current.trim();
+    if (trimmed) lines.push(trimmed);
+    current = "";
+  };
+  for (const token of tokens) {
+    const trial = current + token;
+    if (current && doc.getTextWidth(trial.trim()) > maxWidth) {
+      flush();
+      current = token.trimStart();
+    } else {
+      current = trial;
+    }
+  }
+  flush();
+  return lines.length > 0 ? lines : [value];
+}
+
+function wrapDogsValue(doc: jsPDF, value: string, maxWidth: number): string[] {
+  if (doc.getTextWidth(value) <= maxWidth) return [value];
+  const ageParts = value.match(/^(\d+\s+ANS)\s+(\d+\s+MOIS)$/i);
+  if (ageParts) {
+    const first = ageParts[1];
+    const second = ageParts[2];
+    if (doc.getTextWidth(first) <= maxWidth && doc.getTextWidth(second) <= maxWidth) {
+      return [first, second];
+    }
+  }
+  const natural = wrapAtNaturalBreaks(doc, value, maxWidth);
+  if (natural.every((line) => doc.getTextWidth(line) <= maxWidth + 0.05)) return natural;
+  return forceWrapToWidth(doc, value, maxWidth);
+}
+
+function fitDogsCell(doc: jsPDF, text: string, colW: number, font: DogsCellFont): FittedDogsCell {
+  const value = text.trim();
+  if (!value) return { lines: [], font };
+  const maxWidth = dogsCellMaxWidth(colW);
+
+  const widthAt = (size: number) => {
+    setTypo(doc, font.family, font.style, size);
+    return doc.getTextWidth(value);
+  };
+
+  if (widthAt(font.size) <= maxWidth) return { lines: [value], font };
+
+  for (let size = font.size - 0.3; size >= DOGS_TABLE_METRICS.minFont; size -= 0.3) {
+    const next = Math.round(size * 10) / 10;
+    if (widthAt(next) <= maxWidth) {
+      return { lines: [value], font: { ...font, size: next } };
+    }
+  }
+
+  const tryWrap = (size: number): FittedDogsCell => {
+    const next = { ...font, size };
+    setTypo(doc, next.family, next.style, next.size);
+    return { lines: wrapDogsValue(doc, value, maxWidth), font: next };
+  };
+
+  let fitted = tryWrap(font.size);
+  if (fitted.lines.length <= DOGS_TABLE_METRICS.maxLines) return fitted;
+  for (let size = font.size - 0.3; size >= DOGS_TABLE_METRICS.minFont; size -= 0.3) {
+    fitted = tryWrap(Math.round(size * 10) / 10);
+    if (fitted.lines.length <= DOGS_TABLE_METRICS.maxLines) return fitted;
+  }
+  return fitted;
+}
+
+function wrappedTextBlock(
+  doc: jsPDF,
+  lines: string[],
+  font: DogsCellFont,
+): { textH: number; lineBox: number; blockH: number } {
+  setTypo(doc, font.family, font.style, font.size);
+  const sample = lines[0] ?? "Hg";
+  const { h: textH } = doc.getTextDimensions(sample);
+  const lineBox = Math.max(mmBaselineGap(doc), textH * 1.18);
+  const blockH = lines.length === 0 ? 0 : lines.length * lineBox;
+  return { textH, lineBox, blockH };
+}
+
+function drawWrappedCellText(
+  doc: jsPDF,
+  lines: string[],
+  cx: number,
+  cellY: number,
+  cellW: number,
+  cellH: number,
+  font: DogsCellFont,
+) {
+  if (lines.length === 0) return;
+  const { textH, lineBox, blockH } = wrappedTextBlock(doc, lines, font);
+  let baseline = cellY + (cellH - blockH) / 2 + (lineBox + textH) / 2;
+  setTypo(doc, font.family, font.style, font.size);
+  for (const line of lines) {
+    doc.text(line, cx + cellW / 2, baseline, { align: "center" });
+    baseline += lineBox;
+  }
+}
+
+function dogsHeaderHeight(doc: jsPDF, cols: readonly OfficialTableCol[]): number {
+  let needed = DOGS_TABLE_METRICS.headerMinH;
+  for (const col of cols) {
+    const fitted = fitDogsCell(doc, col.label, col.w, DOGS_TABLE_FONT.header);
+    const { blockH } = wrappedTextBlock(doc, fitted.lines, fitted.font);
+    needed = Math.max(needed, blockH + DOGS_TABLE_METRICS.headerPad * 2);
+  }
+  return Math.round(needed * 10) / 10;
+}
+
+function dogsRowHeight(
+  doc: jsPDF,
+  row: DogListPdfRow,
+  cols: readonly OfficialTableCol[],
+): number {
+  let needed = DOGS_TABLE_METRICS.rowMinH;
+  for (const col of cols) {
+    const fitted = fitDogsCell(doc, cellValueForDog(row, col.key), col.w, dogsBodyCellFont(col.key));
+    const { blockH } = wrappedTextBlock(doc, fitted.lines, fitted.font);
+    needed = Math.max(needed, blockH + DOGS_TABLE_METRICS.rowPad * 2);
+  }
+  return Math.round(needed * 10) / 10;
+}
+
+function drawDogsTableHeader(
+  doc: jsPDF,
+  x: number,
+  y: number,
+  cols: readonly OfficialTableCol[],
+  headerH: number,
+) {
+  let cx = x;
+  for (const col of cols) {
+    drawRect(doc, cx, y, col.w, headerH, FP_TABLE.headerFill);
+    const fitted = fitDogsCell(doc, col.label, col.w, DOGS_TABLE_FONT.header);
+    drawWrappedCellText(doc, fitted.lines, cx, y, col.w, headerH, fitted.font);
+    cx += col.w;
+  }
+}
+
+function drawDogsTableRows(
+  doc: jsPDF,
+  x: number,
+  startY: number,
+  rows: Array<{ row: DogListPdfRow; h: number }>,
+  cols: readonly OfficialTableCol[],
+): number {
+  let y = startY;
+  for (const { row, h } of rows) {
+    let cx = x;
+    for (const col of cols) {
+      drawRect(doc, cx, y, col.w, h);
+      const fitted = fitDogsCell(doc, cellValueForDog(row, col.key), col.w, dogsBodyCellFont(col.key));
+      drawWrappedCellText(doc, fitted.lines, cx, y, col.w, h, fitted.font);
       cx += col.w;
     }
-    y += FP_TABLE.rowH;
+    y += h;
   }
   return y;
 }
 
 /**
- * Official cynotechnical dogs list — reuses Feuille de présence header, logo,
- * fonts, margins, table metrics, watermark and signature footer.
+ * Official dogs list — reuses Feuille de présence / Fonctionnaires header, logo,
+ * fonts, margins, table metrics and watermark. No signature block.
  * Continues onto additional pages with a repeated official header.
  */
 export function renderDogsListPages(
@@ -909,12 +1141,8 @@ export function renderDogsListPages(
 ) {
   applyFeuillePresenceDefaults(doc);
   const headerAsset = logos?.header ? buildFeuillePresenceLogoAsset(doc, logos.header) : undefined;
-
-  const signatureReserve =
-    FP_LAYOUT.signatures.gapAfterTables +
-    FP_LAYOUT.signatures.signingSpaceH +
-    FP_LAYOUT.signatures.brigadeLabelOffsetY +
-    6;
+  const tableCols = dogsListColumns(doc, data);
+  const headerH = dogsHeaderHeight(doc, tableCols);
   const pageBottomLimit = FP_LAYOUT.contentBottomY;
   const rows = data.rows;
   let rowIndex = 0;
@@ -930,31 +1158,28 @@ export function renderDogsListPages(
     let y = drawDogsListTitle(doc, FP_LAYOUT.titleStartY);
 
     const tableTopY = y;
-    drawOfficialTableHeader(doc, FP_MARGIN.left, y, FP_DOGS_TABLE_COLS);
-    y += FP_TABLE.headerH;
+    drawDogsTableHeader(doc, FP_MARGIN.left, y, tableCols, headerH);
+    y += headerH;
 
-    const chunk: DogListPdfRow[] = [];
+    const chunk: Array<{ row: DogListPdfRow; h: number }> = [];
+    let chunkH = 0;
     while (rowIndex < rows.length) {
-      const nextY = y + (chunk.length + 1) * FP_TABLE.rowH;
-      const wouldBeLast = rowIndex + chunk.length + 1 >= rows.length;
-      const reserve = wouldBeLast ? signatureReserve : 0;
-      if (nextY + reserve > pageBottomLimit && chunk.length > 0) break;
-      if (nextY + reserve > pageBottomLimit && chunk.length === 0) {
-        chunk.push(rows[rowIndex]!);
+      const row = rows[rowIndex]!;
+      const h = dogsRowHeight(doc, row, tableCols);
+      if (y + chunkH + h > pageBottomLimit && chunk.length > 0) break;
+      if (y + chunkH + h > pageBottomLimit && chunk.length === 0) {
+        chunk.push({ row, h });
         rowIndex += 1;
         break;
       }
-      chunk.push(rows[rowIndex]!);
+      chunk.push({ row, h });
+      chunkH += h;
       rowIndex += 1;
     }
 
-    const tableBottomY = y + Math.max(chunk.length, 1) * FP_TABLE.rowH;
+    const tableBottomY = y + Math.max(chunkH, FP_TABLE.rowH);
     drawFeuillePresenceTableWatermark(doc, headerAsset, tableTopY, tableBottomY);
-    y = drawDogsTableRows(doc, FP_MARGIN.left, y, chunk);
-
-    if (rowIndex >= rows.length) {
-      drawFeuillePresenceSignatures(doc, y);
-    }
+    drawDogsTableRows(doc, FP_MARGIN.left, y, chunk, tableCols);
 
     pageIndex += 1;
   } while (rowIndex < rows.length);

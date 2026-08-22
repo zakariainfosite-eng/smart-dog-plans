@@ -20,7 +20,7 @@ import {
   PERSONNEL_EXCLUSION_FORM_TYPES,
   deleteAgentExclusion,
   exclusionApplyTarget,
-  exclusionDateRangesOverlap,
+  hasConflictingExistingExclusion,
   exclusionTypeI18nKey,
   expirePastExclusions,
   fetchAgentExclusionHistory,
@@ -31,6 +31,15 @@ import {
   todayISODate,
   type ExclusionApplyTarget,
 } from "@/lib/agent-exclusions";
+import {
+  DEFAULT_EXCLUSION_LIST_STATUS_FILTER,
+  EXCLUSION_LIST_STATUS_FILTERS,
+  exclusionListStatus,
+  isUpcomingExclusionStart,
+  matchesExclusionListStatusFilter,
+  type ExclusionListStatus,
+  type ExclusionListStatusFilter,
+} from "@/lib/exclusion-list-status";
 import {
   DEFAULT_EXCLUSION_SETTINGS,
   EXCLUSION_SETTINGS_QUERY_KEY,
@@ -78,10 +87,7 @@ import {
 } from "@/components/ui/command";
 import { PageTitle } from "@/components/layout/PageTitle";
 import { EmptyState } from "@/components/layout/EmptyState";
-import {
-  PageTablePagination,
-  pageHeroLastUpdatedMeta,
-} from "@/components/enterprise/page-layout";
+import { PageTablePagination, pageHeroLastUpdatedMeta } from "@/components/enterprise/page-layout";
 import { formatPageLastUpdated, paginate, totalPages as calcTotalPages } from "@/lib/page-ui";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -96,22 +102,42 @@ import { FilterSelectTrigger } from "@/components/enterprise/filter-select";
 import { DataTableShell } from "@/components/enterprise/data-table-shell";
 import { EnterpriseDataTable } from "@/components/enterprise/data-table";
 import { CellTooltip, TableTooltipProvider } from "@/components/enterprise/cell-tooltip";
-import { StatusBadge } from "@/components/enterprise/status-badge";
+import { StatusBadge, type StatusTone } from "@/components/enterprise/status-badge";
 import { AgentAvatar } from "@/components/agents/agent-avatar";
 import { SpecialtyBreakdownLines } from "@/components/agents/specialty-breakdown-lines";
 import { DogAvatar } from "@/components/dogs/dog-avatar";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/database/schema-types";
@@ -216,9 +242,7 @@ function findReplaceablePersonnelExclusion(
   const enabled = exclusions
     .filter(
       (row) =>
-        row.agent_id === agentId &&
-        row.active &&
-        isAgentLevelExclusionType(row.exclusion_type),
+        row.agent_id === agentId && row.active && isAgentLevelExclusionType(row.exclusion_type),
     )
     .sort((a, b) => b.start_date.localeCompare(a.start_date));
   return enabled[0] ?? null;
@@ -255,12 +279,23 @@ function exclusionSchema(t: TFunction) {
       agent_id: z.string().nullable(),
       dog_id: z.string().nullable(),
       exclusion_type: z.enum([
-        "sickness", "annual_leave", "administrative_leave", "mission",
-        "training", "dog_sick", "female_dog_heat", "other",
-        "absence", "special_leave", "suspension",
-        "dog_injured", "dog_temporary_retirement", "dog_vet_visit",
+        "sickness",
+        "annual_leave",
+        "administrative_leave",
+        "mission",
+        "training",
+        "dog_sick",
+        "female_dog_heat",
+        "other",
+        "absence",
+        "special_leave",
+        "suspension",
+        "dog_injured",
+        "dog_temporary_retirement",
+        "dog_vet_visit",
         "dog_without_handler",
-        "dog_training", "dog_other",
+        "dog_training",
+        "dog_other",
       ]),
       start_date: z.string().min(1, t("validation.startDateRequired")),
       end_date: z.string().optional().nullable(),
@@ -325,32 +360,40 @@ function exclusionSchema(t: TFunction) {
 }
 type ExclusionForm = z.infer<ReturnType<typeof exclusionSchema>>;
 
-/** Main exclusions table — only rows in force today (start reached, end not passed, active=true). */
-function isExclusionRowEnabled(active: boolean | number | null | undefined): boolean {
-  return active === true || active === 1;
+function exclusionListEmptyCopy(
+  t: TFunction,
+  statusFilter: ExclusionListStatusFilter,
+  hasRowsForStatus: boolean,
+): { title: string; description?: string } {
+  if (hasRowsForStatus) {
+    return { title: t("exclusions.empty.noMatch"), description: t("common.tryAdjustFilters") };
+  }
+  if (statusFilter === "upcoming") {
+    return { title: t("exclusions.empty.noneUpcoming") };
+  }
+  if (statusFilter === "expired") {
+    return { title: t("exclusions.empty.noneExpired") };
+  }
+  if (statusFilter === "all") {
+    return {
+      title: t("exclusions.empty.noneRecorded"),
+      description: t("exclusions.empty.recordFirst"),
+    };
+  }
+  return {
+    title: t("exclusions.empty.noneInForce"),
+    description: t("exclusions.empty.recordFirst"),
+  };
 }
 
-function isCurrentlyActiveExclusionRow(
-  exclusion: Pick<ExclusionRow, "start_date" | "end_date" | "active" | "exclusion_type">,
-): boolean {
-  if (!isExclusionRowEnabled(exclusion.active)) return false;
-  return isAgentExclusionActive(
-    {
-      agent_id: null,
-      dog_id: null,
-      exclusion_type: exclusion.exclusion_type,
-      start_date: exclusion.start_date,
-      end_date: exclusion.end_date,
-      active: true,
-    },
-    todayISODate(),
-  );
-}
+const LIST_STATUS_TONE: Record<ExclusionListStatus, StatusTone> = {
+  inForce: "success",
+  upcoming: "info",
+  expired: "neutral",
+  inactive: "warning",
+};
 
-function formatExclusionEndTableDate(
-  type: string,
-  endDate: string | null | undefined,
-): string {
+function formatExclusionEndTableDate(type: string, endDate: string | null | undefined): string {
   if (isOpenEndedExclusionType(type)) return "—";
   return formatExclusionTableDate(endDate);
 }
@@ -419,6 +462,9 @@ function ExclusionsPage() {
   const [dogsPage, setDogsPage] = useState(1);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | ExclusionType>("all");
+  const [statusFilter, setStatusFilter] = useState<ExclusionListStatusFilter>(
+    DEFAULT_EXCLUSION_LIST_STATUS_FILTER,
+  );
   const [sectionFilter, setSectionFilter] = useState<string>("all");
   const [specialtyFilter, setSpecialtyFilter] = useState<"all" | DogSpecialty>("all");
   const [dateFilter, setDateFilter] = useState("");
@@ -447,15 +493,17 @@ function ExclusionsPage() {
       const mapRows = (rows: ExclusionRow[]) =>
         rows.map((row: any) => {
           const rawAgent = (row as unknown as { agent: unknown }).agent;
-          const agent = Array.isArray(rawAgent) ? rawAgent[0] ?? null : rawAgent ?? null;
+          const agent = Array.isArray(rawAgent) ? (rawAgent[0] ?? null) : (rawAgent ?? null);
           if (agent) {
             const rawDog = (agent as { dog: unknown }).dog;
-            (agent as { dog: unknown }).dog = Array.isArray(rawDog) ? rawDog[0] ?? null : rawDog ?? null;
+            (agent as { dog: unknown }).dog = Array.isArray(rawDog)
+              ? (rawDog[0] ?? null)
+              : (rawDog ?? null);
           }
           const rawTargetDog = (row as unknown as { dog: unknown }).dog;
           const dog = Array.isArray(rawTargetDog)
-            ? rawTargetDog[0] ?? null
-            : rawTargetDog ?? null;
+            ? (rawTargetDog[0] ?? null)
+            : (rawTargetDog ?? null);
           return { ...(row as ExclusionRow), agent, dog };
         }) as ExclusionWithAgent[];
 
@@ -509,10 +557,7 @@ function ExclusionsPage() {
   const { data: sections } = useQuery({
     queryKey: ["sections-basic"],
     queryFn: async (): Promise<Array<{ id: string; name: string }>> => {
-      const { data, error } = await db
-        .from("sections")
-        .select("id, name")
-        .order("name");
+      const { data, error } = await db.from("sections").select("id, name").order("name");
       if (error) throw error;
       return (data ?? []) as Array<{ id: string; name: string }>;
     },
@@ -536,23 +581,22 @@ function ExclusionsPage() {
     return map;
   }, [dogs]);
 
-  const specialtyLookups = useMemo(
-    () => ({ agentById, dogById }),
-    [agentById, dogById],
-  );
+  const specialtyLookups = useMemo(() => ({ agentById, dogById }), [agentById, dogById]);
+
+  const todayISO = todayISODate();
 
   const dogExclusionStats = useMemo(() => {
     const activeDogRows = (data ?? []).filter(
-      (row) => isDogExclusionRow(row) && isCurrentlyActiveExclusionRow(row),
+      (row) => isDogExclusionRow(row) && exclusionListStatus(row, todayISO) === "inForce",
     );
     return {
       rows: activeDogRows,
       ...computeUniqueDogExclusionSpecialtyStats(activeDogRows, specialtyLookups),
     };
-  }, [data, specialtyLookups]);
+  }, [data, specialtyLookups, todayISO]);
 
   const stats = useMemo(() => {
-    const list = (data ?? []).filter(isCurrentlyActiveExclusionRow);
+    const list = (data ?? []).filter((row) => exclusionListStatus(row, todayISO) === "inForce");
     const personnel = list.filter(isPersonnelExclusionRow);
     const dogHeat = list.filter((e) => e.exclusion_type === "female_dog_heat");
     const dogSick = list.filter((e) => e.exclusion_type === "dog_sick");
@@ -569,12 +613,12 @@ function ExclusionsPage() {
         dogSick: countExclusionCynoSpecialties(dogSick, specialtyLookups),
       },
     };
-  }, [data, specialtyLookups]);
+  }, [data, specialtyLookups, todayISO]);
 
   const typeOptions = ALL_EXCLUSION_TYPES;
 
   const matchesSharedFilters = (e: ExclusionWithAgent) => {
-    if (!isCurrentlyActiveExclusionRow(e)) return false;
+    if (!matchesExclusionListStatusFilter(e, statusFilter, todayISO)) return false;
     if (typeFilter !== "all" && e.exclusion_type !== typeFilter) return false;
     if (dateFilter) {
       const start = e.start_date?.slice(0, 10);
@@ -603,7 +647,7 @@ function ExclusionsPage() {
       }
       return true;
     });
-  }, [data, search, typeFilter, sectionFilter, dateFilter]);
+  }, [data, search, typeFilter, sectionFilter, dateFilter, statusFilter, todayISO]);
 
   const dogsFiltered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -622,11 +666,12 @@ function ExclusionsPage() {
       }
       return true;
     });
-  }, [data, search, typeFilter, specialtyFilter, dateFilter]);
+  }, [data, search, typeFilter, specialtyFilter, dateFilter, statusFilter, todayISO]);
 
   const hasActiveFilters =
     !!search ||
     typeFilter !== "all" ||
+    statusFilter !== DEFAULT_EXCLUSION_LIST_STATUS_FILTER ||
     sectionFilter !== "all" ||
     specialtyFilter !== "all" ||
     !!dateFilter;
@@ -634,6 +679,7 @@ function ExclusionsPage() {
   const resetFilters = () => {
     setSearch("");
     setTypeFilter("all");
+    setStatusFilter(DEFAULT_EXCLUSION_LIST_STATUS_FILTER);
     setSectionFilter("all");
     setSpecialtyFilter("all");
     setDateFilter("");
@@ -642,7 +688,7 @@ function ExclusionsPage() {
   useEffect(() => {
     setPersonnelPage(1);
     setDogsPage(1);
-  }, [search, typeFilter, sectionFilter, specialtyFilter, dateFilter]);
+  }, [search, typeFilter, statusFilter, sectionFilter, specialtyFilter, dateFilter]);
 
   const personnelRows = useMemo(
     () => paginate(personnelFiltered, personnelPage, PAGE_SIZE),
@@ -660,7 +706,7 @@ function ExclusionsPage() {
     mutationFn: async (values: ExclusionForm & { id?: string }) => {
       const dogHandlerId =
         values.apply_to === "dog" && values.dog_id
-          ? (dogs ?? []).find((d) => d.id === values.dog_id)?.agent_id ?? null
+          ? ((dogs ?? []).find((d) => d.id === values.dog_id)?.agent_id ?? null)
           : null;
       const agentId = values.apply_to === "agent" ? values.agent_id : dogHandlerId;
       const dogId = values.apply_to === "dog" ? values.dog_id : null;
@@ -668,29 +714,40 @@ function ExclusionsPage() {
       const openEnded = isOpenEndedExclusionType(values.exclusion_type);
       const nextRecord = {
         start_date: values.start_date,
-        end_date: openEnded ? null : (values.end_date?.trim() || null),
+        end_date: openEnded ? null : values.end_date?.trim() || null,
         exclusion_type: values.exclusion_type,
       };
 
-      // Overlap guard: one active exclusion per agent or dog for the same period
+      // Overlap guard: same target type only (agent_id vs dog_id — never via handler↔dog).
       let overlapQuery = db
         .from("agent_exclusions")
-        .select("id, exclusion_type, start_date, end_date")
+        .select("id, agent_id, dog_id, exclusion_type, start_date, end_date")
         .eq("active", true);
       if (values.apply_to === "agent" && agentId) {
         overlapQuery = overlapQuery.eq("agent_id", agentId);
-      } else if (dogId) {
+      } else if (values.apply_to === "dog" && dogId) {
         overlapQuery = overlapQuery.eq("dog_id", dogId);
       }
       if (values.id) overlapQuery.neq("id", values.id);
       const { data: overlaps, error: overlapErr } = await overlapQuery;
       if (overlapErr) throw overlapErr;
-      const hasOverlap = (overlaps ?? []).some((row) =>
-        exclusionDateRangesOverlap(nextRecord, {
+      const hasOverlap = hasConflictingExistingExclusion(
+        {
+          applyTo: values.apply_to,
+          agentId: values.apply_to === "agent" ? agentId : null,
+          dogId: values.apply_to === "dog" ? dogId : null,
+          start_date: nextRecord.start_date,
+          end_date: nextRecord.end_date,
+          exclusion_type: nextRecord.exclusion_type,
+        },
+        (overlaps ?? []).map((row) => ({
+          id: row.id as string,
+          agent_id: (row.agent_id as string | null) ?? null,
+          dog_id: (row.dog_id as string | null) ?? null,
+          exclusion_type: row.exclusion_type as string,
           start_date: row.start_date as string,
           end_date: (row.end_date as string | null) ?? null,
-          exclusion_type: row.exclusion_type as string,
-        }),
+        })),
       );
       if (hasOverlap) {
         throw new Error(t("exclusions.error.overlap"));
@@ -721,8 +778,17 @@ function ExclusionsPage() {
       }
     },
     onSuccess: (_d, vars) => {
-      toast.success(vars.id ? t("exclusions.toast.updated") : t("exclusions.toast.created"));
-      setDialogOpen(false); setEditing(null);
+      if (!vars.id && isUpcomingExclusionStart(vars.start_date, todayISODate())) {
+        toast.success(t("exclusions.toast.createdUpcoming"), {
+          description: t("exclusions.toast.createdUpcomingHint", {
+            date: formatExclusionTableDate(vars.start_date),
+          }),
+        });
+      } else {
+        toast.success(vars.id ? t("exclusions.toast.updated") : t("exclusions.toast.created"));
+      }
+      setDialogOpen(false);
+      setEditing(null);
       invalidateExclusionAssignmentQueries(queryClient);
       refreshExclusionNotifications();
     },
@@ -853,7 +919,7 @@ function ExclusionsPage() {
         meta: { width: "10%" },
         cell: ({ row }) => {
           const sid = row.original.agent?.section_id;
-          const name = sid ? sectionNameById.get(sid) ?? "—" : "—";
+          const name = sid ? (sectionNameById.get(sid) ?? "—") : "—";
           return (
             <CellTooltip label={name}>
               <span className="truncate text-sm">{name}</span>
@@ -905,10 +971,11 @@ function ExclusionsPage() {
         header: t("common.status"),
         meta: { width: "9%" },
         cell: ({ row }) => {
-          const label = t("status.active");
+          const status = exclusionListStatus(row.original, todayISO);
+          const label = t(`exclusions.listStatus.${status}`);
           return (
             <CellTooltip label={label}>
-              <StatusBadge tone="success" className="max-w-full truncate">
+              <StatusBadge tone={LIST_STATUS_TONE[status]} className="max-w-full truncate">
                 {label}
               </StatusBadge>
             </CellTooltip>
@@ -931,7 +998,7 @@ function ExclusionsPage() {
       },
       actionsColumn,
     ],
-    [t, sectionNameById, actionsColumn],
+    [t, sectionNameById, actionsColumn, todayISO],
   );
 
   const dogColumns = useMemo<ColumnDef<ExclusionWithAgent>[]>(
@@ -1002,7 +1069,7 @@ function ExclusionsPage() {
         cell: ({ row }) => {
           const agent =
             row.original.agent ??
-            (row.original.agent_id ? agentById.get(row.original.agent_id) ?? null : null);
+            (row.original.agent_id ? (agentById.get(row.original.agent_id) ?? null) : null);
           if (!agent) return <span className="text-muted-foreground">—</span>;
           const name = `${agent.first_name} ${agent.last_name}`;
           return (
@@ -1056,10 +1123,11 @@ function ExclusionsPage() {
         header: t("common.status"),
         meta: { width: "9%" },
         cell: ({ row }) => {
-          const label = t("status.active");
+          const status = exclusionListStatus(row.original, todayISO);
+          const label = t(`exclusions.listStatus.${status}`);
           return (
             <CellTooltip label={label}>
-              <StatusBadge tone="success" className="max-w-full truncate">
+              <StatusBadge tone={LIST_STATUS_TONE[status]} className="max-w-full truncate">
                 {label}
               </StatusBadge>
             </CellTooltip>
@@ -1082,7 +1150,7 @@ function ExclusionsPage() {
       },
       actionsColumn,
     ],
-    [t, agentById, actionsColumn],
+    [t, agentById, actionsColumn, todayISO],
   );
 
   const filterTriggerClass =
@@ -1284,13 +1352,21 @@ function ExclusionsPage() {
                 onNarcoticsClick={() =>
                   showExclusions(
                     `${t("exclusions.stat.excludedDogsTotal")} — ${t("specialty.narcotics")}`,
-                    listUniqueExcludedDogRows(dogExclusionStats.rows, specialtyLookups, "narcotics"),
+                    listUniqueExcludedDogRows(
+                      dogExclusionStats.rows,
+                      specialtyLookups,
+                      "narcotics",
+                    ),
                   )
                 }
                 onExplosivesClick={() =>
                   showExclusions(
                     `${t("exclusions.stat.excludedDogsTotal")} — ${t("specialty.explosives")}`,
-                    listUniqueExcludedDogRows(dogExclusionStats.rows, specialtyLookups, "explosives"),
+                    listUniqueExcludedDogRows(
+                      dogExclusionStats.rows,
+                      specialtyLookups,
+                      "explosives",
+                    ),
                   )
                 }
               />
@@ -1321,6 +1397,21 @@ function ExclusionsPage() {
               {typeOptions.map((type) => (
                 <SelectItem key={type} value={type}>
                   {exclusionLabel(type, t)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={statusFilter}
+            onValueChange={(v) => setStatusFilter(v as ExclusionListStatusFilter)}
+          >
+            <FilterSelectTrigger className={filterTriggerClass}>
+              <SelectValue placeholder={t("exclusions.filter.status")} />
+            </FilterSelectTrigger>
+            <SelectContent>
+              {EXCLUSION_LIST_STATUS_FILTERS.map((value) => (
+                <SelectItem key={value} value={value}>
+                  {t(`exclusions.filter.statusOption.${value}`)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -1409,20 +1500,15 @@ function ExclusionsPage() {
                 <EmptyState
                   compact
                   icon={Users}
-                  title={
+                  {...exclusionListEmptyCopy(
+                    t,
+                    statusFilter,
                     (data ?? []).some(
-                      (row) => isPersonnelExclusionRow(row) && isCurrentlyActiveExclusionRow(row),
-                    )
-                      ? t("exclusions.empty.noMatch")
-                      : t("exclusions.empty.noneActive")
-                  }
-                  description={
-                    (data ?? []).some(
-                      (row) => isPersonnelExclusionRow(row) && isCurrentlyActiveExclusionRow(row),
-                    )
-                      ? t("common.tryAdjustFilters")
-                      : t("exclusions.empty.recordFirst")
-                  }
+                      (row) =>
+                        isPersonnelExclusionRow(row) &&
+                        matchesExclusionListStatusFilter(row, statusFilter, todayISO),
+                    ),
+                  )}
                 />
               }
             />
@@ -1466,20 +1552,15 @@ function ExclusionsPage() {
                 <EmptyState
                   compact
                   icon={DogIcon}
-                  title={
+                  {...exclusionListEmptyCopy(
+                    t,
+                    statusFilter,
                     (data ?? []).some(
-                      (row) => isDogExclusionRow(row) && isCurrentlyActiveExclusionRow(row),
-                    )
-                      ? t("exclusions.empty.noMatch")
-                      : t("exclusions.empty.noneActive")
-                  }
-                  description={
-                    (data ?? []).some(
-                      (row) => isDogExclusionRow(row) && isCurrentlyActiveExclusionRow(row),
-                    )
-                      ? t("common.tryAdjustFilters")
-                      : t("exclusions.empty.recordFirst")
-                  }
+                      (row) =>
+                        isDogExclusionRow(row) &&
+                        matchesExclusionListStatusFilter(row, statusFilter, todayISO),
+                    ),
+                  )}
                 />
               }
             />
@@ -1508,9 +1589,7 @@ function ExclusionsPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t("exclusions.delete.title")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("exclusions.delete.description")}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{t("exclusions.delete.description")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t("action.cancel")}</AlertDialogCancel>
@@ -1560,9 +1639,7 @@ function ExclusionSectionCard({
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#023A84]/10 text-[#023A84]">
             <Icon className="h-4 w-4" strokeWidth={2.25} />
           </span>
-          <h2 className="truncate text-xl font-semibold tracking-tight text-[#0F172A]">
-            {title}
-          </h2>
+          <h2 className="truncate text-xl font-semibold tracking-tight text-[#0F172A]">{title}</h2>
           <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#F1F5F9] px-2 text-[12px] font-semibold tabular-nums text-[#374151]">
             {count}
           </span>
@@ -1573,9 +1650,7 @@ function ExclusionSectionCard({
         </Button>
       </div>
       <div className="min-h-0">{children}</div>
-      {footer ? (
-        <div className="border-t border-[#F1F5F9] px-4 py-2.5">{footer}</div>
-      ) : null}
+      {footer ? <div className="border-t border-[#F1F5F9] px-4 py-2.5">{footer}</div> : null}
     </section>
   );
 }
@@ -1663,7 +1738,9 @@ function ExclusionDialog({
     setErrors({});
     if (next === "agent") {
       setDogId("");
-      setType(defaultExclusionFormType(PERSONNEL_EXCLUSION_FORM_TYPES, exclusionSettings, "sickness"));
+      setType(
+        defaultExclusionFormType(PERSONNEL_EXCLUSION_FORM_TYPES, exclusionSettings, "sickness"),
+      );
     } else {
       setAgentId("");
       setType(defaultExclusionFormType(DOG_EXCLUSION_FORM_TYPES, exclusionSettings, "dog_sick"));
@@ -1699,9 +1776,7 @@ function ExclusionDialog({
   const openEnded = isOpenEndedExclusionType(type);
   const datesValid = openEnded
     ? Boolean(start)
-    : Boolean(start && end) &&
-      end >= start &&
-      duration >= MIN_EXCLUSION_DURATION_DAYS;
+    : Boolean(start && end) && end >= start && duration >= MIN_EXCLUSION_DURATION_DAYS;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1768,9 +1843,7 @@ function ExclusionDialog({
   );
   const activeDogs = dogs.filter((d) => d.active || d.id === initial?.dog_id);
   const selectableDogs =
-    type === "female_dog_heat"
-      ? activeDogs.filter((d) => d.gender === "female")
-      : activeDogs;
+    type === "female_dog_heat" ? activeDogs.filter((d) => d.gender === "female") : activeDogs;
   const selectedAgent = allAgents.find((a) => a.id === agentId);
   const selectedDog = activeDogs.find((d) => d.id === dogId);
   const typeOptions = availableExclusionFormTypes(
@@ -1784,9 +1857,7 @@ function ExclusionDialog({
     const selected = dogs.find((d) => d.id === dogId);
     if (selected?.gender !== "female") setDogId("");
   }, [type, dogId, dogs]);
-  const selectedAgentLabel = selectedAgent
-    ? personnelSelectorDisplayLabel(selectedAgent, t)
-    : null;
+  const selectedAgentLabel = selectedAgent ? personnelSelectorDisplayLabel(selectedAgent, t) : null;
 
   /** Section of the selected agent, or of the dog's assigned handler — read-only info. */
   const selectedSectionDisplay = useMemo(() => {
@@ -1794,14 +1865,14 @@ function ExclusionDialog({
     if (applyTo === "agent") {
       if (!selectedAgent) return null;
       const sid = selectedAgent.section_id ?? null;
-      return sid ? sectionNameById.get(sid) ?? none : none;
+      return sid ? (sectionNameById.get(sid) ?? none) : none;
     }
     if (!selectedDog) return null;
     const handler =
       allAgents.find((a) => a.id === selectedDog.agent_id) ??
       allAgents.find((a) => a.dog_id === selectedDog.id);
     const sid = handler?.section_id ?? null;
-    return sid ? sectionNameById.get(sid) ?? none : none;
+    return sid ? (sectionNameById.get(sid) ?? none) : none;
   }, [applyTo, selectedAgent, selectedDog, allAgents, sectionNameById, t]);
 
   const summaryCard = (
@@ -1909,35 +1980,36 @@ function ExclusionDialog({
                         {t("exclusions.form.noTypesAvailable")}
                       </p>
                     ) : (
-                    <Select
-                      value={type}
-                      onValueChange={(v) => {
-                        const nextType = v as ExclusionType;
-                        setType(nextType);
-                        if (nextType === "female_dog_heat" && dogId) {
-                          const selected = dogs.find((d) => d.id === dogId);
-                          if (selected?.gender !== "female") setDogId("");
-                        }
-                        if (!isOpenEndedExclusionType(nextType) && start) {
-                          const days = duration >= MIN_EXCLUSION_DURATION_DAYS
-                            ? duration
-                            : MIN_EXCLUSION_DURATION_DAYS;
-                          setDuration(days);
-                          setEnd(exclusionEndFromDuration(start, days));
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="h-10 w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {typeOptions.map((exType) => (
-                          <SelectItem key={exType} value={exType}>
-                            {exclusionFormTypeLabel(exType, t)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <Select
+                        value={type}
+                        onValueChange={(v) => {
+                          const nextType = v as ExclusionType;
+                          setType(nextType);
+                          if (nextType === "female_dog_heat" && dogId) {
+                            const selected = dogs.find((d) => d.id === dogId);
+                            if (selected?.gender !== "female") setDogId("");
+                          }
+                          if (!isOpenEndedExclusionType(nextType) && start) {
+                            const days =
+                              duration >= MIN_EXCLUSION_DURATION_DAYS
+                                ? duration
+                                : MIN_EXCLUSION_DURATION_DAYS;
+                            setDuration(days);
+                            setEnd(exclusionEndFromDuration(start, days));
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-10 w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {typeOptions.map((exType) => (
+                            <SelectItem key={exType} value={exType}>
+                              {exclusionFormTypeLabel(exType, t)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     )}
                   </ExclusionFormField>
                 </div>
@@ -1963,7 +2035,10 @@ function ExclusionDialog({
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                      <PopoverContent
+                        className="w-[var(--radix-popover-trigger-width)] p-0"
+                        align="start"
+                      >
                         <Command>
                           <CommandInput placeholder={t("exclusions.searchAgent")} />
                           <CommandList>
@@ -2017,7 +2092,10 @@ function ExclusionDialog({
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                      <PopoverContent
+                        className="w-[var(--radix-popover-trigger-width)] p-0"
+                        align="start"
+                      >
                         <Command>
                           <CommandInput placeholder={t("exclusions.searchDog")} />
                           <CommandList>
@@ -2108,7 +2186,9 @@ function ExclusionDialog({
                   ) : (
                     <ExclusionFormField label={t("exclusions.table.enabled")}>
                       <div className="flex h-10 items-center justify-between rounded-lg border border-border/70 bg-background px-3 shadow-sm">
-                        <span className="text-sm text-foreground">{t("exclusions.table.enabled")}</span>
+                        <span className="text-sm text-foreground">
+                          {t("exclusions.table.enabled")}
+                        </span>
                         <Switch
                           id="exclusion-active-open-ended"
                           checked={active}
@@ -2126,41 +2206,43 @@ function ExclusionDialog({
                 </div>
 
                 {!openEnded ? (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <ExclusionFormField
-                    label={t("exclusions.field.endDateCalculated")}
-                    required
-                    error={errors.end_date}
-                    hint={t("exclusions.hint.endDateEditable")}
-                    htmlFor="end"
-                  >
-                    <Input
-                      id="end"
-                      type="date"
-                      className="h-10"
-                      value={end}
-                      min={start}
-                      onChange={(e) => handleEndChange(e.target.value)}
-                    />
-                  </ExclusionFormField>
-
-                  <ExclusionFormField label={t("exclusions.table.enabled")}>
-                    <div className="flex h-10 items-center justify-between rounded-lg border border-border/70 bg-background px-3 shadow-sm">
-                      <span className="text-sm text-foreground">{t("exclusions.table.enabled")}</span>
-                      <Switch
-                        id="exclusion-active"
-                        checked={active}
-                        onCheckedChange={setActive}
-                        aria-label={
-                          active ? t("exclusions.aria.disable") : t("exclusions.aria.enable")
-                        }
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <ExclusionFormField
+                      label={t("exclusions.field.endDateCalculated")}
+                      required
+                      error={errors.end_date}
+                      hint={t("exclusions.hint.endDateEditable")}
+                      htmlFor="end"
+                    >
+                      <Input
+                        id="end"
+                        type="date"
+                        className="h-10"
+                        value={end}
+                        min={start}
+                        onChange={(e) => handleEndChange(e.target.value)}
                       />
-                    </div>
-                    <p className="text-[11px] leading-snug text-muted-foreground">
-                      {t("exclusions.hint.disabledIgnored")}
-                    </p>
-                  </ExclusionFormField>
-                </div>
+                    </ExclusionFormField>
+
+                    <ExclusionFormField label={t("exclusions.table.enabled")}>
+                      <div className="flex h-10 items-center justify-between rounded-lg border border-border/70 bg-background px-3 shadow-sm">
+                        <span className="text-sm text-foreground">
+                          {t("exclusions.table.enabled")}
+                        </span>
+                        <Switch
+                          id="exclusion-active"
+                          checked={active}
+                          onCheckedChange={setActive}
+                          aria-label={
+                            active ? t("exclusions.aria.disable") : t("exclusions.aria.enable")
+                          }
+                        />
+                      </div>
+                      <p className="text-[11px] leading-snug text-muted-foreground">
+                        {t("exclusions.hint.disabledIgnored")}
+                      </p>
+                    </ExclusionFormField>
+                  </div>
                 ) : null}
 
                 <aside className="lg:hidden">{summaryCard}</aside>
@@ -2189,7 +2271,11 @@ function ExclusionDialog({
               {t("action.cancel")}
             </Button>
             <Button type="submit" disabled={submitting || (!initial && typeOptions.length === 0)}>
-              {submitting ? t("action.saving") : initial ? t("action.saveChanges") : t("exclusions.submit.create")}
+              {submitting
+                ? t("action.saving")
+                : initial
+                  ? t("action.saveChanges")
+                  : t("exclusions.submit.create")}
             </Button>
           </DialogFooter>
         </form>
@@ -2241,7 +2327,8 @@ export function AgentExclusionsHistory({ agentId }: { agentId: string }) {
   });
 
   if (isLoading) return <Skeleton className="h-24 w-full" />;
-  if (!data?.length) return <p className="text-sm text-muted-foreground">{t("exclusions.history.empty")}</p>;
+  if (!data?.length)
+    return <p className="text-sm text-muted-foreground">{t("exclusions.history.empty")}</p>;
 
   return (
     <div className="rounded-md border">
@@ -2268,7 +2355,9 @@ export function AgentExclusionsHistory({ agentId }: { agentId: string }) {
                   {formatExclusionEndTableDate(e.exclusion_type, e.end_date)}
                 </TableCell>
                 <TableCell>
-                  <Badge variant={active ? "default" : "secondary"}>{active ? t("status.active") : t("status.expired")}</Badge>
+                  <Badge variant={active ? "default" : "secondary"}>
+                    {active ? t("status.active") : t("status.expired")}
+                  </Badge>
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">{e.notes ?? "—"}</TableCell>
               </TableRow>

@@ -130,6 +130,8 @@ export type DogAgentSummary = {
   id: string;
   first_name: string;
   last_name: string;
+  professional_number: string | null;
+  grade: string | null;
   section: { id: string; name: string } | null;
 };
 

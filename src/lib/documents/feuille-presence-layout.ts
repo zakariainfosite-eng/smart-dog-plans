@@ -217,7 +217,7 @@ export const FP_PERSONNEL_ADMIN_TABLE_COLS = [
 ] as const;
 
 /** Official list title — same typographic scale as FEUILLE DE PRESENCE. */
-export const FP_DOGS_LIST_TITLE = "LISTE DES CHIENS CYNOTECHNIQUES" as const;
+export const FP_DOGS_LIST_TITLE = "LISTE DES CHIENS" as const;
 
 /**
  * Cynotechnical dogs list columns — sum equals FP_CONTENT_W (186 mm).

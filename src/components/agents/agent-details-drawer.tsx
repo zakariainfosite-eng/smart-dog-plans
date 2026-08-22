@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { format, parseISO } from "date-fns";
 import {
   User,
   Dog as DogIcon,
-  History,
   Phone,
   MapPin,
   Shield,
@@ -15,17 +13,17 @@ import {
   Printer,
   FileDown,
   Loader2,
-  RotateCw,
-  UserX,
   StickyNote,
   Briefcase,
-  Award,
   HeartHandshake,
   Calendar,
+  ClipboardList,
+  ListTree,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { db } from "@/integrations/database/client";
+import { fetchFonctionnairePdfTableFields } from "@/lib/reports-messages/entity-pdf-table-store";
 import { fetchAgentDetails } from "@/lib/agent-details";
 import { formatPgError } from "@/lib/soft-delete";
 import {
@@ -34,21 +32,16 @@ import {
   type AgentFicheIndividuelleInput,
 } from "@/lib/agent-profile-export";
 import { agentSpecialty } from "@/lib/agent-ui";
-import {
-  formatAgentBirthDateDisplay,
-} from "@/lib/agent-birth-date";
+import { formatAgentBirthDateDisplay } from "@/lib/agent-birth-date";
 import { formatMaritalStatusLabel } from "@/lib/marital-status";
-import {
-  isCynotechnicienFonction,
-  normalizePersonnelFonction,
-} from "@/lib/personnel-fonction";
+import { isCynotechnicienFonction, normalizePersonnelFonction } from "@/lib/personnel-fonction";
 import {
   OperationalCaseDialog,
   type OperationalCaseDialogMode,
 } from "@/components/operational-cases/operational-case-dialog";
-import { AgentExclusionsHistory } from "@/components/agents/agent-exclusions-history";
+import { AgentAdministrativeHistory } from "@/components/agents/agent-administrative-history";
+import { AgentCompleteHistory } from "@/components/agents/agent-complete-history";
 import { AgentOperationalCasesHistory } from "@/components/agents/agent-operational-cases-history";
-import { AgentCareerSummarySection } from "@/components/agents/agent-career-summary";
 import { AgentAvatar } from "@/components/agents/agent-avatar";
 import { AgentPhotoLightbox } from "@/components/agents/agent-photo-lightbox";
 import type { AgentOperationalCase } from "@/lib/agent-details";
@@ -132,15 +125,12 @@ export function AgentDetailsDrawer({
   const firstName = data?.agent.first_name ?? agentRow?.first_name ?? "";
   const lastName = data?.agent.last_name ?? agentRow?.last_name ?? "";
 
-  const fonctionValue =
-    data?.agent.fonction ?? agentRow?.fonction ?? null;
+  const fonctionValue = data?.agent.fonction ?? agentRow?.fonction ?? null;
   /** Full K9 / operational profile — Cynotechnicien only; all other roles get the admin profile. */
   const isOperationalProfile = isCynotechnicienFonction(fonctionValue);
 
   const specialty =
-    isOperationalProfile && data?.agent.dogs
-      ? agentSpecialty({ dogs: data.agent.dogs })
-      : null;
+    isOperationalProfile && data?.agent.dogs ? agentSpecialty({ dogs: data.agent.dogs }) : null;
 
   const openCaseDetail = (caseRow: AgentOperationalCase) => {
     setSelectedCase(caseRow);
@@ -156,9 +146,7 @@ export function AgentDetailsDrawer({
       firstName: agent.first_name,
       lastName: agent.last_name,
       grade: agent.grade,
-      fonctionLabel: t(
-        `personnelFonction.${normalizePersonnelFonction(agent.fonction)}`,
-      ),
+      fonctionLabel: t(`personnelFonction.${normalizePersonnelFonction(agent.fonction)}`),
       gender: agent.gender === "female" ? "female" : "male",
       maritalStatus: agent.marital_status ?? agentRow?.marital_status,
       dateNaissance: agent.date_naissance ?? agentRow?.date_naissance,
@@ -170,29 +158,36 @@ export function AgentDetailsDrawer({
       address: agent.address,
       notes: agent.observations,
       photoUrl: agent.photo_url,
+      dogName: agent.dogs?.name ?? null,
+      specialtyLabel:
+        specialty === "narcotics"
+          ? "STUPÉFIANTS"
+          : specialty === "explosives"
+            ? "EXPLOSIFS"
+            : null,
     };
   };
 
-  const handlePrint = async () => {
+  const exportFiche = async (mode: "pdf" | "print") => {
     const input = buildFicheInput();
     if (!input) return;
     setExporting(true);
     try {
-      await printAgentFicheIndividuellePdf(input);
+      const pdfTableFields = await fetchFonctionnairePdfTableFields(db);
+      const payload = { ...input, pdfTableFields };
+      if (mode === "print") await printAgentFicheIndividuellePdf(payload);
+      else await downloadAgentFicheIndividuellePdf(payload);
     } finally {
       setExporting(false);
     }
   };
 
+  const handlePrint = async () => {
+    await exportFiche("print");
+  };
+
   const handleExportPdf = async () => {
-    const input = buildFicheInput();
-    if (!input) return;
-    setExporting(true);
-    try {
-      await downloadAgentFicheIndividuellePdf(input);
-    } finally {
-      setExporting(false);
-    }
+    await exportFiche("pdf");
   };
 
   return (
@@ -304,16 +299,9 @@ export function AgentDetailsDrawer({
             )}
             {data && (
               <>
-                <DetailsSection
-                  icon={User}
-                  title={t("agentDetails.section.personal")}
-                >
+                <DetailsSection icon={User} title={t("agentDetails.section.personal")}>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <DetailItem
-                      icon={User}
-                      label={t("employees.table.name")}
-                      value={fullName}
-                    />
+                    <DetailItem icon={User} label={t("employees.table.name")} value={fullName} />
                     <DetailItem
                       icon={Shield}
                       label={t("employees.field.professionalNumber")}
@@ -372,87 +360,80 @@ export function AgentDetailsDrawer({
                     <DetailItem
                       icon={Shield}
                       label={t("field.active")}
-                      value={
-                        data.agent.active ? t("common.active") : t("common.inactive")
-                      }
+                      value={data.agent.active ? t("common.active") : t("common.inactive")}
                     />
                   </div>
                 </DetailsSection>
 
                 {isOperationalProfile && (
-                  <>
-                    <DetailsSection icon={DogIcon} title={t("agentDetails.section.k9")}>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <DetailItem
-                          icon={DogIcon}
-                          label={t("employees.field.assignedDog")}
-                          value={data.agent.dogs?.name ?? t("common.none")}
-                        />
-                        <DetailItem
-                          icon={DogIcon}
-                          label={t("field.specialty")}
-                          value={specialty ? t(`specialty.${specialty}`) : t("common.none")}
-                        />
-                        <DetailItem
-                          icon={DogIcon}
-                          label={t("common.status")}
-                          value={
-                            data.agent.dogs
-                              ? t(`dogStatus.${data.agent.dogs.status}`)
-                              : t("common.none")
-                          }
-                        />
-                      </div>
-                    </DetailsSection>
+                  <DetailsSection icon={DogIcon} title={t("agentDetails.section.k9")}>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <DetailItem
+                        icon={DogIcon}
+                        label={t("employees.field.assignedDog")}
+                        value={data.agent.dogs?.name ?? t("common.none")}
+                      />
+                      <DetailItem
+                        icon={DogIcon}
+                        label={t("field.specialty")}
+                        value={specialty ? t(`specialty.${specialty}`) : t("common.none")}
+                      />
+                      <DetailItem
+                        icon={DogIcon}
+                        label={t("common.status")}
+                        value={
+                          data.agent.dogs
+                            ? t(`dogStatus.${data.agent.dogs.status}`)
+                            : t("common.none")
+                        }
+                      />
+                    </div>
+                  </DetailsSection>
+                )}
 
-                    <DetailsSection icon={Award} title={t("agentDetails.section.careerSummary")}>
-                      {data.sectionErrors?.careerSummary ? (
-                        <SectionError message={data.sectionErrors.careerSummary} />
-                      ) : (
-                        <AgentCareerSummarySection summary={data.careerSummary} />
-                      )}
-                    </DetailsSection>
+                <DetailsSection
+                  icon={ClipboardList}
+                  title={t("agentDetails.section.administrativeHistory")}
+                >
+                  {data.sectionErrors?.administrativeHistory ? (
+                    <SectionError message={data.sectionErrors.administrativeHistory} />
+                  ) : (
+                    <AgentAdministrativeHistory
+                      agentId={data.agent.id}
+                      entries={data.administrativeHistory}
+                    />
+                  )}
+                </DetailsSection>
 
-                    <DetailsSection icon={Briefcase} title={t("agentDetails.section.casesHistory")}>
-                      {data.sectionErrors?.operationalCases ? (
-                        <SectionError message={data.sectionErrors.operationalCases} />
-                      ) : (
-                        <AgentOperationalCasesHistory
-                          cases={data.operationalCases}
-                          onCaseClick={openCaseDetail}
-                        />
-                      )}
-                    </DetailsSection>
+                <DetailsSection icon={ListTree} title={t("agentDetails.section.completeHistory")}>
+                  <div className="space-y-3">
+                    {data.sectionErrors?.history ? (
+                      <SectionError message={data.sectionErrors.history} />
+                    ) : null}
+                    {data.sectionErrors?.exclusions ? (
+                      <SectionError message={data.sectionErrors.exclusions} />
+                    ) : null}
+                    <AgentCompleteHistory
+                      administrativeEvents={data.administrativeHistory}
+                      agentExclusions={data.exclusions}
+                      dogExclusions={data.dogExclusions}
+                      operationalCases={data.operationalCases}
+                      rotations={data.recentRotations}
+                    />
+                  </div>
+                </DetailsSection>
 
-                    <DetailsSection icon={UserX} title={t("agentDetails.section.exclusionsHistory")}>
-                      {data.sectionErrors?.exclusions ? (
-                        <SectionError message={data.sectionErrors.exclusions} />
-                      ) : (
-                        <AgentExclusionsHistory exclusions={data.exclusions} />
-                      )}
-                    </DetailsSection>
-
-                    <DetailsSection icon={History} title={t("agentDetails.section.history")}>
-                      {data.sectionErrors?.history ? (
-                        <SectionError message={data.sectionErrors.history} />
-                      ) : (
-                        <div className="space-y-5">
-                          <HistoryList
-                            icon={RotateCw}
-                            title={t("agentDetails.history.rotations")}
-                            empty={t("agentDetails.history.emptyRotations")}
-                            items={data.recentRotations.map((item) => ({
-                              id: item.id,
-                              primary: format(parseISO(item.planningDate), "dd/MM/yyyy"),
-                              secondary: item.isHqReserve
-                                ? t("dailyPlanning.point653.name")
-                                : (item.checkpointName ?? t("common.none")),
-                            }))}
-                          />
-                        </div>
-                      )}
-                    </DetailsSection>
-                  </>
+                {isOperationalProfile && (
+                  <DetailsSection icon={Briefcase} title={t("agentDetails.section.casesHistory")}>
+                    {data.sectionErrors?.operationalCases ? (
+                      <SectionError message={data.sectionErrors.operationalCases} />
+                    ) : (
+                      <AgentOperationalCasesHistory
+                        cases={data.operationalCases}
+                        onCaseClick={openCaseDetail}
+                      />
+                    )}
+                  </DetailsSection>
                 )}
 
                 <DetailsSection icon={StickyNote} title={t("agentDetails.section.notes")}>
@@ -529,44 +510,6 @@ function DetailItem({
   value: string;
 }) {
   return <ProfileField icon={Icon} label={label} value={value} />;
-}
-
-function HistoryList({
-  icon: Icon,
-  title,
-  empty,
-  items,
-}: {
-  icon: LucideIcon;
-  title: string;
-  empty: string;
-  items: Array<{ id: string; primary: string; secondary: string }>;
-}) {
-  return (
-    <div>
-      <div className="mb-2 flex items-center gap-2">
-        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {title}
-        </p>
-      </div>
-      {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{empty}</p>
-      ) : (
-        <ul className="space-y-2">
-          {items.map((item) => (
-            <li
-              key={item.id}
-              className="rounded-lg border border-border/60 px-3 py-2 text-sm transition-colors hover:bg-muted/40"
-            >
-              <p className="font-medium">{item.primary}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">{item.secondary}</p>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
 }
 
 function AgentDetailsSkeleton({ compact = false }: { compact?: boolean }) {

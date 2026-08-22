@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import { useNavigate } from "@tanstack/react-router";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Stethoscope } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { FileStack, Stethoscope } from "lucide-react";
 import { toast } from "sonner";
 
 import { db } from "@/integrations/database/client";
@@ -16,14 +16,34 @@ import {
 } from "@/components/reports-messages/report-cards";
 import { buildDefaultPayload, createRoleDocument } from "@/lib/reports-messages/documents-store";
 import { getTemplatesForRole } from "@/lib/reports-messages/templates";
+import {
+  DOCUMENT_TEMPLATES_SETTINGS_QUERY_KEY,
+  canEditDocumentTemplates,
+  fetchDocumentTemplatesSettingsOrDefault,
+} from "@/lib/reports-messages/document-templates/template-overrides-store";
+import { resolveEffectiveTemplate } from "@/lib/reports-messages/document-templates/merge-template";
 
 export function VeterinaryReportsPage() {
   const { t } = useI18n();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, role } = useAuth();
+  const canManageTemplates = canEditDocumentTemplates(role);
 
-  const templates = useMemo(() => getTemplatesForRole("veterinary"), []);
+  const { data: templateSettings } = useQuery({
+    queryKey: DOCUMENT_TEMPLATES_SETTINGS_QUERY_KEY,
+    queryFn: () => fetchDocumentTemplatesSettingsOrDefault(db),
+  });
+
+  const templates = useMemo(() => {
+    const all = getTemplatesForRole("veterinary");
+    const settings = templateSettings ?? { byId: {} };
+    return all.filter((template) => {
+      const effective = resolveEffectiveTemplate(template.id, settings);
+      if (!effective) return true;
+      return effective.active;
+    });
+  }, [templateSettings]);
 
   const createMutation = useMutation({
     mutationFn: async (templateId: string) => {
@@ -67,9 +87,19 @@ export function VeterinaryReportsPage() {
           { label: t("reportsMessages.veterinary.shortLabel") },
         ]}
         actions={
-          <Button variant="outline" onClick={() => void navigate({ to: "/reports-messages" })}>
-            {t("reportsMessages.backToHub")}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {canManageTemplates ? (
+              <Button variant="secondary" asChild>
+                <Link to="/reports-messages/templates">
+                  <FileStack className="mr-1.5 h-4 w-4" />
+                  {t("reportsMessages.templateManagement.title")}
+                </Link>
+              </Button>
+            ) : null}
+            <Button variant="outline" onClick={() => void navigate({ to: "/reports-messages" })}>
+              {t("reportsMessages.backToHub")}
+            </Button>
+          </div>
         }
       />
 

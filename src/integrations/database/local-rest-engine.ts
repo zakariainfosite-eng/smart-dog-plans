@@ -3,6 +3,7 @@
  * Mirrors electron/rest-gateway.ts so renderer db.from(...) call sites stay unchanged.
  */
 import { randomId } from "@/lib/random-id";
+import { REST_ALLOWED_TABLES } from "./schema-sql";
 import type { RestQueryRequest, RestQueryResult } from "./rest-query-types";
 import type { SqlExecutor } from "./sql-executor";
 import { applyUnassignIfWithoutHandlerExclusionAsync } from "./unassign-dog-handler";
@@ -25,22 +26,8 @@ type EmbedSpec = {
   embeds: EmbedSpec[];
 };
 
-const ALLOWED_TABLES = new Set([
-  "sections",
-  "dogs",
-  "agents",
-  "checkpoints",
-  "checkpoint_posts",
-  "agent_exclusions",
-  "exclusion_notifications",
-  "planning",
-  "planning_assignments",
-  "rotation_history",
-  "operational_cases",
-  "operational_case_attachments",
-  "application_settings",
-  "users",
-]);
+/** Derived from the canonical DDL — see REST_ALLOWED_TABLES in schema-sql.ts. */
+const ALLOWED_TABLES = REST_ALLOWED_TABLES;
 
 const BOOLEAN_COLUMNS = new Set([
   "active",

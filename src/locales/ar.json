@@ -573,7 +573,78 @@
       "exclusionsHistory": "سجل الاستثناءات",
       "careerSummary": "ملخص المسار المهني",
       "history": "السجل",
+      "administrativeHistory": "السجل الإداري",
+      "completeHistory": "السجل الكامل",
       "notes": "ملاحظات"
+    },
+    "adminHistory": {
+      "subtitle": "الأحداث الإدارية المسجلة يدويًا، بما فيها ما سبق استخدام CynoPlanning.",
+      "add": "إضافة سجل",
+      "empty": "لا يوجد سجل إداري مسجل.",
+      "type": {
+        "conge": "عطلة",
+        "permission": "رخصة",
+        "arret_maladie": "عطلة مرضية",
+        "formation": "تكوين",
+        "exclusion_formation": "استثناء تكوين",
+        "autre": "أخرى"
+      },
+      "source": {
+        "manual": "إدخال يدوي",
+        "import": "استيراد",
+        "conge": "عطلة",
+        "permission": "رخصة",
+        "maladie": "عطلة مرضية",
+        "formation": "تكوين",
+        "exclusion": "استثناء",
+        "cas_operationnel": "قضية تشغيلية",
+        "planning": "التخطيط"
+      },
+      "field": {
+        "type": "النوع",
+        "startDate": "تاريخ البداية",
+        "endDate": "تاريخ النهاية",
+        "reason": "السبب",
+        "observation": "ملاحظة",
+        "reference": "المرجع",
+        "createdAt": "تاريخ الإنشاء",
+        "createdBy": "أنشئ بواسطة"
+      },
+      "dialog": {
+        "createTitle": "إضافة سجل",
+        "editTitle": "تعديل السجل",
+        "description": "تسجيل حدث إداري لهذا الموظف.",
+        "hint": "هذا التسجيل إعلامي فقط: لا يطبق أي قاعدة استثناء أو تخطيط أو دوران."
+      },
+      "validation": {
+        "typeRequired": "النوع إلزامي.",
+        "startRequired": "تاريخ البداية إلزامي.",
+        "endBeforeStart": "يجب أن يكون تاريخ النهاية بعد تاريخ البداية أو مساويًا له."
+      },
+      "delete": {
+        "title": "حذف هذا السجل؟",
+        "description": "سيتم حذف هذا السجل الإداري نهائيًا. لن تتأثر الاستثناءات والقضايا التشغيلية والتخطيط."
+      },
+      "toast": {
+        "created": "تمت إضافة السجل.",
+        "updated": "تم تحديث السجل.",
+        "deleted": "تم حذف السجل."
+      }
+    },
+    "completeHistory": {
+      "empty": "لا يوجد أي حدث مسجل لهذا الموظف.",
+      "emptyFilter": "لا يوجد حدث مطابق للفئة المحددة.",
+      "showMore": "عرض المزيد",
+      "filter": {
+        "all": "الكل"
+      },
+      "category": {
+        "administrative": "إداري",
+        "exclusion_agent": "استثناء الموظف",
+        "exclusion_dog": "استثناء مرتبط بالكلب",
+        "operational_case": "قضية تشغيلية",
+        "rotation": "دوران"
+      }
     },
     "stats": {
       "totalAssignments": "إجمالي التعيينات",
@@ -1045,7 +1116,14 @@
       "reason": "نوع الاستثناء",
       "allReasons": "كل الأنواع",
       "allAgents": "جميع الموظفين",
-      "date": "التاريخ"
+      "date": "التاريخ",
+      "status": "الحالة",
+      "statusOption": {
+        "all": "الكل",
+        "inForce": "سارية",
+        "upcoming": "قادمة",
+        "expired": "منتهية"
+      }
     },
     "table": {
       "agent": "الموظف",
@@ -1085,10 +1163,20 @@
     "formType": {
       "dog_vet_visit": "تحت الملاحظة"
     },
+    "listStatus": {
+      "inForce": "سارية",
+      "upcoming": "قادمة",
+      "expired": "منتهية",
+      "inactive": "معطّلة"
+    },
     "empty": {
       "noMatch": "لا استثناءات تطابق التصفية",
       "none": "لا استثناءات",
       "noneActive": "لا توجد استثناءات نشطة.",
+      "noneInForce": "لا توجد استثناءات سارية.",
+      "noneUpcoming": "لا توجد استثناءات قادمة.",
+      "noneExpired": "لا توجد استثناءات منتهية.",
+      "noneRecorded": "لا توجد استثناءات مسجّلة.",
       "nonePersonnel": "لا استثناءات للأفراد",
       "noneDogs": "لا استثناءات للكلاب",
       "recordFirst": "أضف استثناءً لبدء المتابعة."
@@ -1160,6 +1248,8 @@
     "toast": {
       "updated": "تم تحديث الاستثناء",
       "created": "تم إنشاء الاستثناء",
+      "createdUpcoming": "تم تسجيل الاستثناء بنجاح.",
+      "createdUpcomingHint": "سيصبح سارياً ابتداءً من {{date}}.",
       "enabled": "تم تفعيل الاستثناء",
       "disabled": "تم تعطيل الاستثناء",
       "deleted": "تم حذف الاستثناء"

@@ -26,10 +26,13 @@ import { Route as AuthenticatedDailyPlanningRouteImport } from './routes/_authen
 import { Route as AuthenticatedCheckpointsRouteImport } from './routes/_authenticated/checkpoints'
 import { Route as AuthenticatedReportsMessagesIndexRouteImport } from './routes/_authenticated/reports-messages.index'
 import { Route as AuthenticatedReportsMessagesVeterinaryRouteImport } from './routes/_authenticated/reports-messages.veterinary'
+import { Route as AuthenticatedReportsMessagesTemplatesRouteImport } from './routes/_authenticated/reports-messages.templates'
 import { Route as AuthenticatedReportsMessagesSecretaryRouteImport } from './routes/_authenticated/reports-messages.secretary'
 import { Route as AuthenticatedReportsMessagesEquipmentChiefRouteImport } from './routes/_authenticated/reports-messages.equipment-chief'
 import { Route as AuthenticatedReportsMessagesAssistantRouteImport } from './routes/_authenticated/reports-messages.assistant'
 import { Route as AuthenticatedDogsIdRouteImport } from './routes/_authenticated/dogs.$id'
+import { Route as AuthenticatedReportsMessagesTemplatesIndexRouteImport } from './routes/_authenticated/reports-messages.templates.index'
+import { Route as AuthenticatedReportsMessagesTemplatesTemplateIdRouteImport } from './routes/_authenticated/reports-messages.templates.$templateId'
 import { Route as AuthenticatedReportsMessagesRoleCategoryDocumentIdRouteImport } from './routes/_authenticated/reports-messages.$roleCategory.$documentId'
 
 const AuthRoute = AuthRouteImport.update({
@@ -122,6 +125,12 @@ const AuthenticatedReportsMessagesVeterinaryRoute =
     path: '/veterinary',
     getParentRoute: () => AuthenticatedReportsMessagesRoute,
   } as any)
+const AuthenticatedReportsMessagesTemplatesRoute =
+  AuthenticatedReportsMessagesTemplatesRouteImport.update({
+    id: '/templates',
+    path: '/templates',
+    getParentRoute: () => AuthenticatedReportsMessagesRoute,
+  } as any)
 const AuthenticatedReportsMessagesSecretaryRoute =
   AuthenticatedReportsMessagesSecretaryRouteImport.update({
     id: '/secretary',
@@ -145,6 +154,18 @@ const AuthenticatedDogsIdRoute = AuthenticatedDogsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AuthenticatedDogsRoute,
 } as any)
+const AuthenticatedReportsMessagesTemplatesIndexRoute =
+  AuthenticatedReportsMessagesTemplatesIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedReportsMessagesTemplatesRoute,
+  } as any)
+const AuthenticatedReportsMessagesTemplatesTemplateIdRoute =
+  AuthenticatedReportsMessagesTemplatesTemplateIdRouteImport.update({
+    id: '/$templateId',
+    path: '/$templateId',
+    getParentRoute: () => AuthenticatedReportsMessagesTemplatesRoute,
+  } as any)
 const AuthenticatedReportsMessagesRoleCategoryDocumentIdRoute =
   AuthenticatedReportsMessagesRoleCategoryDocumentIdRouteImport.update({
     id: '/$roleCategory/$documentId',
@@ -171,9 +192,12 @@ export interface FileRoutesByFullPath {
   '/reports-messages/assistant': typeof AuthenticatedReportsMessagesAssistantRoute
   '/reports-messages/equipment-chief': typeof AuthenticatedReportsMessagesEquipmentChiefRoute
   '/reports-messages/secretary': typeof AuthenticatedReportsMessagesSecretaryRoute
+  '/reports-messages/templates': typeof AuthenticatedReportsMessagesTemplatesRouteWithChildren
   '/reports-messages/veterinary': typeof AuthenticatedReportsMessagesVeterinaryRoute
   '/reports-messages/': typeof AuthenticatedReportsMessagesIndexRoute
   '/reports-messages/$roleCategory/$documentId': typeof AuthenticatedReportsMessagesRoleCategoryDocumentIdRoute
+  '/reports-messages/templates/$templateId': typeof AuthenticatedReportsMessagesTemplatesTemplateIdRoute
+  '/reports-messages/templates/': typeof AuthenticatedReportsMessagesTemplatesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -196,6 +220,8 @@ export interface FileRoutesByTo {
   '/reports-messages/veterinary': typeof AuthenticatedReportsMessagesVeterinaryRoute
   '/reports-messages': typeof AuthenticatedReportsMessagesIndexRoute
   '/reports-messages/$roleCategory/$documentId': typeof AuthenticatedReportsMessagesRoleCategoryDocumentIdRoute
+  '/reports-messages/templates/$templateId': typeof AuthenticatedReportsMessagesTemplatesTemplateIdRoute
+  '/reports-messages/templates': typeof AuthenticatedReportsMessagesTemplatesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -218,9 +244,12 @@ export interface FileRoutesById {
   '/_authenticated/reports-messages/assistant': typeof AuthenticatedReportsMessagesAssistantRoute
   '/_authenticated/reports-messages/equipment-chief': typeof AuthenticatedReportsMessagesEquipmentChiefRoute
   '/_authenticated/reports-messages/secretary': typeof AuthenticatedReportsMessagesSecretaryRoute
+  '/_authenticated/reports-messages/templates': typeof AuthenticatedReportsMessagesTemplatesRouteWithChildren
   '/_authenticated/reports-messages/veterinary': typeof AuthenticatedReportsMessagesVeterinaryRoute
   '/_authenticated/reports-messages/': typeof AuthenticatedReportsMessagesIndexRoute
   '/_authenticated/reports-messages/$roleCategory/$documentId': typeof AuthenticatedReportsMessagesRoleCategoryDocumentIdRoute
+  '/_authenticated/reports-messages/templates/$templateId': typeof AuthenticatedReportsMessagesTemplatesTemplateIdRoute
+  '/_authenticated/reports-messages/templates/': typeof AuthenticatedReportsMessagesTemplatesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -243,9 +272,12 @@ export interface FileRouteTypes {
     | '/reports-messages/assistant'
     | '/reports-messages/equipment-chief'
     | '/reports-messages/secretary'
+    | '/reports-messages/templates'
     | '/reports-messages/veterinary'
     | '/reports-messages/'
     | '/reports-messages/$roleCategory/$documentId'
+    | '/reports-messages/templates/$templateId'
+    | '/reports-messages/templates/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -268,6 +300,8 @@ export interface FileRouteTypes {
     | '/reports-messages/veterinary'
     | '/reports-messages'
     | '/reports-messages/$roleCategory/$documentId'
+    | '/reports-messages/templates/$templateId'
+    | '/reports-messages/templates'
   id:
     | '__root__'
     | '/'
@@ -289,9 +323,12 @@ export interface FileRouteTypes {
     | '/_authenticated/reports-messages/assistant'
     | '/_authenticated/reports-messages/equipment-chief'
     | '/_authenticated/reports-messages/secretary'
+    | '/_authenticated/reports-messages/templates'
     | '/_authenticated/reports-messages/veterinary'
     | '/_authenticated/reports-messages/'
     | '/_authenticated/reports-messages/$roleCategory/$documentId'
+    | '/_authenticated/reports-messages/templates/$templateId'
+    | '/_authenticated/reports-messages/templates/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -421,6 +458,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReportsMessagesVeterinaryRouteImport
       parentRoute: typeof AuthenticatedReportsMessagesRoute
     }
+    '/_authenticated/reports-messages/templates': {
+      id: '/_authenticated/reports-messages/templates'
+      path: '/templates'
+      fullPath: '/reports-messages/templates'
+      preLoaderRoute: typeof AuthenticatedReportsMessagesTemplatesRouteImport
+      parentRoute: typeof AuthenticatedReportsMessagesRoute
+    }
     '/_authenticated/reports-messages/secretary': {
       id: '/_authenticated/reports-messages/secretary'
       path: '/secretary'
@@ -449,6 +493,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDogsIdRouteImport
       parentRoute: typeof AuthenticatedDogsRoute
     }
+    '/_authenticated/reports-messages/templates/': {
+      id: '/_authenticated/reports-messages/templates/'
+      path: '/'
+      fullPath: '/reports-messages/templates/'
+      preLoaderRoute: typeof AuthenticatedReportsMessagesTemplatesIndexRouteImport
+      parentRoute: typeof AuthenticatedReportsMessagesTemplatesRoute
+    }
+    '/_authenticated/reports-messages/templates/$templateId': {
+      id: '/_authenticated/reports-messages/templates/$templateId'
+      path: '/$templateId'
+      fullPath: '/reports-messages/templates/$templateId'
+      preLoaderRoute: typeof AuthenticatedReportsMessagesTemplatesTemplateIdRouteImport
+      parentRoute: typeof AuthenticatedReportsMessagesTemplatesRoute
+    }
     '/_authenticated/reports-messages/$roleCategory/$documentId': {
       id: '/_authenticated/reports-messages/$roleCategory/$documentId'
       path: '/$roleCategory/$documentId'
@@ -470,10 +528,29 @@ const AuthenticatedDogsRouteChildren: AuthenticatedDogsRouteChildren = {
 const AuthenticatedDogsRouteWithChildren =
   AuthenticatedDogsRoute._addFileChildren(AuthenticatedDogsRouteChildren)
 
+interface AuthenticatedReportsMessagesTemplatesRouteChildren {
+  AuthenticatedReportsMessagesTemplatesTemplateIdRoute: typeof AuthenticatedReportsMessagesTemplatesTemplateIdRoute
+  AuthenticatedReportsMessagesTemplatesIndexRoute: typeof AuthenticatedReportsMessagesTemplatesIndexRoute
+}
+
+const AuthenticatedReportsMessagesTemplatesRouteChildren: AuthenticatedReportsMessagesTemplatesRouteChildren =
+  {
+    AuthenticatedReportsMessagesTemplatesTemplateIdRoute:
+      AuthenticatedReportsMessagesTemplatesTemplateIdRoute,
+    AuthenticatedReportsMessagesTemplatesIndexRoute:
+      AuthenticatedReportsMessagesTemplatesIndexRoute,
+  }
+
+const AuthenticatedReportsMessagesTemplatesRouteWithChildren =
+  AuthenticatedReportsMessagesTemplatesRoute._addFileChildren(
+    AuthenticatedReportsMessagesTemplatesRouteChildren,
+  )
+
 interface AuthenticatedReportsMessagesRouteChildren {
   AuthenticatedReportsMessagesAssistantRoute: typeof AuthenticatedReportsMessagesAssistantRoute
   AuthenticatedReportsMessagesEquipmentChiefRoute: typeof AuthenticatedReportsMessagesEquipmentChiefRoute
   AuthenticatedReportsMessagesSecretaryRoute: typeof AuthenticatedReportsMessagesSecretaryRoute
+  AuthenticatedReportsMessagesTemplatesRoute: typeof AuthenticatedReportsMessagesTemplatesRouteWithChildren
   AuthenticatedReportsMessagesVeterinaryRoute: typeof AuthenticatedReportsMessagesVeterinaryRoute
   AuthenticatedReportsMessagesIndexRoute: typeof AuthenticatedReportsMessagesIndexRoute
   AuthenticatedReportsMessagesRoleCategoryDocumentIdRoute: typeof AuthenticatedReportsMessagesRoleCategoryDocumentIdRoute
@@ -487,6 +564,8 @@ const AuthenticatedReportsMessagesRouteChildren: AuthenticatedReportsMessagesRou
       AuthenticatedReportsMessagesEquipmentChiefRoute,
     AuthenticatedReportsMessagesSecretaryRoute:
       AuthenticatedReportsMessagesSecretaryRoute,
+    AuthenticatedReportsMessagesTemplatesRoute:
+      AuthenticatedReportsMessagesTemplatesRouteWithChildren,
     AuthenticatedReportsMessagesVeterinaryRoute:
       AuthenticatedReportsMessagesVeterinaryRoute,
     AuthenticatedReportsMessagesIndexRoute:

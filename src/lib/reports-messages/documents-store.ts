@@ -2,6 +2,20 @@ import { format } from "date-fns";
 import type { DbClient } from "@/integrations/database/client";
 import { randomId } from "@/lib/random-id";
 import { allocateDocumentReference } from "@/lib/reports-messages/reference-numbers";
+import {
+  SICK_DOG_REPORT_TEMPLATE_ID,
+  createDefaultSickDogReportFormData,
+  serializeSickDogReportFormData,
+} from "@/lib/reports-messages/sick-dog-report";
+import {
+  createDefaultGenericRadioFormData,
+  createDefaultHeatDogReportFormData,
+  createDefaultMessageDemandeFormData,
+  getDocumentTemplateConfig,
+  serializeGenericRadioFormData,
+  serializeHeatDogReportFormData,
+  serializeMessageDemandeFormData,
+} from "@/lib/reports-messages/document-templates";
 import { getReportTemplate } from "@/lib/reports-messages/templates";
 import type {
   CreateRoleDocumentInput,
@@ -77,6 +91,39 @@ export function buildDefaultPayload(
   templateId: string,
   context?: { userName?: string; userEmail?: string },
 ): RoleDocumentPayload {
+  if (templateId === SICK_DOG_REPORT_TEMPLATE_ID) {
+    const data = createDefaultSickDogReportFormData({ userName: context?.userName });
+    const payload = serializeSickDogReportFormData(data);
+    if (context?.userName) payload.author_name = context.userName;
+    if (context?.userEmail) payload.author_email = context.userEmail;
+    return payload;
+  }
+
+  const engineConfig = getDocumentTemplateConfig(templateId);
+  if (engineConfig?.engineEnabled && engineConfig.builder === "message_demande") {
+    const data = createDefaultMessageDemandeFormData({ userName: context?.userName });
+    const payload = serializeMessageDemandeFormData(data);
+    if (context?.userName) payload.author_name = context.userName;
+    if (context?.userEmail) payload.author_email = context.userEmail;
+    return payload;
+  }
+
+  if (engineConfig?.engineEnabled && engineConfig.builder === "heat_dog") {
+    const data = createDefaultHeatDogReportFormData({ userName: context?.userName });
+    const payload = serializeHeatDogReportFormData(data);
+    if (context?.userName) payload.author_name = context.userName;
+    if (context?.userEmail) payload.author_email = context.userEmail;
+    return payload;
+  }
+
+  if (engineConfig?.engineEnabled && engineConfig.builder === "generic_radio") {
+    const data = createDefaultGenericRadioFormData({ userName: context?.userName });
+    const payload = serializeGenericRadioFormData(data, engineConfig.payloadBlobKey);
+    if (context?.userName) payload.author_name = context.userName;
+    if (context?.userEmail) payload.author_email = context.userEmail;
+    return payload;
+  }
+
   const template = getReportTemplate(templateId);
   const today = format(new Date(), "yyyy-MM-dd");
   const now = new Date();
@@ -177,6 +224,12 @@ export async function createRoleDocument(
   const reportYear =
     input.reportYear ?? (input.payload.report_year ? Number(input.payload.report_year) : null);
 
+  const asFk = (value: unknown): string | null => {
+    if (value == null) return null;
+    const text = String(value).trim();
+    return text.length > 0 ? text : null;
+  };
+
   const row = {
     id,
     reference_number: null,
@@ -187,9 +240,9 @@ export async function createRoleDocument(
     title: input.title.trim(),
     report_month: Number.isFinite(reportMonth) ? reportMonth : null,
     report_year: Number.isFinite(reportYear) ? reportYear : null,
-    agent_id: input.agentId ?? input.payload.agent_id ?? null,
-    dog_id: input.dogId ?? input.payload.dog_id ?? null,
-    section_id: input.sectionId ?? input.payload.section_id ?? null,
+    agent_id: asFk(input.agentId ?? input.payload.agent_id),
+    dog_id: asFk(input.dogId ?? input.payload.dog_id),
+    section_id: asFk(input.sectionId ?? input.payload.section_id),
     payload: JSON.stringify(input.payload),
     created_by_user_id: input.createdByUserId ?? null,
     created_by_email: input.createdByEmail ?? null,

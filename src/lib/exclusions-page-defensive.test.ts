@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   exclusionDateRangesOverlap,
   exclusionTypeI18nKey,
+  hasConflictingExistingExclusion,
   isAgentExclusionActive,
   isOpenEndedExclusionType,
   todayISODate,
@@ -98,6 +99,91 @@ describe("exclusions page defensive helpers", () => {
         todayISODate(),
       ),
     ).toBe(true);
+  });
+
+  it("does not treat a dog heat exclusion as a fonctionnaire overlap", () => {
+    const heatOnHandlerDog = {
+      id: "ex-heat",
+      agent_id: "agent-1",
+      dog_id: "dog-1",
+      exclusion_type: "female_dog_heat",
+      start_date: "2026-08-01",
+      end_date: "2026-08-31",
+    };
+    expect(
+      hasConflictingExistingExclusion(
+        {
+          applyTo: "agent",
+          agentId: "agent-1",
+          dogId: null,
+          start_date: "2026-08-10",
+          end_date: "2026-08-20",
+          exclusion_type: "annual_leave",
+        },
+        [heatOnHandlerDog],
+      ),
+    ).toBe(false);
+  });
+
+  it("still blocks overlapping personnel exclusions for the same agent", () => {
+    const existingLeave = {
+      agent_id: "agent-1",
+      dog_id: null,
+      exclusion_type: "sickness",
+      start_date: "2026-08-01",
+      end_date: "2026-08-31",
+    };
+    expect(
+      hasConflictingExistingExclusion(
+        {
+          applyTo: "agent",
+          agentId: "agent-1",
+          dogId: null,
+          start_date: "2026-08-10",
+          end_date: "2026-08-20",
+          exclusion_type: "annual_leave",
+        },
+        [existingLeave],
+      ),
+    ).toBe(true);
+  });
+
+  it("only overlaps dog exclusions against the same dog_id", () => {
+    const heat = {
+      agent_id: "agent-1",
+      dog_id: "dog-1",
+      exclusion_type: "female_dog_heat",
+      start_date: "2026-08-01",
+      end_date: "2026-08-31",
+    };
+    const otherDogSick = {
+      agent_id: "agent-2",
+      dog_id: "dog-2",
+      exclusion_type: "dog_sick",
+      start_date: "2026-08-01",
+      end_date: "2026-08-31",
+    };
+    const nextHeat = {
+      applyTo: "dog" as const,
+      agentId: null,
+      dogId: "dog-1",
+      start_date: "2026-08-10",
+      end_date: "2026-08-20",
+      exclusion_type: "dog_sick",
+    };
+    expect(hasConflictingExistingExclusion(nextHeat, [heat])).toBe(true);
+    expect(hasConflictingExistingExclusion(nextHeat, [otherDogSick])).toBe(false);
+    expect(
+      hasConflictingExistingExclusion(nextHeat, [
+        {
+          agent_id: "agent-1",
+          dog_id: null,
+          exclusion_type: "annual_leave",
+          start_date: "2026-08-01",
+          end_date: "2026-08-31",
+        },
+      ]),
+    ).toBe(false);
   });
 
   it("detects overlap for an open-ended exclusion against a dated one", () => {

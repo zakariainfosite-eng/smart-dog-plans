@@ -76,6 +76,12 @@ import { StatusBadge } from "@/components/enterprise/status-badge";
 import { AgentDetailsDrawer } from "@/components/agents/agent-details-drawer";
 import { AgentFormDialog, type AgentFormValues } from "@/components/agents/agent-form-dialog";
 import { AgentAvatar } from "@/components/agents/agent-avatar";
+import { EntityPdfTableTemplateDialog } from "@/components/reports-messages/entity-pdf-table-template-dialog";
+import {
+  canEditEntityPdfTable,
+  fetchFonctionnairePdfTemplate,
+} from "@/lib/reports-messages/entity-pdf-table-store";
+import { useAuth } from "@/hooks/use-auth";
 import {
   deleteAgentPhotoByUrl,
   uploadAgentPhoto,
@@ -303,6 +309,8 @@ function availabilityLabel(
 
 function EmployeesPage() {
   const { t } = useI18n();
+  const { role } = useAuth();
+  const canManagePdf = canEditEntityPdfTable(role);
   useDocumentTitle("meta.employees.title");
   const agentSchema = useMemo(() => createAgentSchema(t), [t]);
   const { details: detailsFromSearch } = Route.useSearch();
@@ -331,6 +339,7 @@ function EmployeesPage() {
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [pdfTemplateOpen, setPdfTemplateOpen] = useState(false);
   const details = useStatisticDetailsDialog();
 
   useEffect(() => {
@@ -632,9 +641,13 @@ function EmployeesPage() {
     if (filtered.length === 0 || exportingPdf) return;
     setExportingPdf(true);
     try {
+      const template = await fetchFonctionnairePdfTemplate(db);
       const data = buildCynotechniciansListPdfData(
         filtered,
         todayExclusions as AgentExclusionRecord[],
+        new Date(),
+        template.fields,
+        template.listScope,
       );
       await downloadCynotechniciansListPdfWithLogo({
         data,
@@ -1115,7 +1128,17 @@ function EmployeesPage() {
         exportDisabled={filtered.length === 0}
         exportPdfDisabled={filtered.length === 0 || exportingPdf}
         loading={isLoading}
+        managePdfLabel={canManagePdf ? t("entityPdfTable.manageAction") : undefined}
+        onManagePdf={canManagePdf ? () => setPdfTemplateOpen(true) : undefined}
       />
+
+      {canManagePdf ? (
+        <EntityPdfTableTemplateDialog
+          kind="fonctionnaire"
+          open={pdfTemplateOpen}
+          onOpenChange={setPdfTemplateOpen}
+        />
+      ) : null}
 
       <div className="grid auto-rows-fr grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-8">
         <EmployeesTotalStatCard

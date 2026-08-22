@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Shield, Download, FileText, Plus } from "lucide-react";
+import { Shield, Download, FileText, Plus, Settings2 } from "lucide-react";
 
 import {
   PageHero,
@@ -21,6 +21,8 @@ type AgentsPageHeroProps = {
   exportDisabled?: boolean;
   exportPdfDisabled?: boolean;
   loading?: boolean;
+  managePdfLabel?: string;
+  onManagePdf?: () => void;
 };
 
 export function AgentsPageHero({
@@ -36,6 +38,8 @@ export function AgentsPageHero({
   exportDisabled,
   exportPdfDisabled,
   loading,
+  managePdfLabel,
+  onManagePdf,
 }: AgentsPageHeroProps) {
   return (
     <PageHero
@@ -61,6 +65,16 @@ export function AgentsPageHero({
                 icon: FileText,
                 variant: "secondary" as const,
                 disabled: exportPdfDisabled ?? exportDisabled,
+              },
+            ]
+          : []),
+        ...(managePdfLabel && onManagePdf
+          ? [
+              {
+                label: managePdfLabel,
+                onClick: onManagePdf,
+                icon: Settings2,
+                variant: "secondary" as const,
               },
             ]
           : []),

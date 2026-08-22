@@ -978,6 +978,22 @@ function pickFemaleRotationAgent(
   return scored[0]?.team ?? null;
 }
 
+export type CompatibleCheckpointOptions = {
+  /**
+   * Posts reserved for female day assignment. Males cannot fill them, so they
+   * must not count as mandatory unvisited checkpoints in the Smart Rotation cycle.
+   */
+  maleExcludedPostIds?: ReadonlySet<string>;
+};
+
+function postIsExcludedFromMaleCycle(
+  team: Pick<EligibleTeam, "gender">,
+  postId: string,
+  maleExcludedPostIds?: ReadonlySet<string>,
+): boolean {
+  return team.gender === "male" && Boolean(maleExcludedPostIds?.has(postId));
+}
+
 /** True when the agent can fill at least one active post on the checkpoint. */
 export function isCheckpointCompatibleForAgent(
   team: EligibleTeam,
@@ -986,11 +1002,15 @@ export function isCheckpointCompatibleForAgent(
   eligible: EligibleTeam[],
   assignedToday: Set<string> = new Set<string>(),
   allowNightFallback: boolean = shift === "night",
+  options?: CompatibleCheckpointOptions,
 ): boolean {
   if (checkpoint.active === false) return false;
 
-  return checkpoint.posts.some(
-    (post) =>
+  return checkpoint.posts.some((post) => {
+    if (postIsExcludedFromMaleCycle(team, post.id, options?.maleExcludedPostIds)) {
+      return false;
+    }
+    return (
       post.active &&
       post.required_agents > 0 &&
       teamMatchesPostRequirements(
@@ -1001,8 +1021,9 @@ export function isCheckpointCompatibleForAgent(
         eligible,
         assignedToday,
         allowNightFallback,
-      ),
-  );
+      )
+    );
+  });
 }
 
 /** Compatible checkpoints where the team could fill an active post (specialty, gender, shift). */
@@ -1012,6 +1033,7 @@ export function buildCompatibleCheckpointsByAgent(
   shift: Shift,
   planningDate: Date,
   allowNightFallback = false,
+  options?: CompatibleCheckpointOptions,
 ): Map<string, Set<string>> {
   const activeCheckpoints = filterCheckpointsForPlanning(checkpoints, shift, planningDate);
   const assignedToday = new Set<string>();
@@ -1028,6 +1050,7 @@ export function buildCompatibleCheckpointsByAgent(
           eligible,
           assignedToday,
           allowNightFallback,
+          options,
         )
       ) {
         continue;
@@ -1119,8 +1142,9 @@ export function buildLastAssignmentDateByAgent(
 
 /**
  * Smart Rotation — absolute cycle rule inside the agent's compatible set.
- * Agent cannot revisit a checkpoint until every compatible checkpoint has been visited once.
- * When the current-cycle visited set already covers all compatible CPs, a new cycle may begin.
+ * Compatible = posts the agent can actually fill (specialty, gender, and not a
+ * female-reserved day slot). Agent cannot revisit a checkpoint until every
+ * compatible checkpoint has been visited once. A complete cycle starts fresh.
  */
 export function canAssignBySmartRotation(
   agentId: string,
@@ -1163,6 +1187,16 @@ function isFemaleReservedSlot(pending: PendingSlot): boolean {
     pending.reservedForFemale === true ||
     pending.slot.reservation === FEMALE_SLOT_RESERVATION_CODE
   );
+}
+
+/** Posts the male Smart Rotation cycle must ignore (day female reservations). */
+function collectMaleCycleExcludedPostIds(pendingSlots: readonly PendingSlot[]): Set<string> {
+  const ids = new Set<string>();
+  for (const pending of pendingSlots) {
+    if (!isFemaleReservedSlot(pending) || !pending.post) continue;
+    ids.add(pending.post.id);
+  }
+  return ids;
 }
 
 /** Open operational slots the male engine may still fill (excludes female reservations). */
@@ -1385,6 +1419,7 @@ function assignOpenSlots(
     fairnessCounts: Map<string, number>;
     rotationHistory: RotationHistoryInput[];
     lastAssignmentDateByAgent: Map<string, string>;
+    maleExcludedPostIds?: ReadonlySet<string>;
     /** Phase 2 — dedicated HQ Reserve floaters (already qualified). */
     hqReserveEligible?: EligibleTeam[];
     /**
@@ -1549,6 +1584,7 @@ function assignOpenSlots(
       params.shift,
       params.planningDate,
       true,
+      { maleExcludedPostIds: params.maleExcludedPostIds },
     );
     runPhase({
       allowNightFallback: true,
@@ -1591,6 +1627,7 @@ function assignOpenSlots(
       params.shift,
       params.planningDate,
       params.shift === "night",
+      { maleExcludedPostIds: params.maleExcludedPostIds },
     );
     const allRemainingEligible = planningEligible.filter(
       (team) => team.gender === "male" && !assignedToday.has(team.agent_id),
@@ -2470,27 +2507,6 @@ export function runPlanningEngine(params: EngineParams): PlanningEngineResult {
     a.agent_name.localeCompare(b.agent_name),
   );
   const agentExclusions = buildAgentExclusionsFromRecords(excluded, sectionExclusions);
-  let compatibleCheckpointsByAgent = buildCompatibleCheckpointsByAgent(
-    eligible,
-    params.checkpoints,
-    params.shift,
-    params.planningDate,
-    false,
-  );
-  const agentVisitedCheckpoints = buildAgentVisitedCheckpoints(
-    sectionRotationHistory,
-    compatibleCheckpointsByAgent,
-  );
-  /** Immutable snapshot for Phase 2 empty-slot classification. */
-  const agentVisitedCheckpointsAtStart = new Map(
-    [...agentVisitedCheckpoints.entries()].map(([agentId, visited]) => [
-      agentId,
-      new Set(visited),
-    ]),
-  );
-  const lastAssignmentDateByAgent = buildLastAssignmentDateByAgent(sectionRotationHistory);
-  // Mutable fairness copy for in-run updates (does not touch caller input).
-  const fairnessCountsMutable = new Map(fairnessCounts);
 
   const assignedToday = new Set<string>();
   const assignments: PersistableAssignment[] = [];
@@ -2512,10 +2528,35 @@ export function runPlanningEngine(params: EngineParams): PlanningEngineResult {
   const pendingSlots = buildPendingSlots(activeCheckpoints);
 
   // DAY only: reserve one Stupéfiants + one Explosifs slot for manual female PDF insertion.
+  // Cycle compatibility is computed after this so males do not owe a visit to reserved posts.
   const femaleReservationWarnings = markDayFemaleReservedSlots(
     pendingSlots,
     params.shift,
   );
+  const maleExcludedPostIds = collectMaleCycleExcludedPostIds(pendingSlots);
+
+  let compatibleCheckpointsByAgent = buildCompatibleCheckpointsByAgent(
+    eligible,
+    params.checkpoints,
+    params.shift,
+    params.planningDate,
+    false,
+    { maleExcludedPostIds },
+  );
+  const agentVisitedCheckpoints = buildAgentVisitedCheckpoints(
+    sectionRotationHistory,
+    compatibleCheckpointsByAgent,
+  );
+  /** Immutable snapshot for Phase 2 empty-slot classification. */
+  const agentVisitedCheckpointsAtStart = new Map(
+    [...agentVisitedCheckpoints.entries()].map(([agentId, visited]) => [
+      agentId,
+      new Set(visited),
+    ]),
+  );
+  const lastAssignmentDateByAgent = buildLastAssignmentDateByAgent(sectionRotationHistory);
+  // Mutable fairness copy for in-run updates (does not touch caller input).
+  const fairnessCountsMutable = new Map(fairnessCounts);
 
   const rotationOverrideWarnings: PlanningStructuredWarning[] = [];
 
@@ -2531,6 +2572,7 @@ export function runPlanningEngine(params: EngineParams): PlanningEngineResult {
       fairnessCounts: fairnessCountsMutable,
       rotationHistory: sectionRotationHistory,
       lastAssignmentDateByAgent,
+      maleExcludedPostIds,
       hqReserveEligible: hqEligible,
     }),
   );
@@ -2542,6 +2584,7 @@ export function runPlanningEngine(params: EngineParams): PlanningEngineResult {
     params.shift,
     params.planningDate,
     params.shift === "night",
+    { maleExcludedPostIds },
   );
   rotationOverrideWarnings.push(
     ...assignOpenSlots(
@@ -2560,6 +2603,7 @@ export function runPlanningEngine(params: EngineParams): PlanningEngineResult {
         fairnessCounts: fairnessCountsMutable,
         rotationHistory: sectionRotationHistory,
         lastAssignmentDateByAgent,
+        maleExcludedPostIds,
         hqReserveEligible: [],
       },
     ),
@@ -2572,6 +2616,7 @@ export function runPlanningEngine(params: EngineParams): PlanningEngineResult {
     params.shift,
     params.planningDate,
     params.shift === "night",
+    { maleExcludedPostIds },
   );
 
   // Final specialty-only rescue drain: operational coverage beats Point 653.
@@ -2614,6 +2659,7 @@ export function runPlanningEngine(params: EngineParams): PlanningEngineResult {
         fairnessCounts: fairnessCountsMutable,
         rotationHistory: sectionRotationHistory,
         lastAssignmentDateByAgent,
+        maleExcludedPostIds,
         hqReserveEligible: [],
         enableOperationalRescue: true,
       }),

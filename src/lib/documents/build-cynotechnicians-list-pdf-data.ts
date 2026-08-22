@@ -1,15 +1,18 @@
 import type { AgentRow } from "@/integrations/database";
 import type { AgentExclusionRecord } from "@/lib/agent-exclusions";
+import { formatAgentBirthDateDisplay } from "@/lib/agent-birth-date";
 import {
   agentSpecialty,
   deriveAgentAvailabilityForAgent,
   type AgentAvailability,
 } from "@/lib/agent-ui";
+import { formatMaritalStatusPdfLabel } from "@/lib/marital-status";
 import type {
   CynotechnicianListPdfRow,
   CynotechniciansListPdfData,
   CynotechniciansListPdfTable,
 } from "@/lib/documents/feuille-presence-types";
+import { FP_CONTENT_W } from "@/lib/documents/feuille-presence-layout";
 import {
   PDF_ADMIN_TABLE_TITLE,
   PDF_OPERATIONAL_TABLE_TITLE,
@@ -17,6 +20,13 @@ import {
   splitPersonnelIntoTwoTables,
 } from "@/lib/documents/personnel-two-tables";
 import { normalizePersonnelFonction } from "@/lib/personnel-fonction";
+import {
+  applyFonctionnairePdfListScope,
+  buildFonctionnaireListTableCols,
+  sampleFonctionnairePdfTableSource,
+  type FonctionnairePdfListScope,
+  type FonctionnairePdfTableFieldConfig,
+} from "@/lib/reports-messages/fonctionnaire-pdf-table-fields";
 
 /** Official French labels — same language register as the attendance sheet. */
 const SPECIALTY_LABEL: Record<"narcotics" | "explosives", string> = {
@@ -83,63 +93,165 @@ export {
   splitPersonnelIntoTwoTables,
 } from "@/lib/documents/personnel-two-tables";
 
+function dash(value: string | null | undefined): string {
+  const trimmed = value?.trim() ?? "";
+  return trimmed || "-";
+}
+
+function genderPdfLabel(gender: AgentRow["gender"]): string {
+  return gender === "female" ? "Féminin" : "Masculin";
+}
+
+function maritalPdfLabel(value: AgentRow["marital_status"]): string {
+  const label = formatMaritalStatusPdfLabel(value);
+  return label === "NON RENSEIGNÉ" ? "-" : label;
+}
+
 function mapAgentToPdfRow(
   agent: AgentRow,
   numero: number,
-  operational: boolean,
   exclusions: AgentExclusionRecord[],
   exportDate: Date,
 ): CynotechnicianListPdfRow {
   const fonction = normalizePersonnelFonction(agent.fonction);
   const availability = deriveAgentAvailabilityForAgent(agent, exclusions, exportDate);
+  const nom = (agent.last_name ?? "").trim().toUpperCase();
+  const prenom = (agent.first_name ?? "").trim().toUpperCase();
   return {
     numero,
-    nom: (agent.last_name ?? "").trim().toUpperCase(),
-    prenom: (agent.first_name ?? "").trim().toUpperCase(),
-    matricule: agent.professional_number?.trim() || "-",
-    grade: (agent.grade ?? "").trim() || "-",
-    fonction: operational ? "" : PDF_PERSONNEL_FONCTION_LABELS[fonction],
+    nom,
+    prenom,
+    fullName: `${nom} ${prenom}`.replace(/\s+/g, " ").trim(),
+    matricule: dash(agent.professional_number),
+    grade: dash(agent.grade),
+    fonction: PDF_PERSONNEL_FONCTION_LABELS[fonction],
     situation: formatPersonnelStatusPdfLabel(availability),
-    chien: operational ? agent.dogs?.name?.trim() || "-" : "",
-    specialite: operational ? specialiteLabel(agent) : "",
-    section: operational ? agent.sections?.name?.trim() || "-" : "",
+    chien: dash(agent.dogs?.name),
+    specialite: specialiteLabel(agent),
+    section: dash(agent.sections?.name),
+    gender: genderPdfLabel(agent.gender),
+    dateOfBirth: formatAgentBirthDateDisplay(agent.date_naissance) || "-",
+    origine: dash(agent.origine),
+    phone: dash(agent.phone),
+    maritalStatus: maritalPdfLabel(agent.marital_status),
+    address: dash(agent.address),
+  };
+}
+
+function sourceToListRow(
+  numero: number,
+  extras: Partial<CynotechnicianListPdfRow> = {},
+): CynotechnicianListPdfRow {
+  const source = sampleFonctionnairePdfTableSource();
+  return {
+    numero,
+    nom: source.lastName,
+    prenom: source.firstName,
+    fullName: `${source.lastName} ${source.firstName}`,
+    matricule: source.matricule,
+    grade: source.grade,
+    fonction: source.fonction,
+    situation: "Disponible",
+    chien: source.dogName,
+    specialite: source.specialty,
+    section: source.section,
+    gender: source.gender,
+    dateOfBirth: source.dateOfBirth,
+    origine: source.origine,
+    phone: source.phone,
+    maritalStatus: source.maritalStatus,
+    address: source.address,
+    ...extras,
   };
 }
 
 /**
- * Build official Fonctionnaires List PDF data — exactly two tables max:
- * administrative/command (with Fonction), then Cynotechniciens.
+ * Sample list used by Gestion du modèle PDF — same columns and listScope as export.
+ */
+export function buildSampleFonctionnaireListPdfData(
+  fields: FonctionnairePdfTableFieldConfig[] | null | undefined,
+  listScope: FonctionnairePdfListScope | null | undefined = undefined,
+): CynotechniciansListPdfData {
+  const groups = applyFonctionnairePdfListScope(
+    {
+      administrative: [
+        sourceToListRow(1, {
+          nom: "ALAOUI",
+          prenom: "OMAR",
+          fullName: "ALAOUI OMAR",
+          matricule: "100",
+          grade: "Commissaire",
+          fonction: PDF_PERSONNEL_FONCTION_LABELS.chef_brigadier,
+          chien: "-",
+          specialite: "-",
+          section: "-",
+        }),
+      ],
+      operational: [sourceToListRow(1)],
+    },
+    listScope,
+  );
+  const tables: CynotechniciansListPdfTable[] = [];
+  if (groups.administrative.length > 0) {
+    tables.push({
+      title: PDF_ADMIN_TABLE_TITLE,
+      layout: "administrative",
+      rows: groups.administrative,
+    });
+  }
+  if (groups.operational.length > 0) {
+    tables.push({
+      title: PDF_OPERATIONAL_TABLE_TITLE,
+      layout: "operational",
+      rows: groups.operational,
+    });
+  }
+  return {
+    dateLine: formatCynotechniciansListDateLine(),
+    columns: buildFonctionnaireListTableCols(fields, FP_CONTENT_W),
+    tables,
+  };
+}
+
+/**
+ * Build official Fonctionnaires List PDF data — at most two tables:
+ * administrative/command, then Cynotechniciens.
+ * Columns come from PDF_FUNCTIONNAIRE_TEMPLATE (same for both tables).
+ * listScope only filters which groups appear as rows.
  */
 export function buildCynotechniciansListPdfData(
   agents: AgentRow[],
   exclusions: AgentExclusionRecord[],
   exportDate = new Date(),
+  fields: FonctionnairePdfTableFieldConfig[] | null | undefined = undefined,
+  listScope: FonctionnairePdfListScope | null | undefined = undefined,
 ): CynotechniciansListPdfData {
-  const { administrative, operational } = splitPersonnelIntoTwoTables(agents);
+  const split = applyFonctionnairePdfListScope(splitPersonnelIntoTwoTables(agents), listScope);
   const tables: CynotechniciansListPdfTable[] = [];
 
-  if (administrative.length > 0) {
+  if (split.administrative.length > 0) {
     tables.push({
       title: PDF_ADMIN_TABLE_TITLE,
       layout: "administrative",
-      rows: administrative.map((agent, index) =>
-        mapAgentToPdfRow(agent, index + 1, false, exclusions, exportDate),
+      rows: split.administrative.map((agent, index) =>
+        mapAgentToPdfRow(agent, index + 1, exclusions, exportDate),
       ),
     });
   }
 
-  if (operational.length > 0) {
+  if (split.operational.length > 0) {
     tables.push({
       title: PDF_OPERATIONAL_TABLE_TITLE,
       layout: "operational",
-      rows: operational.map((agent, index) =>
-        mapAgentToPdfRow(agent, index + 1, true, exclusions, exportDate),
+      rows: split.operational.map((agent, index) =>
+        mapAgentToPdfRow(agent, index + 1, exclusions, exportDate),
       ),
     });
   }
 
   return {
     dateLine: formatCynotechniciansListDateLine(exportDate),
+    columns: buildFonctionnaireListTableCols(fields, FP_CONTENT_W),
     tables,
   };
 }

@@ -276,6 +276,28 @@ export const SCHEMA_STATEMENTS: readonly string[] = [
     PRIMARY KEY (prefix, year)
   )`,
 
+  `CREATE TABLE IF NOT EXISTS agent_administrative_history (
+    id TEXT PRIMARY KEY NOT NULL,
+    agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    event_type TEXT NOT NULL CHECK (event_type IN (
+      'conge', 'permission', 'arret_maladie', 'formation', 'exclusion_formation', 'autre'
+    )),
+    start_date TEXT NOT NULL,
+    end_date TEXT,
+    reason TEXT,
+    observation TEXT,
+    reference TEXT,
+    source_type TEXT NOT NULL DEFAULT 'manual' CHECK (source_type IN (
+      'manual', 'import', 'conge', 'permission', 'maladie', 'formation',
+      'exclusion', 'cas_operationnel', 'planning'
+    )),
+    source_id TEXT,
+    created_by TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    CHECK (end_date IS NULL OR end_date >= start_date)
+  )`,
+
   `CREATE INDEX IF NOT EXISTS idx_sections_active ON sections(active)`,
   `CREATE INDEX IF NOT EXISTS idx_dogs_active ON dogs(active)`,
   `CREATE INDEX IF NOT EXISTS idx_dogs_status ON dogs(status)`,
@@ -317,6 +339,10 @@ export const SCHEMA_STATEMENTS: readonly string[] = [
   `CREATE INDEX IF NOT EXISTS idx_role_documents_section ON role_documents(section_id)`,
   `CREATE INDEX IF NOT EXISTS idx_role_documents_created_at ON role_documents(created_at)`,
   `CREATE INDEX IF NOT EXISTS idx_role_documents_report_period ON role_documents(report_year, report_month)`,
+  `CREATE INDEX IF NOT EXISTS idx_agent_admin_history_agent ON agent_administrative_history(agent_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_agent_admin_history_start_date ON agent_administrative_history(start_date)`,
+  `CREATE INDEX IF NOT EXISTS idx_agent_admin_history_type ON agent_administrative_history(event_type)`,
+  `CREATE INDEX IF NOT EXISTS idx_agent_admin_history_source ON agent_administrative_history(source_type, source_id)`,
 ];
 
 function isIndexStatement(statement: string): boolean {
@@ -330,6 +356,24 @@ export const SCHEMA_TABLE_STATEMENTS: readonly string[] = SCHEMA_STATEMENTS.filt
 export const SCHEMA_INDEX_STATEMENTS: readonly string[] = SCHEMA_STATEMENTS.filter((statement) =>
   isIndexStatement(statement),
 );
+
+function tableNameFromStatement(statement: string): string | null {
+  const match = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([a-z_][a-z0-9_]*)/i.exec(statement);
+  return match ? match[1] : null;
+}
+
+/** Every table declared above, in declaration order. */
+export const SCHEMA_TABLE_NAMES: readonly string[] = SCHEMA_TABLE_STATEMENTS.map(
+  tableNameFromStatement,
+).filter((name): name is string => Boolean(name));
+
+/**
+ * Allowlist shared by both PostgREST-like gateways (Electron better-sqlite3 and
+ * Capacitor/browser sql.js). Derived from the schema so a newly declared table can
+ * never end up queryable on one platform and rejected on the other.
+ * `schema_migrations` is intentionally absent: it is not part of the DDL above.
+ */
+export const REST_ALLOWED_TABLES: ReadonlySet<string> = new Set(SCHEMA_TABLE_NAMES);
 
 export const SCHEMA_MIGRATIONS_TABLE = "schema_migrations";
 
@@ -494,6 +538,37 @@ export const LOCAL_SQLITE_MIGRATIONS: readonly {
       `CREATE INDEX IF NOT EXISTS idx_agent_exclusions_active ON agent_exclusions(active)`,
       `CREATE INDEX IF NOT EXISTS idx_agent_exclusions_is_deleted ON agent_exclusions(is_deleted)`,
       `PRAGMA foreign_keys = ON`,
+    ],
+  },
+  {
+    id: "020_agent_administrative_history",
+    name: "Historique administratif du fonctionnaire — saisie manuelle et import",
+    statements: [
+      `CREATE TABLE IF NOT EXISTS agent_administrative_history (
+        id TEXT PRIMARY KEY NOT NULL,
+        agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+        event_type TEXT NOT NULL CHECK (event_type IN (
+          'conge', 'permission', 'arret_maladie', 'formation', 'exclusion_formation', 'autre'
+        )),
+        start_date TEXT NOT NULL,
+        end_date TEXT,
+        reason TEXT,
+        observation TEXT,
+        reference TEXT,
+        source_type TEXT NOT NULL DEFAULT 'manual' CHECK (source_type IN (
+          'manual', 'import', 'conge', 'permission', 'maladie', 'formation',
+          'exclusion', 'cas_operationnel', 'planning'
+        )),
+        source_id TEXT,
+        created_by TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        CHECK (end_date IS NULL OR end_date >= start_date)
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_agent_admin_history_agent ON agent_administrative_history(agent_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_agent_admin_history_start_date ON agent_administrative_history(start_date)`,
+      `CREATE INDEX IF NOT EXISTS idx_agent_admin_history_type ON agent_administrative_history(event_type)`,
+      `CREATE INDEX IF NOT EXISTS idx_agent_admin_history_source ON agent_administrative_history(source_type, source_id)`,
     ],
   },
 ];

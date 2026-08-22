@@ -182,6 +182,48 @@ export function exclusionDateRangesOverlap(
   return true;
 }
 
+export type ExclusionOverlapCandidate = Pick<
+  AgentExclusionRecord,
+  "agent_id" | "dog_id" | "exclusion_type" | "start_date" | "end_date"
+> & { id?: string };
+
+/**
+ * Conflict check for a new/updated exclusion.
+ * Personnel ("agent") only collides with personnel rows (`agent_id`, no `dog_id`).
+ * Dog rows only collide with the same `dog_id`. A dog exclusion that copies the
+ * handler's `agent_id` must never block a fonctionnaire leave.
+ */
+export function hasConflictingExistingExclusion(
+  next: {
+    applyTo: ExclusionApplyTarget;
+    agentId: string | null;
+    dogId: string | null;
+    start_date: string;
+    end_date: string | null;
+    exclusion_type: string;
+  },
+  existing: ExclusionOverlapCandidate[],
+): boolean {
+  return existing.some((row) => {
+    if (next.applyTo === "agent") {
+      if (!next.agentId || row.agent_id !== next.agentId) return false;
+      if (row.dog_id) return false;
+      if (!isAgentLevelExclusionType(row.exclusion_type)) return false;
+    } else {
+      if (!next.dogId || row.dog_id !== next.dogId) return false;
+      if (!isDogLevelExclusionType(row.exclusion_type)) return false;
+    }
+    return exclusionDateRangesOverlap(
+      {
+        start_date: next.start_date,
+        end_date: next.end_date,
+        exclusion_type: next.exclusion_type,
+      },
+      row,
+    );
+  });
+}
+
 /** True when reference day falls within the exclusion's effective period. */
 export function isExclusionInDateRange(
   exclusion: Pick<AgentExclusionRecord, "start_date" | "end_date" | "exclusion_type">,

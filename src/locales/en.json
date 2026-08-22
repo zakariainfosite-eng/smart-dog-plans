@@ -336,7 +336,14 @@
       "reason": "Exclusion type",
       "allReasons": "All types",
       "allAgents": "All personnel",
-      "date": "Date"
+      "date": "Date",
+      "status": "Status",
+      "statusOption": {
+        "all": "All",
+        "inForce": "In force",
+        "upcoming": "Upcoming",
+        "expired": "Expired"
+      }
     },
     "table": {
       "agent": "Personnel",
@@ -351,10 +358,20 @@
       "start": "Start date",
       "end": "End date"
     },
+    "listStatus": {
+      "inForce": "In force",
+      "upcoming": "Upcoming",
+      "expired": "Expired",
+      "inactive": "Disabled"
+    },
     "empty": {
       "noMatch": "No exclusions match the filters",
       "none": "No exclusions",
       "noneActive": "No active exclusions.",
+      "noneInForce": "No exclusions in force.",
+      "noneUpcoming": "No upcoming exclusions.",
+      "noneExpired": "No expired exclusions.",
+      "noneRecorded": "No exclusions recorded.",
       "nonePersonnel": "No personnel exclusions",
       "noneDogs": "No dog exclusions",
       "recordFirst": "Add an exclusion to start tracking."
@@ -412,6 +429,10 @@
     },
     "formType": {
       "dog_vet_visit": "Under observation"
+    },
+    "toast": {
+      "createdUpcoming": "Exclusion saved successfully.",
+      "createdUpcomingHint": "It will be in force from {{date}}."
     },
     "hint": {
       "endDateEditable": "Calculated automatically from duration. You may edit it manually."

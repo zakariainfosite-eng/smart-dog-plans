@@ -142,14 +142,17 @@ assert(
     ].join("|"),
   `admin hierarchy order: ${admin.rows.map((r) => r.fonction).join(" → ")}`,
 );
-assert(admin.rows.every((r) => r.chien === "" && r.specialite === "" && r.section === ""), "admin omits operational fields");
-assert(admin.rows[0].fonction === "Chef Brigade", "Fonction column present");
+assert(
+  admin.rows.every((r) => r.chien === "-" && r.specialite === "-" && r.section === "-"),
+  "admin without dog uses dash placeholders",
+);
+assert(admin.rows[0].fonction === "Chef Brigade", "Fonction value present on admin rows");
 
 const cyno = data.tables[1];
 assert(cyno.rows.length === 2, "cyno table has operational staff only");
 assert(cyno.rows[0].matricule === "301", "cyno sorted by grade first");
 assert(cyno.rows[0].chien === "Rex" || cyno.rows[1].chien === "Rex", "operational keeps chien");
-assert(cyno.rows.every((r) => r.fonction === ""), "cyno rows have no fonction cell");
+assert(cyno.rows.every((r) => r.fonction === PDF_PERSONNEL_FONCTION_LABELS.cynotechnicien), "cyno rows keep fonction value for optional column");
 
 // No per-function titles
 assert(

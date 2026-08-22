@@ -959,6 +959,41 @@ function migrateOpenEndedDogExclusions(database: Database.Database): void {
   }
 }
 
+/**
+ * Informational-only table: manual (and future imported) administrative events.
+ * Automatic events stay in their own modules and are merged at read time, so no
+ * planning/rotation/exclusion behaviour depends on this table.
+ */
+function migrateAgentAdministrativeHistory(database: Database.Database): void {
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS agent_administrative_history (
+      id TEXT PRIMARY KEY NOT NULL,
+      agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+      event_type TEXT NOT NULL CHECK (event_type IN (
+        'conge', 'permission', 'arret_maladie', 'formation', 'exclusion_formation', 'autre'
+      )),
+      start_date TEXT NOT NULL,
+      end_date TEXT,
+      reason TEXT,
+      observation TEXT,
+      reference TEXT,
+      source_type TEXT NOT NULL DEFAULT 'manual' CHECK (source_type IN (
+        'manual', 'import', 'conge', 'permission', 'maladie', 'formation',
+        'exclusion', 'cas_operationnel', 'planning'
+      )),
+      source_id TEXT,
+      created_by TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      CHECK (end_date IS NULL OR end_date >= start_date)
+    );
+    CREATE INDEX IF NOT EXISTS idx_agent_admin_history_agent ON agent_administrative_history(agent_id);
+    CREATE INDEX IF NOT EXISTS idx_agent_admin_history_start_date ON agent_administrative_history(start_date);
+    CREATE INDEX IF NOT EXISTS idx_agent_admin_history_type ON agent_administrative_history(event_type);
+    CREATE INDEX IF NOT EXISTS idx_agent_admin_history_source ON agent_administrative_history(source_type, source_id);
+  `);
+}
+
 /** Ordered migration history — append only; never reorder or rename released ids. */
 export const SQLITE_MIGRATIONS: readonly SqliteMigration[] = [
   {
@@ -1062,6 +1097,11 @@ export const SQLITE_MIGRATIONS: readonly SqliteMigration[] = [
     description: "Open-ended dog exclusions — nullable end_date + chien sans maître",
     up: migrateOpenEndedDogExclusions,
     noTransaction: true,
+  },
+  {
+    id: "020_agent_administrative_history",
+    description: "Historique administratif du fonctionnaire — saisie manuelle et import",
+    up: migrateAgentAdministrativeHistory,
   },
 ];
 

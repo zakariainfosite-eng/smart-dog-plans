@@ -12,6 +12,7 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  Settings2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -89,6 +90,9 @@ import { useI18n } from "@/hooks/use-i18n";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { buildDogsListPdfData, dogsListFilename } from "@/lib/documents/build-dogs-list-pdf-data";
 import { downloadDogsListPdfWithLogo } from "@/lib/documents/feuille-presence-pdf";
+import { EntityPdfTableTemplateDialog } from "@/components/reports-messages/entity-pdf-table-template-dialog";
+import { canEditEntityPdfTable, fetchChienPdfTemplate } from "@/lib/reports-messages/entity-pdf-table-store";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/dogs")({
   head: () => ({ meta: [{ title: "Chiens — CynoPlanning" }] }),
@@ -198,6 +202,8 @@ function toDogPayload(values: DogForm) {
 
 function DogsPage() {
   const { t, locale } = useI18n();
+  const { role } = useAuth();
+  const canManagePdf = canEditEntityPdfTable(role);
   useDocumentTitle("meta.dogs.title");
   const dogSchema = useMemo(() => createDogSchema(t), [t]);
   const { details: detailsFromSearch } = Route.useSearch();
@@ -221,6 +227,7 @@ function DogsPage() {
   const [removePhoto, setRemovePhoto] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [pdfTemplateOpen, setPdfTemplateOpen] = useState(false);
   const details = useStatisticDetailsDialog();
 
   useEffect(() => {
@@ -443,7 +450,14 @@ function DogsPage() {
     if (filtered.length === 0 || exportingPdf) return;
     setExportingPdf(true);
     try {
-      const data = buildDogsListPdfData(filtered);
+      const template = await fetchChienPdfTemplate(db);
+      const data = buildDogsListPdfData(
+        filtered,
+        new Date(),
+        template.fields,
+        template.sexFilter,
+        template.minAgeYears,
+      );
       await downloadDogsListPdfWithLogo({
         data,
         filename: dogsListFilename(),
@@ -777,6 +791,11 @@ function DogsPage() {
         ]}
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            {canManagePdf ? (
+              <Button variant="outline" onClick={() => setPdfTemplateOpen(true)}>
+                <Settings2 className="mr-2 h-4 w-4" /> {t("entityPdfTable.manageAction")}
+              </Button>
+            ) : null}
             <Button
               variant="outline"
               onClick={() => void handleExportPdf()}
@@ -790,6 +809,14 @@ function DogsPage() {
           </div>
         }
       />
+
+      {canManagePdf ? (
+        <EntityPdfTableTemplateDialog
+          kind="chien"
+          open={pdfTemplateOpen}
+          onOpenChange={setPdfTemplateOpen}
+        />
+      ) : null}
 
       <section aria-labelledby="dogs-overview-title" className="space-y-3">
         <h2 id="dogs-overview-title" className="text-sm font-semibold text-foreground">

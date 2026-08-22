@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileText, ClipboardList, Dog, Stethoscope, Wrench } from "lucide-react";
 import { toast } from "sonner";
@@ -36,6 +36,7 @@ import {
 } from "@/lib/reports-messages/documents-store";
 import { roleCategoryPath } from "@/lib/reports-messages/permissions";
 import { getTemplatesForRole } from "@/lib/reports-messages/templates";
+import { canEditDocumentTemplates } from "@/lib/reports-messages/document-templates/template-overrides-store";
 import type { DocumentStatus, RoleCategory } from "@/lib/reports-messages/types";
 
 type RoleReportsPageProps = {
@@ -317,6 +318,8 @@ export function RoleReportsPage({ roleCategory }: RoleReportsPageProps) {
 
 export function ReportsMessagesHubPage() {
   const { t } = useI18n();
+  const { role } = useAuth();
+  const canManageTemplates = canEditDocumentTemplates(role);
   const categories: RoleCategory[] = ["veterinary", "assistant", "secretary", "equipment_chief"];
 
   const categoryIcons: Record<RoleCategory, ReactNode> = {
@@ -333,6 +336,15 @@ export function ReportsMessagesHubPage() {
         title={t("reportsMessages.title")}
         description={t("reportsMessages.hub.description")}
         breadcrumb={[{ label: t("auth.brandName") }, { label: t("nav.reportsMessages") }]}
+        actions={
+          canManageTemplates ? (
+            <Button variant="secondary" asChild>
+              <Link to="/reports-messages/templates">
+                {t("reportsMessages.templateManagement.title")}
+              </Link>
+            </Button>
+          ) : null
+        }
       />
       <PageContentShell className="p-6 sm:p-8">
         <p className="mb-6 text-sm font-medium text-muted-foreground">

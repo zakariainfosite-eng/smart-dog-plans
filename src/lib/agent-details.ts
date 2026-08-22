@@ -7,6 +7,10 @@ import {
 } from "@/lib/operational-case-api";
 import { computeAgentCareerSummary, type AgentCareerSummary } from "@/lib/agent-career";
 import { expirePastExclusions } from "@/lib/agent-exclusions";
+import {
+  fetchAgentAdministrativeHistory,
+  type AgentAdministrativeHistoryRow,
+} from "@/lib/agent-history";
 import { formatPgError } from "@/lib/soft-delete";
 
 type Db = DbClient;
@@ -48,6 +52,7 @@ export type AgentDetailsSectionErrors = {
   operationalCases?: string;
   careerSummary?: string;
   history?: string;
+  administrativeHistory?: string;
 };
 
 export type AgentDetailsPayload = {
@@ -56,6 +61,9 @@ export type AgentDetailsPayload = {
   recentPlanning: AgentPlanningHistoryItem[];
   recentRotations: AgentRotationHistoryItem[];
   exclusions: AgentExclusionHistoryItem[];
+  /** Exclusions targeting the agent's dog — read-only input for "Historique complet". */
+  dogExclusions: AgentExclusionHistoryItem[];
+  administrativeHistory: AgentAdministrativeHistoryRow[];
   careerSummary: AgentCareerSummary | null;
   sectionErrors?: AgentDetailsSectionErrors;
 };
@@ -68,6 +76,26 @@ async function fetchAgentExclusionsForDetails(
     .from("agent_exclusions")
     .select("*")
     .eq("agent_id", agentId)
+    .order("start_date", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (error) return { data: [], error };
+  return { data: data ?? [], error: null };
+}
+
+/** Dog-level exclusions of the agent's assigned dog — never used by the exclusions section. */
+async function fetchDogExclusionsForDetails(
+  db: Db,
+  dogId: string | null,
+): Promise<{
+  data: AgentExclusionHistoryItem[];
+  error: unknown | null;
+}> {
+  if (!dogId) return { data: [], error: null };
+  const { data, error } = await db
+    .from("agent_exclusions")
+    .select("*")
+    .eq("dog_id", dogId)
     .order("start_date", { ascending: false })
     .order("created_at", { ascending: false });
 
@@ -270,10 +298,7 @@ async function fetchAgentRotationHistory(
   return { data: recentRotations, error: null };
 }
 
-export async function fetchAgentDetails(
-  db: Db,
-  agentId: string,
-): Promise<AgentDetailsPayload> {
+export async function fetchAgentDetails(db: Db, agentId: string): Promise<AgentDetailsPayload> {
   await expirePastExclusions(db);
   const sectionErrors: AgentDetailsSectionErrors = {};
 
@@ -312,12 +337,16 @@ export async function fetchAgentDetails(
     planningHistoryResult,
     rotationHistoryResult,
     exclusionsResult,
+    dogExclusionsResult,
+    administrativeHistoryResult,
     operationalCasesResult,
     careerResult,
   ] = await Promise.all([
     fetchAgentPlanningHistory(db, agentId),
     fetchAgentRotationHistory(db, agentId),
     fetchAgentExclusionsForDetails(db, agentId),
+    fetchDogExclusionsForDetails(db, agentRow.dog_id ?? null),
+    fetchAgentAdministrativeHistory(db, agentId),
     fetchAgentOperationalCases(db, agentId).then(
       (data) => ({ data, error: null as unknown | null }),
       (error) => ({ data: [] as AgentOperationalCase[], error }),
@@ -343,12 +372,18 @@ export async function fetchAgentDetails(
     sectionErrors.careerSummary = formatPgError(careerResult.error);
   }
 
+  if (administrativeHistoryResult.error) {
+    sectionErrors.administrativeHistory = formatPgError(administrativeHistoryResult.error);
+  }
+
   return {
     agent,
     operationalCases: operationalCasesResult.data,
     recentPlanning: planningHistoryResult.error ? [] : planningHistoryResult.data,
     recentRotations: rotationHistoryResult.error ? [] : rotationHistoryResult.data,
     exclusions: exclusionsResult.data,
+    dogExclusions: dogExclusionsResult.data,
+    administrativeHistory: administrativeHistoryResult.data,
     careerSummary: careerResult.data,
     sectionErrors: Object.keys(sectionErrors).length > 0 ? sectionErrors : undefined,
   };

@@ -12,6 +12,12 @@ import {
   formatMaritalStatusPdfLabel,
   type MaritalStatusValue,
 } from "@/lib/marital-status";
+import {
+  enabledFonctionnairePdfTableFields,
+  fonctionnairePdfTableFieldLabel,
+  type FonctionnairePdfTableFieldConfig,
+  type FonctionnairePdfTableFieldId,
+} from "@/lib/reports-messages/fonctionnaire-pdf-table-fields";
 
 const PAGE = { w: 210, h: 297 };
 const MARGIN = 16;
@@ -48,6 +54,10 @@ export type AgentFicheIndividuelleInput = {
   address?: string | null;
   notes?: string | null;
   photoUrl?: string | null;
+  dogName?: string | null;
+  specialtyLabel?: string | null;
+  /** PDF_FUNCTIONNAIRE_TEMPLATE — when set, only enabled fields are drawn, in saved order. */
+  pdfTableFields?: FonctionnairePdfTableFieldConfig[] | null;
 };
 
 type ResolvedFiche = AgentFicheIndividuelleInput & {
@@ -55,7 +65,7 @@ type ResolvedFiche = AgentFicheIndividuelleInput & {
 };
 
 type FormCell =
-  | { kind: "field"; label: string; value: string }
+  | { kind: "field"; label: string; value: string; preserveFullValue?: boolean }
   | { kind: "gender" };
 
 function blank(value: string | null | undefined): string {
@@ -279,14 +289,60 @@ function drawCell(
     drawGenderField(doc, gender, x, y, width);
     return LINE_GAP;
   }
-  return drawUnderlinedField(doc, cell.label, cell.value, x, y, width);
+  return drawUnderlinedField(doc, cell.label, cell.value, x, y, width, {
+    preserveFullValue: cell.preserveFullValue,
+  });
+}
+
+function templateFieldCell(
+  id: FonctionnairePdfTableFieldId,
+  data: ResolvedFiche,
+): FormCell {
+  const label = fonctionnairePdfTableFieldLabel(id);
+  const isName = id === "lastName" || id === "firstName" || id === "fullName";
+  if (id === "gender") return { kind: "gender" };
+  const valueById: Record<FonctionnairePdfTableFieldId, string> = {
+    lastName: blank(data.lastName),
+    firstName: blank(data.firstName),
+    fullName: formatEmployeeFullName(data.firstName, data.lastName),
+    grade: blank(data.grade),
+    matricule: blank(data.professionalNumber),
+    dogName: blank(data.dogName),
+    specialty: blank(data.specialtyLabel),
+    section: blank(data.sectionName),
+    fonction: blank(data.fonctionLabel),
+    gender: "",
+    dateOfBirth: formatAgentBirthDateDisplay(data.dateNaissance),
+    origine: blank(data.origine),
+    phone: blank(data.phone),
+    maritalStatus: maritalFormValue(data.maritalStatus),
+    address: blank(data.address),
+  };
+  return {
+    kind: "field",
+    label,
+    value: valueById[id],
+    preserveFullValue: isName,
+  };
 }
 
 function buildFormColumns(data: ResolvedFiche): {
   fullName: string;
   left: FormCell[];
   right: FormCell[];
+  templateCells: FormCell[] | null;
 } {
+  if (data.pdfTableFields) {
+    return {
+      fullName: formatEmployeeFullName(data.firstName, data.lastName),
+      left: [],
+      right: [],
+      templateCells: enabledFonctionnairePdfTableFields(data.pdfTableFields).map((row) =>
+        templateFieldCell(row.id, data),
+      ),
+    };
+  }
+
   const left: FormCell[] = [
     { kind: "field", label: "Grade", value: blank(data.grade) },
     { kind: "field", label: "Fonction", value: blank(data.fonctionLabel) },
@@ -317,6 +373,7 @@ function buildFormColumns(data: ResolvedFiche): {
     fullName: formatEmployeeFullName(data.firstName, data.lastName),
     left,
     right,
+    templateCells: null,
   };
 }
 
@@ -383,22 +440,31 @@ export function renderAgentFicheIndividuellePdf(
   const leftWFull = (CONTENT_W - colGap) / 2;
   const rightXFull = MARGIN + leftWFull + colGap;
 
-  const { fullName, left, right } = buildFormColumns(data);
+  const { fullName, left, right, templateCells } = buildFormColumns(data);
 
-  // Full name uses the full width beside the photo so it is never clipped to a half-column.
   let rowY = y + 5;
-  const nameHeight = drawUnderlinedField(
-    doc,
-    "Nom et prénom",
-    fullName,
-    MARGIN,
-    rowY,
-    besidePhotoW,
-    { preserveFullValue: true },
-  );
-  rowY += nameHeight + 2;
 
-  const rowCount = Math.max(left.length, right.length);
+  if (!templateCells) {
+    // Full name uses the full width beside the photo so it is never clipped to a half-column.
+    const nameHeight = drawUnderlinedField(
+      doc,
+      "Nom et prénom",
+      fullName,
+      MARGIN,
+      rowY,
+      besidePhotoW,
+      { preserveFullValue: true },
+    );
+    rowY += nameHeight + 2;
+  }
+
+  const pairedLeft = templateCells
+    ? templateCells.filter((_, index) => index % 2 === 0)
+    : left;
+  const pairedRight = templateCells
+    ? templateCells.filter((_, index) => index % 2 === 1)
+    : right;
+  const rowCount = Math.max(pairedLeft.length, pairedRight.length);
 
   for (let i = 0; i < rowCount; i += 1) {
     const besidePhoto = rowY < photoY + PHOTO_SIZE + 4;
@@ -407,12 +473,12 @@ export function renderAgentFicheIndividuellePdf(
     const rightW = besidePhoto ? leftWBeside : leftWFull;
 
     let rowHeight = LINE_GAP;
-    const leftCell = left[i];
+    const leftCell = pairedLeft[i];
     if (leftCell) {
       rowHeight = Math.max(rowHeight, drawCell(doc, leftCell, data.gender, MARGIN, rowY, leftW));
     }
 
-    const rightCell = right[i];
+    const rightCell = pairedRight[i];
     if (rightCell) {
       rowHeight = Math.max(
         rowHeight,
