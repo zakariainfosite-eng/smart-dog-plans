@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -13,6 +14,14 @@ jobs:
     runs-on: windows-latest
 
     steps:
+      - name: Confirm Windows x64 runner
+        shell: pwsh
+        run: |
+          Write-Host "PROCESSOR_ARCHITECTURE=$env:PROCESSOR_ARCHITECTURE"
+          if ($env:PROCESSOR_ARCHITECTURE -ne 'AMD64') {
+            throw "Runner is not AMD64/x64: $env:PROCESSOR_ARCHITECTURE"
+          }
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -42,28 +51,46 @@ jobs:
           npx --no-install electron scripts/verify-sqlite-upgrade-from-legacy.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Build Windows NSIS EXE
+      - name: Build Windows NSIS x64 EXE
         # Build only; never publish a GitHub Release via electron-builder.
         # Clear tokens so electron-builder cannot authenticate a publish even if misconfigured.
+        # --x64 forces Intel/AMD Windows (not ARM64), suitable for normal PCs.
         env:
           GH_TOKEN: ""
           GITHUB_TOKEN: ""
-        run: npm run electron:build:win
+        run: npm run electron:build:win -- --x64
 
-      - name: Verify NSIS installer artifact
+      - name: Verify NSIS x64 installer artifact
         shell: pwsh
         run: |
-          $installers = @(Get-ChildItem -Path release -Recurse -Filter "CynoPlanning-*-Setup.exe")
+          if (Test-Path "release/win-arm64-unpacked") {
+            throw "ARM64 unpacked directory was produced; expected x64 only."
+          }
+
+          $unpacked = Get-Item "release/win-unpacked/CynoPlanning.exe" -ErrorAction Stop
+          $fs = [IO.File]::OpenRead($unpacked.FullName)
+          $br = New-Object IO.BinaryReader($fs)
+          $fs.Seek(0x3C, 'Begin') | Out-Null
+          $pe = $br.ReadInt32()
+          $fs.Seek($pe + 4, 'Begin') | Out-Null
+          $machine = $br.ReadUInt16()
+          $br.Close()
+          if ($machine -ne 0x8664) {
+            throw "CynoPlanning.exe is not AMD64/x64. PE machine=0x$($machine.ToString('X'))"
+          }
+
+          $installers = @(Get-ChildItem -Path release -Filter "CynoPlanning-*-Setup.exe" -File)
           if ($installers.Count -eq 0) {
             throw "No CynoPlanning NSIS setup executable was generated."
           }
           $installers | ForEach-Object {
-            Write-Host "Installer: $($_.FullName) ($($_.Length) bytes)"
+            Write-Host "Installer: $($_.FullName) ($($_.Length) bytes) Windows x64 (AMD64)"
           }
+          Write-Host "Verified unpacked app: $($unpacked.FullName) machine=AMD64"
 
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
-          name: CynoPlanning-Windows
+          name: CynoPlanning-Windows-x64
           path: release/CynoPlanning-*-Setup.exe
           if-no-files-found: error
