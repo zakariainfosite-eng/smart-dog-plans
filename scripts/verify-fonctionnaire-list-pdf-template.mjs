@@ -103,8 +103,13 @@ assert(
 
 const sample = buildSampleFonctionnaireListPdfData(exampleSelection(), "all");
 assert(
-  sample.columns.map((col) => col.key).join(",") === exampleCols.map((col) => col.key).join(","),
-  "preview sample uses the same columns as the saved template",
+  sample.tables[1].columns.map((col) => col.key).join(",") === exampleCols.map((col) => col.key).join(","),
+  "preview sample cynotechnicien table uses the saved template columns",
+);
+assert(
+  sample.tables[0].columns.map((col) => col.key).join(",") ===
+    "lastName,firstName,matricule,grade",
+  "preview sample administrative table omits Chien / Spécialité",
 );
 
 const adminPreview = buildSampleFonctionnaireListPdfData(exampleSelection(), "administrative");
@@ -118,9 +123,13 @@ assert(
   "cynotechniciens listScope preview has only the cyno table",
 );
 assert(
-  JSON.stringify(adminPreview.columns) === JSON.stringify(sample.columns) &&
-    JSON.stringify(cynoPreview.columns) === JSON.stringify(sample.columns),
-  "listScope does not change preview columns",
+  adminPreview.columns.map((col) => col.key).join(",") === "lastName,firstName,matricule,grade",
+  "administrative listScope omits cynotechnical columns",
+);
+assert(
+  cynoPreview.columns.map((col) => col.key).join(",") ===
+    "lastName,firstName,matricule,grade,dogName,specialty",
+  "cynotechniciens listScope keeps cynotechnical columns",
 );
 
 function agent(partial) {
@@ -203,9 +212,10 @@ assert(
   "cynotechniciens listScope export drops administrative staff",
 );
 assert(
-  JSON.stringify(exportAdmin.columns) === JSON.stringify(exportAll.columns) &&
-    JSON.stringify(exportCyno.columns) === JSON.stringify(cynoPreview.columns),
-  "preview and export share the same columns for a given template",
+  exportAdmin.columns.map((col) => col.key).join(",") === "lastName,firstName,matricule,grade" &&
+    exportCyno.columns.map((col) => col.key).join(",") ===
+      cynoPreview.columns.map((col) => col.key).join(","),
+  "preview and export share the same columns for a given list type",
 );
 assert(
   applyFonctionnairePdfListScope(
@@ -215,12 +225,23 @@ assert(
   "single listScope helper is the only row filter",
 );
 
-const exportData = exportAll;
 assert(
-  exportData.columns.map((col) => col.key).join(",") ===
-    exampleCols.map((col) => col.key).join(","),
-  "list export builder uses the same columns as preview",
+  exportAll.tables[0].columns.map((col) => col.key).join(",") ===
+    "lastName,firstName,matricule,grade",
+  "all listScope admin table omits cynotechnical columns",
 );
+assert(
+  exportAll.tables[1].columns.map((col) => col.key).join(",") ===
+    exampleCols.map((col) => col.key).join(","),
+  "all listScope cynotechnicien table uses the saved template columns",
+);
+assert(
+  exportAll.tables[0].rows[0].chien === "" &&
+    exportAll.tables[0].rows[0].specialite === "" &&
+    exportAll.tables[0].rows[0].section === "",
+  "administrative rows do not invent cynotechnical placeholders",
+);
+assert(exportAll.tables[1].rows[0].chien === "Rex", "cynotechnicien row keeps the real dog name");
 
 const reloadedCynoPreview = buildSampleFonctionnaireListPdfData(afterRefresh, reloaded.listScope);
 assert(
@@ -242,6 +263,8 @@ writeFileSync(join(outDir, "fonctionnaire-list-administrative.pdf"), Buffer.from
 const adminPdf = pdfLatin1(adminDoc);
 assert(adminPdf.includes("Personnel administratif"), "administrative PDF includes the admin section title");
 assert(!adminPdf.includes(PDF_OPERATIONAL_TABLE_TITLE), "administrative PDF omits the cyno section");
+assert(!adminPdf.includes("CHIEN"), "administrative PDF omits the Chien column");
+assert(!adminPdf.includes("SPÉCIALITÉ") && !adminPdf.includes("SPECIALITE"), "administrative PDF omits Spécialité");
 
 const listDoc = generateCynotechniciansListPdf({
   data: buildSampleFonctionnaireListPdfData(afterRefresh),
@@ -260,7 +283,7 @@ assert(
 );
 
 const reorderedDoc = generateCynotechniciansListPdf({
-  data: buildSampleFonctionnaireListPdfData(reorderedSelection()),
+  data: buildSampleFonctionnaireListPdfData(reorderedSelection(), "cynotechniciens"),
   year: 2026,
 });
 const reorderedPdf = pdfLatin1(reorderedDoc);

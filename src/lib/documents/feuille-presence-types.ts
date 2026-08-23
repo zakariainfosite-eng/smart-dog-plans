@@ -74,15 +74,16 @@ export type CynotechniciansListPdfLayout = "operational" | "administrative";
 
 /**
  * At most two tables:
- * 1) Administrative / command
- * 2) Cynotechniciens
- * Column set is shared (PDF_FUNCTIONNAIRE_TEMPLATE).
+ * 1) Administrative / command (no cynotechnical columns)
+ * 2) Cynotechniciens (cynotechnical columns when enabled on the template)
  */
 export type CynotechniciansListPdfTable = {
   /** Section title above the table (empty = no title band). */
   title: string;
   layout: CynotechniciansListPdfLayout;
   rows: CynotechnicianListPdfRow[];
+  /** Table-specific columns; administrative tables omit Chien / Spécialité / Section. */
+  columns?: PersonnelListPdfColumn[];
 };
 
 /** @deprecated Use CynotechniciansListPdfTable — kept as alias during transition. */
@@ -93,7 +94,7 @@ export type CynotechniciansListPdfData = {
   dateLine: string;
   /** 0–2 non-empty tables in fixed order (admin then operational). */
   tables: CynotechniciansListPdfTable[];
-  /** Enabled template fields, in saved order — used by both tables. */
+  /** Fallback columns when a table does not set its own (cynotechnicien set). */
   columns: PersonnelListPdfColumn[];
 };
 

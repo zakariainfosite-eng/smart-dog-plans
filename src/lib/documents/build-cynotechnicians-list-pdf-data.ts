@@ -19,10 +19,11 @@ import {
   PDF_PERSONNEL_FONCTION_LABELS,
   splitPersonnelIntoTwoTables,
 } from "@/lib/documents/personnel-two-tables";
-import { normalizePersonnelFonction } from "@/lib/personnel-fonction";
+import { normalizePersonnelFonction, usesOperationalPersonnelColumns } from "@/lib/personnel-fonction";
 import {
   applyFonctionnairePdfListScope,
   buildFonctionnaireListTableCols,
+  normalizeFonctionnairePdfListScope,
   sampleFonctionnairePdfTableSource,
   type FonctionnairePdfListScope,
   type FonctionnairePdfTableFieldConfig,
@@ -82,7 +83,7 @@ export function formatPersonnelStatusPdfLabel(availability: AgentAvailability): 
 
 function specialiteLabel(agent: AgentRow): string {
   const spec = agentSpecialty(agent);
-  if (!spec) return "-";
+  if (!spec) return "";
   return SPECIALTY_LABEL[spec];
 }
 
@@ -107,6 +108,10 @@ function maritalPdfLabel(value: AgentRow["marital_status"]): string {
   return label === "NON RENSEIGNÉ" ? "-" : label;
 }
 
+function realValue(value: string | null | undefined): string {
+  return value?.trim() ?? "";
+}
+
 function mapAgentToPdfRow(
   agent: AgentRow,
   numero: number,
@@ -114,6 +119,7 @@ function mapAgentToPdfRow(
   exportDate: Date,
 ): CynotechnicianListPdfRow {
   const fonction = normalizePersonnelFonction(agent.fonction);
+  const showCynotechnical = usesOperationalPersonnelColumns(agent.fonction);
   const availability = deriveAgentAvailabilityForAgent(agent, exclusions, exportDate);
   const nom = (agent.last_name ?? "").trim().toUpperCase();
   const prenom = (agent.first_name ?? "").trim().toUpperCase();
@@ -126,9 +132,9 @@ function mapAgentToPdfRow(
     grade: dash(agent.grade),
     fonction: PDF_PERSONNEL_FONCTION_LABELS[fonction],
     situation: formatPersonnelStatusPdfLabel(availability),
-    chien: dash(agent.dogs?.name),
-    specialite: specialiteLabel(agent),
-    section: dash(agent.sections?.name),
+    chien: showCynotechnical ? realValue(agent.dogs?.name) : "",
+    specialite: showCynotechnical ? specialiteLabel(agent) : "",
+    section: showCynotechnical ? realValue(agent.sections?.name) : "",
     gender: genderPdfLabel(agent.gender),
     dateOfBirth: formatAgentBirthDateDisplay(agent.date_naissance) || "-",
     origine: dash(agent.origine),
@@ -165,6 +171,39 @@ function sourceToListRow(
   };
 }
 
+function columnsForLayout(
+  fields: FonctionnairePdfTableFieldConfig[] | null | undefined,
+  layout: CynotechniciansListPdfTable["layout"],
+) {
+  return buildFonctionnaireListTableCols(fields, FP_CONTENT_W, {
+    includeCynotechnical: layout === "operational",
+  });
+}
+
+function documentColumns(
+  fields: FonctionnairePdfTableFieldConfig[] | null | undefined,
+  listScope: FonctionnairePdfListScope | null | undefined,
+) {
+  const scope = normalizeFonctionnairePdfListScope(listScope);
+  return columnsForLayout(fields, scope === "administrative" ? "administrative" : "operational");
+}
+
+function pushPersonnelListTable(
+  tables: CynotechniciansListPdfTable[],
+  title: string,
+  layout: CynotechniciansListPdfTable["layout"],
+  rows: CynotechnicianListPdfRow[],
+  fields: FonctionnairePdfTableFieldConfig[] | null | undefined,
+) {
+  if (rows.length === 0) return;
+  tables.push({
+    title,
+    layout,
+    rows,
+    columns: columnsForLayout(fields, layout),
+  });
+}
+
 /**
  * Sample list used by Gestion du modèle PDF — same columns and listScope as export.
  */
@@ -182,9 +221,9 @@ export function buildSampleFonctionnaireListPdfData(
           matricule: "100",
           grade: "Commissaire",
           fonction: PDF_PERSONNEL_FONCTION_LABELS.chef_brigadier,
-          chien: "-",
-          specialite: "-",
-          section: "-",
+          chien: "",
+          specialite: "",
+          section: "",
         }),
       ],
       operational: [sourceToListRow(1)],
@@ -192,23 +231,23 @@ export function buildSampleFonctionnaireListPdfData(
     listScope,
   );
   const tables: CynotechniciansListPdfTable[] = [];
-  if (groups.administrative.length > 0) {
-    tables.push({
-      title: PDF_ADMIN_TABLE_TITLE,
-      layout: "administrative",
-      rows: groups.administrative,
-    });
-  }
-  if (groups.operational.length > 0) {
-    tables.push({
-      title: PDF_OPERATIONAL_TABLE_TITLE,
-      layout: "operational",
-      rows: groups.operational,
-    });
-  }
+  pushPersonnelListTable(
+    tables,
+    PDF_ADMIN_TABLE_TITLE,
+    "administrative",
+    groups.administrative,
+    fields,
+  );
+  pushPersonnelListTable(
+    tables,
+    PDF_OPERATIONAL_TABLE_TITLE,
+    "operational",
+    groups.operational,
+    fields,
+  );
   return {
     dateLine: formatCynotechniciansListDateLine(),
-    columns: buildFonctionnaireListTableCols(fields, FP_CONTENT_W),
+    columns: documentColumns(fields, listScope),
     tables,
   };
 }
@@ -216,8 +255,8 @@ export function buildSampleFonctionnaireListPdfData(
 /**
  * Build official Fonctionnaires List PDF data — at most two tables:
  * administrative/command, then Cynotechniciens.
- * Columns come from PDF_FUNCTIONNAIRE_TEMPLATE (same for both tables).
- * listScope only filters which groups appear as rows.
+ * Administrative tables omit cynotechnical columns; cynotechnicien tables keep them
+ * when enabled on PDF_FUNCTIONNAIRE_TEMPLATE. listScope filters which groups appear.
  */
 export function buildCynotechniciansListPdfData(
   agents: AgentRow[],
@@ -229,29 +268,28 @@ export function buildCynotechniciansListPdfData(
   const split = applyFonctionnairePdfListScope(splitPersonnelIntoTwoTables(agents), listScope);
   const tables: CynotechniciansListPdfTable[] = [];
 
-  if (split.administrative.length > 0) {
-    tables.push({
-      title: PDF_ADMIN_TABLE_TITLE,
-      layout: "administrative",
-      rows: split.administrative.map((agent, index) =>
-        mapAgentToPdfRow(agent, index + 1, exclusions, exportDate),
-      ),
-    });
-  }
-
-  if (split.operational.length > 0) {
-    tables.push({
-      title: PDF_OPERATIONAL_TABLE_TITLE,
-      layout: "operational",
-      rows: split.operational.map((agent, index) =>
-        mapAgentToPdfRow(agent, index + 1, exclusions, exportDate),
-      ),
-    });
-  }
+  pushPersonnelListTable(
+    tables,
+    PDF_ADMIN_TABLE_TITLE,
+    "administrative",
+    split.administrative.map((agent, index) =>
+      mapAgentToPdfRow(agent, index + 1, exclusions, exportDate),
+    ),
+    fields,
+  );
+  pushPersonnelListTable(
+    tables,
+    PDF_OPERATIONAL_TABLE_TITLE,
+    "operational",
+    split.operational.map((agent, index) =>
+      mapAgentToPdfRow(agent, index + 1, exclusions, exportDate),
+    ),
+    fields,
+  );
 
   return {
     dateLine: formatCynotechniciansListDateLine(exportDate),
-    columns: buildFonctionnaireListTableCols(fields, FP_CONTENT_W),
+    columns: documentColumns(fields, listScope),
     tables,
   };
 }

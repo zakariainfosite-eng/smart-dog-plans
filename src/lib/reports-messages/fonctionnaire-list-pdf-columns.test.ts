@@ -10,7 +10,10 @@ import {
   normalizeFonctionnairePdfTableFieldConfigs,
   type FonctionnairePdfTableFieldConfig,
 } from "@/lib/reports-messages/fonctionnaire-pdf-table-fields";
-import { buildSampleFonctionnaireListPdfData } from "@/lib/documents/build-cynotechnicians-list-pdf-data";
+import {
+  buildCynotechniciansListPdfData,
+  buildSampleFonctionnaireListPdfData,
+} from "@/lib/documents/build-cynotechnicians-list-pdf-data";
 
 /** User example: Nom, Prénom, Matricule, Grade, Chien, Spécialité — others off. */
 function exampleSelection(): FonctionnairePdfTableFieldConfig[] {
@@ -105,7 +108,7 @@ describe("PDF_FUNCTIONNAIRE_TEMPLATE listScope", () => {
     expect(parseEntityPdfTableTemplate({ fields: [], listScope: "nope" }).listScope).toBe("all");
   });
 
-  it("filters rows only and keeps the same columns", () => {
+  it("adapts columns to the selected list type", () => {
     const groups = {
       administrative: [{ id: "admin" }],
       operational: [{ id: "cyno" }],
@@ -127,15 +130,131 @@ describe("PDF_FUNCTIONNAIRE_TEMPLATE listScope", () => {
     expect(all.tables.map((table) => table.layout)).toEqual(["administrative", "operational"]);
     expect(admin.tables.map((table) => table.layout)).toEqual(["administrative"]);
     expect(cyno.tables.map((table) => table.layout)).toEqual(["operational"]);
-    expect(admin.columns).toEqual(all.columns);
-    expect(cyno.columns).toEqual(all.columns);
-    expect(all.columns.map((col) => col.key)).toEqual([
+
+    const adminKeys = ["lastName", "firstName", "matricule", "grade"];
+    const cynoKeys = ["lastName", "firstName", "matricule", "grade", "dogName", "specialty"];
+    expect(admin.columns.map((col) => col.key)).toEqual(adminKeys);
+    expect(cyno.columns.map((col) => col.key)).toEqual(cynoKeys);
+    expect(admin.tables[0]?.columns?.map((col) => col.key)).toEqual(adminKeys);
+    expect(cyno.tables[0]?.columns?.map((col) => col.key)).toEqual(cynoKeys);
+    expect(all.tables[0]?.columns?.map((col) => col.key)).toEqual(adminKeys);
+    expect(all.tables[1]?.columns?.map((col) => col.key)).toEqual(cynoKeys);
+    expect(admin.columns.some((col) => col.key === "dogName")).toBe(false);
+    expect(admin.columns.some((col) => col.key === "specialty")).toBe(false);
+    expect(admin.columns.some((col) => col.key === "section")).toBe(false);
+    expect(all.tables[0]?.rows[0]?.chien).toBe("");
+    expect(all.tables[0]?.rows[0]?.specialite).toBe("");
+    expect(all.tables[0]?.rows[0]?.section).toBe("");
+    expect(all.tables[1]?.rows[0]?.chien).toBe("CHERRY");
+  });
+
+  it("keeps real cynotechnical values and omits placeholders", () => {
+    const fields = exampleSelection();
+    const data = buildCynotechniciansListPdfData(
+      [
+        {
+          id: "a1",
+          first_name: "Omar",
+          last_name: "Alaoui",
+          professional_number: "100",
+          grade: "Commissaire",
+          gender: "male",
+          fonction: "chef_brigadier",
+          marital_status: "single",
+          date_naissance: "1990-01-01",
+          origine: null,
+          section_id: null,
+          dog_id: null,
+          is_section_chief: false,
+          active: true,
+          phone: null,
+          address: null,
+          observations: null,
+          photo_url: null,
+          created_at: "2026-01-01T00:00:00.000Z",
+          updated_at: "2026-01-01T00:00:00.000Z",
+          sections: null,
+          dogs: null,
+        },
+        {
+          id: "c1",
+          first_name: "Karim",
+          last_name: "Zidane",
+          professional_number: "300",
+          grade: "Brigadier",
+          gender: "male",
+          fonction: "cynotechnicien",
+          marital_status: "single",
+          date_naissance: "1990-01-01",
+          origine: null,
+          section_id: null,
+          dog_id: null,
+          is_section_chief: false,
+          active: true,
+          phone: null,
+          address: null,
+          observations: null,
+          photo_url: null,
+          created_at: "2026-01-01T00:00:00.000Z",
+          updated_at: "2026-01-01T00:00:00.000Z",
+          sections: null,
+          dogs: null,
+        },
+        {
+          id: "c2",
+          first_name: "Nadia",
+          last_name: "Benali",
+          professional_number: "301",
+          grade: "Brigadier",
+          gender: "female",
+          fonction: "cynotechnicien",
+          marital_status: "single",
+          date_naissance: "1991-01-01",
+          origine: null,
+          section_id: "s1",
+          dog_id: "d1",
+          is_section_chief: false,
+          active: true,
+          phone: null,
+          address: null,
+          observations: null,
+          photo_url: null,
+          created_at: "2026-01-01T00:00:00.000Z",
+          updated_at: "2026-01-01T00:00:00.000Z",
+          sections: { id: "s1", name: "Section Explosifs" },
+          dogs: { id: "d1", name: "Rex", specialty: "explosives", status: "available" },
+        },
+      ] as never,
+      [],
+      new Date("2026-08-23T00:00:00.000Z"),
+      fields,
+      "all",
+    );
+
+    const adminRow = data.tables[0]?.rows[0];
+    const withoutDog = data.tables[1]?.rows.find((row) => row.matricule === "300");
+    const withDog = data.tables[1]?.rows.find((row) => row.matricule === "301");
+    expect(adminRow?.chien).toBe("");
+    expect(adminRow?.specialite).toBe("");
+    expect(adminRow?.section).toBe("");
+    expect(withoutDog?.chien).toBe("");
+    expect(withoutDog?.specialite).toBe("");
+    expect(withoutDog?.section).toBe("");
+    expect(withDog?.chien).toBe("Rex");
+    expect(withDog?.specialite).toBe("EXPLOSIFS");
+    expect(withDog?.section).toBe("Section Explosifs");
+  });
+
+  it("omits cynotechnical columns from the administrative field set", () => {
+    const cols = buildFonctionnaireListTableCols(exampleSelection(), FP_CONTENT_W, {
+      includeCynotechnical: false,
+    });
+    expect(cols.map((col) => col.key)).toEqual([
       "lastName",
       "firstName",
       "matricule",
       "grade",
-      "dogName",
-      "specialty",
     ]);
+    expect(cols.reduce((sum, col) => sum + col.w, 0)).toBeCloseTo(FP_CONTENT_W, 5);
   });
 });

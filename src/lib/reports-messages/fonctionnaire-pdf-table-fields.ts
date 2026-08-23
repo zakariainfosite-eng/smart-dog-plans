@@ -149,9 +149,19 @@ export function normalizeFonctionnairePdfListScope(
   return isFonctionnairePdfListScope(value) ? value : DEFAULT_FONCTIONNAIRE_PDF_LIST_SCOPE;
 }
 
+/** Cynotechnical list-PDF fields — omitted for administrative personnel. */
+export const FONCTIONNAIRE_PDF_CYNOTECHNICAL_FIELD_IDS: readonly FonctionnairePdfTableFieldId[] =
+  ["dogName", "specialty", "section"];
+
+export function isFonctionnairePdfCynotechnicalField(
+  id: FonctionnairePdfTableFieldId,
+): boolean {
+  return (FONCTIONNAIRE_PDF_CYNOTECHNICAL_FIELD_IDS as readonly string[]).includes(id);
+}
+
 /**
  * Single list-scope filter: which personnel groups appear as PDF rows.
- * Does not change columns, order, or table chrome.
+ * Column sets are chosen later by the list PDF builder (admin vs cynotechnicien).
  */
 export function applyFonctionnairePdfListScope<T>(
   groups: { administrative: T[]; operational: T[] },
@@ -317,12 +327,23 @@ function distributeColumnWidths(weights: number[], total: number): number[] {
 /**
  * List-PDF columns from the saved Fonctionnaires template.
  * Order = enabled fields in catalog/storage order. Widths sum to `contentWidth`.
+ * Administrative tables omit Chien / Spécialité / Section.
  */
 export function buildFonctionnaireListTableCols(
   fields: FonctionnairePdfTableFieldConfig[] | null | undefined,
   contentWidth: number,
+  options?: { includeCynotechnical?: boolean },
 ): FonctionnaireListPdfColumn[] {
-  const source = enabledFonctionnairePdfTableFields(fields);
+  const includeCynotechnical = options?.includeCynotechnical !== false;
+  let source = enabledFonctionnairePdfTableFields(fields);
+  if (!includeCynotechnical) {
+    source = source.filter((row) => !isFonctionnairePdfCynotechnicalField(row.id));
+  }
+  if (source.length === 0) {
+    source = defaultFonctionnairePdfTableFields().filter(
+      (row) => row.enabled && (includeCynotechnical || !isFonctionnairePdfCynotechnicalField(row.id)),
+    );
+  }
   const widths = distributeColumnWidths(
     source.map((row) => LIST_COLUMN_WEIGHT[row.id] ?? 20),
     contentWidth,

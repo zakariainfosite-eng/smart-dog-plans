@@ -2,6 +2,7 @@ import type { jsPDF } from "jspdf";
 import type {
   CynotechnicianListPdfRow,
   CynotechniciansListPdfData,
+  CynotechniciansListPdfTable,
   DogListPdfRow,
   DogsListPdfData,
   FeuillePresenceData,
@@ -673,9 +674,17 @@ function cellValueForCynotechnician(row: CynotechnicianListPdfRow, key: string):
   }
 }
 
-function personnelListColumns(data: CynotechniciansListPdfData): readonly OfficialTableCol[] {
+function personnelListColumns(
+  data: CynotechniciansListPdfData,
+  table?: CynotechniciansListPdfTable,
+): readonly OfficialTableCol[] {
+  if (table?.columns && table.columns.length > 0) return table.columns;
   if (data.columns.length > 0) return data.columns;
-  return buildFonctionnaireListTableCols(undefined, FP_CONTENT_W);
+  return buildFonctionnaireListTableCols(
+    undefined,
+    FP_CONTENT_W,
+    { includeCynotechnical: table?.layout !== "administrative" },
+  );
 }
 
 function drawCynotechniciansTableRows(
@@ -787,7 +796,7 @@ export function renderCynotechniciansListPages(
       y = drawFeuillePresenceSectionTitle(doc, sectionTitle, y);
     }
 
-    const tableCols = personnelListColumns(data);
+    const tableCols = personnelListColumns(data, table);
     const tableTopY = y;
     drawOfficialTableHeader(doc, FP_MARGIN.left, y, tableCols);
     y += FP_TABLE.headerH;
