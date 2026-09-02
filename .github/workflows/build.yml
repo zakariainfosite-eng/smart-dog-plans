@@ -1,13 +1,18 @@
-name: Build Windows EXE
+name: Windows Electron Build
 
 on:
   push:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      create_release:
+        description: Create a GitHub Release and attach CynoPlanning-<version>-Setup.exe
+        type: boolean
+        default: false
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-windows:
@@ -29,6 +34,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
@@ -36,8 +42,8 @@ jobs:
       - name: Rebuild SQLite native module for Electron
         run: npm run electron:rebuild-native
 
-      - name: Build web application
-        run: npm run build:web
+      - name: Build application
+        run: npm run build
 
       - name: Build Electron main process
         run: npm run electron:build:main
@@ -51,16 +57,16 @@ jobs:
           npx --no-install electron scripts/verify-sqlite-upgrade-from-legacy.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Build Windows NSIS x64 EXE
-        # Build only; never publish a GitHub Release via electron-builder.
+      - name: Build Windows NSIS x64 installer
+        # Application update only. Never publish via electron-builder.
         # Clear tokens so electron-builder cannot authenticate a publish even if misconfigured.
-        # --x64 forces Intel/AMD Windows (not ARM64), suitable for normal PCs.
+        # --win --x64 forces Intel/AMD Windows (not ARM64). NSIS target comes from electron-builder.yml.
         env:
           GH_TOKEN: ""
           GITHUB_TOKEN: ""
-        run: npm run electron:build:win -- --x64
+        run: npm run electron:build:win -- --win --x64
 
-      - name: Verify NSIS x64 installer artifact
+      - name: Verify NSIS x64 installer and no packaged database
         shell: pwsh
         run: |
           if (Test-Path "release/win-arm64-unpacked") {
@@ -79,18 +85,57 @@ jobs:
             throw "CynoPlanning.exe is not AMD64/x64. PE machine=0x$($machine.ToString('X'))"
           }
 
-          $installers = @(Get-ChildItem -Path release -Filter "CynoPlanning-*-Setup.exe" -File)
-          if ($installers.Count -eq 0) {
-            throw "No CynoPlanning NSIS setup executable was generated."
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $expectedInstaller = Join-Path "release" "CynoPlanning-$version-Setup.exe"
+          if (-not (Test-Path $expectedInstaller)) {
+            throw "Expected installer not found: $expectedInstaller"
           }
-          $installers | ForEach-Object {
-            Write-Host "Installer: $($_.FullName) ($($_.Length) bytes) Windows x64 (AMD64)"
-          }
-          Write-Host "Verified unpacked app: $($unpacked.FullName) machine=AMD64"
 
-      - name: Upload EXE
+          $dbHits = @(Get-ChildItem -Path release -Recurse -File -ErrorAction SilentlyContinue |
+            Where-Object {
+              $_.Name -eq "cynoplanning.db" -or
+              $_.Name -eq "cynoplanning_test.db" -or
+              $_.Extension -eq ".db"
+            })
+          if ($dbHits.Count -gt 0) {
+            $dbHits | ForEach-Object { Write-Host "Packaged database: $($_.FullName)" }
+            throw "A SQLite database was packaged into the Windows build. Production data must stay in %APPDATA%\CynoPlanning\cynoplanning.db."
+          }
+
+          Write-Host "Installer: $expectedInstaller ($((Get-Item $expectedInstaller).Length) bytes)"
+          Write-Host "Verified unpacked app: $($unpacked.FullName) machine=AMD64"
+          Write-Host "No packaged .db files under release/"
+
+      - name: Upload NSIS installer
         uses: actions/upload-artifact@v4
         with:
           name: CynoPlanning-Windows-x64
           path: release/CynoPlanning-*-Setup.exe
           if-no-files-found: error
+
+      - name: Upload unpacked x64 executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: CynoPlanning-Windows-x64-unpacked
+          path: release/win-unpacked/CynoPlanning.exe
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: github.event_name == 'workflow_dispatch' && inputs.create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $tag = "v$version"
+          $exe = Get-Item (Join-Path "release" "CynoPlanning-$version-Setup.exe") -ErrorAction Stop
+          $view = gh release view $tag 2>&1
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag $exe.FullName --clobber
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            Write-Host "Attached $($exe.Name) to existing release $tag"
+          } else {
+            gh release create $tag $exe.FullName --title "CynoPlanning $version" --generate-notes
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            Write-Host "Created release $tag with $($exe.Name)"
+          }

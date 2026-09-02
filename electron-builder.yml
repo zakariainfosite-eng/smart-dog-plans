@@ -23,6 +23,12 @@ files:
   - "!node_modules/better-sqlite3/build/Release/obj/**/*"
   - "!node_modules/better-sqlite3/deps/**/*"
   - "!node_modules/better-sqlite3/src/**/*"
+  # Never ship a production or test SQLite database inside the installer.
+  # The installed app keeps using %APPDATA%\CynoPlanning\cynoplanning.db.
+  - "!**/*.db"
+  - "!**/cynoplanning.db"
+  - "!**/cynoplanning_test.db"
+  - "!test-data/**"
 
 asar: true
 asarUnpack:
@@ -36,6 +42,9 @@ extraResources:
     to: app-server
     filter:
       - "**/*"
+      - "!**/*.db"
+      - "!**/cynoplanning.db"
+      - "!**/cynoplanning_test.db"
   - from: .env
     to: .env
 
