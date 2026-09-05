@@ -32,3 +32,12 @@ release
 *.njsproj
 *.sln
 *.sw?
+
+# Local / generated SQLite — never commit user or test databases.
+# The installed Windows app keeps data in %APPDATA%\CynoPlanning\.
+*.db
+*.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
+tmp/

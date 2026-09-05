@@ -60,11 +60,12 @@ jobs:
       - name: Build Windows NSIS x64 installer
         # Application update only. Never publish via electron-builder.
         # Clear tokens so electron-builder cannot authenticate a publish even if misconfigured.
-        # --win --x64 forces Intel/AMD Windows (not ARM64). NSIS target comes from electron-builder.yml.
+        # electron:build:win already runs icons, native rebuild, main, desktop Vite,
+        # then: electron-builder --win nsis --x64 --publish never --config electron-builder.yml
         env:
           GH_TOKEN: ""
           GITHUB_TOKEN: ""
-        run: npm run electron:build:win -- --win --x64
+        run: npm run electron:build:win -- --win nsis --x64
 
       - name: Verify NSIS x64 installer and no packaged database
         shell: pwsh
@@ -110,7 +111,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: CynoPlanning-Windows-x64
-          path: release/CynoPlanning-*-Setup.exe
+          path: |
+            release/CynoPlanning-*-Setup.exe
+            release/CynoPlanning-*-Setup.exe.blockmap
           if-no-files-found: error
 
       - name: Upload unpacked x64 executable
