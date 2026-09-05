@@ -28,6 +28,7 @@ import { DocumentWorkspace } from "@/components/reports-messages/document-worksp
 import { OfficialPdfPreview } from "@/components/reports-messages/official-document/OfficialPdfPreview";
 import {
   buildOfficialDocumentFromTemplate,
+  exportOfficialDocumentDocxFromTemplate,
   exportOfficialDocumentFromTemplate,
   getDocumentTemplateConfig,
   parseMessageDemandeFormData,
@@ -376,6 +377,52 @@ export function MessageDemandeWorkspace({
     }
   };
 
+  const exportWord = async () => {
+    if (!config || exporting) return;
+    setExporting(true);
+    try {
+      const resolvedConfig = effective
+        ? { ...config, sections: effective.visibleSections }
+        : config;
+      if (isHeatDog) {
+        await exportOfficialDocumentDocxFromTemplate(
+          {
+            config: resolvedConfig,
+            builder: "heat_dog",
+            data: heatData,
+            dog: selectedDog,
+            t,
+            effective,
+          },
+          `rapport-chienne-chaleur-${heatData.dogName || heatData.reportDate || "brouillon"}.docx`,
+        );
+        onExported?.(
+          serializeHeatDogReportFormData(heatData, {
+            agentId: heatData.handlerId || selectedDog?.agent?.id || null,
+            sectionId: selectedDog?.agent?.section?.id ?? null,
+          }),
+        );
+      } else {
+        await exportOfficialDocumentDocxFromTemplate(
+          {
+            config: resolvedConfig,
+            builder: "message_demande",
+            data: messageData,
+            t,
+            effective,
+          },
+          `message-demande-${messageData.reportDate || "brouillon"}.docx`,
+        );
+        onExported?.(serializeMessageDemandeFormData(messageData));
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(t("reportsMessages.documentTemplates.errors.exportWord"));
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (!config || !model) {
     return <p className="text-sm text-muted-foreground">{t("common.loading")}</p>;
   }
@@ -441,6 +488,10 @@ export function MessageDemandeWorkspace({
           <Button type="button" onClick={() => void exportPdf()} disabled={exporting || saving}>
             <FileDown className="mr-1.5 h-4 w-4" />
             {t("reportsMessages.sickDogReport.actions.exportPdf")}
+          </Button>
+          <Button type="button" onClick={() => void exportWord()} disabled={exporting || saving}>
+            <FileDown className="mr-1.5 h-4 w-4" />
+            {t("reportsMessages.sickDogReport.actions.exportWord")}
           </Button>
         </>
       }

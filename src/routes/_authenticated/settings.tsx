@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Settings } from "lucide-react";
 import { PageTitle } from "@/components/layout/PageTitle";
 import { AppearancePreferencesCard } from "@/components/settings/appearance-preferences-card";
+import { DataSettingsCard } from "@/components/settings/data-settings-card";
 import { DocumentSettingsCard } from "@/components/settings/document-settings-card";
 import { ExclusionSettingsCard } from "@/components/settings/exclusion-settings-card";
 import { OrganizationSettingsCard } from "@/components/settings/organization-settings-card";
@@ -28,6 +29,7 @@ function SettingsPage() {
         <PlanningSettingsCard />
         <ExclusionSettingsCard />
         <DocumentSettingsCard />
+        <DataSettingsCard />
       </div>
     </div>
   );

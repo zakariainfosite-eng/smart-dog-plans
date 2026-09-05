@@ -4,6 +4,10 @@ import {
   computeSectionOperationalStats,
   getActiveExclusionsForSection,
   groupSectionExclusionTypesByLabel,
+  listSectionAvailableMembers,
+  listSectionMembers,
+  listSectionOperationalSpecialtyMembers,
+  listSectionSpecialtyMembers,
   memberSpecialtyFlags,
   SECTION_EXCLUSION_DISPLAY_TYPES,
   SECTION_EXCLUSION_HIDDEN_DISPLAY_TYPES,
@@ -224,7 +228,7 @@ describe("computeSectionOperationalStats", () => {
           specialties: ["narcotics", "explosives"],
         },
       }),
-    ).toEqual({ narcotics: true, explosives: true });
+    ).toEqual({ narcotics: true, explosives: true, currency: false });
 
     const stats = computeSectionOperationalStats(
       sectionId,
@@ -403,5 +407,58 @@ describe("groupSectionExclusionTypesByLabel", () => {
         "administrative_leave",
       ]),
     ).toBe(3);
+  });
+});
+
+describe("section card list helpers match card counts", () => {
+  const day = "2026-08-05";
+  const sectionId = "sec-a";
+  const agents = [
+    {
+      id: "a1",
+      section_id: sectionId,
+      dog_id: "d1",
+      active: true,
+      dogs: { id: "d1", specialty: "narcotics" },
+    },
+    {
+      id: "a2",
+      section_id: sectionId,
+      dog_id: "d2",
+      active: true,
+      dogs: { id: "d2", specialty: "explosives" },
+    },
+    { id: "a3", section_id: sectionId, dog_id: null, active: true, dogs: null },
+    {
+      id: "a4",
+      section_id: "sec-b",
+      dog_id: "d9",
+      active: true,
+      dogs: { id: "d9", specialty: "narcotics" },
+    },
+  ];
+  const exclusions = [
+    exclusion({ agent_id: "a1", exclusion_type: "sickness" }),
+    exclusion({ agent_id: "a2", exclusion_type: "mission" }),
+  ];
+
+  it("lists the same assigned / available / specialty rows as the card stats", () => {
+    const stats = computeSectionOperationalStats(sectionId, agents, exclusions, day);
+    expect(listSectionMembers(sectionId, agents)).toHaveLength(stats.assigned);
+    expect(listSectionAvailableMembers(sectionId, agents, exclusions, day)).toHaveLength(
+      stats.available,
+    );
+    expect(listSectionSpecialtyMembers(sectionId, agents, "narcotics")).toHaveLength(
+      stats.narcoticsTotal,
+    );
+    expect(listSectionSpecialtyMembers(sectionId, agents, "explosives")).toHaveLength(
+      stats.explosivesTotal,
+    );
+    expect(
+      listSectionOperationalSpecialtyMembers(sectionId, agents, exclusions, "narcotics", day),
+    ).toHaveLength(stats.narcotics);
+    expect(
+      listSectionOperationalSpecialtyMembers(sectionId, agents, exclusions, "explosives", day),
+    ).toHaveLength(stats.explosives);
   });
 });

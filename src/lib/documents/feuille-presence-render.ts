@@ -33,6 +33,9 @@ import {
   FP_SECTION_NARCOTICS,
   FP_SIGNATURE_BRIGADE,
   FP_SIGNATURE_SECTION,
+  FP_SUPPORT_ID,
+  FP_SUPPORT_ID_COLS,
+  FP_SUPPORT_ID_FONCTIONS,
   FP_TABLE,
   FP_TABLE_COLS,
   FP_TYPO,
@@ -240,6 +243,49 @@ function drawChefIdentityLine(doc: jsPDF, data: FeuillePresenceData, startY: num
   return startY + lineLeading + FP_LAYOUT.chefLineGap;
 }
 
+/** Two empty identification rows for handwritten completion — no names or hours. */
+function drawFeuillePresenceSupportIdentification(doc: jsPDF, startY: number): number {
+  const x = FP_MARGIN.left;
+  let y = startY + FP_SUPPORT_ID.gapAfterTitle;
+
+  let cx = x;
+  setTypo(doc, FP_TYPO.tableHeader.family, FP_TYPO.tableHeader.style, FP_TYPO.tableHeader.size);
+  for (const col of FP_SUPPORT_ID_COLS) {
+    drawRect(doc, cx, y, col.w, FP_SUPPORT_ID.headerH, FP_TABLE.headerFill);
+    doc.text(col.label, cx + col.w / 2, y + FP_SUPPORT_ID.headerH / 2 + 0.8, {
+      align: "center",
+      maxWidth: col.w - 1.2,
+    });
+    cx += col.w;
+  }
+  y += FP_SUPPORT_ID.headerH;
+
+  for (const fonction of FP_SUPPORT_ID_FONCTIONS) {
+    cx = x;
+    for (const col of FP_SUPPORT_ID_COLS) {
+      drawRect(doc, cx, y, col.w, FP_SUPPORT_ID.rowH);
+      if (col.key === "fonction") {
+        drawCellTextCentered(
+          doc,
+          fonction,
+          cx,
+          y,
+          col.w,
+          FP_SUPPORT_ID.rowH,
+          FP_TYPO.agentName.family,
+          FP_TYPO.agentName.style,
+          FP_TYPO.agentName.size,
+          col.w - 1.4,
+        );
+      }
+      cx += col.w;
+    }
+    y += FP_SUPPORT_ID.rowH;
+  }
+
+  return y + FP_SUPPORT_ID.gapAfterTable;
+}
+
 export function drawFeuillePresenceTitleBlock(
   doc: jsPDF,
   startY: number,
@@ -249,7 +295,7 @@ export function drawFeuillePresenceTitleBlock(
 
   setTypo(doc, FP_TYPO.titleMain.family, FP_TYPO.titleMain.style, FP_TYPO.titleMain.size);
   drawCentered(doc, "FEUILLE DE PRESENCE", FP_PAGE.w / 2, y);
-  y += FP_LAYOUT.titleMainGap;
+  y = drawFeuillePresenceSupportIdentification(doc, y);
 
   setTypo(doc, FP_TYPO.titleSection.family, FP_TYPO.titleSection.style, FP_TYPO.titleSection.size);
   drawCentered(doc, data?.sectionName ?? "SECTION", FP_PAGE.w / 2, y);

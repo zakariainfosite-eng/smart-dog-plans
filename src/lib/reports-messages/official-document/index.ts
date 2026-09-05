@@ -27,6 +27,11 @@ export {
 export { renderOfficialDocumentPdf } from "@/lib/reports-messages/official-document/render-official-pdf";
 export type { OfficialPdfRenderOptions } from "@/lib/reports-messages/official-document/render-official-pdf";
 
+export {
+  renderOfficialDocumentDocx,
+} from "@/lib/reports-messages/official-document/render-official-docx";
+export type { OfficialDocxRenderOptions } from "@/lib/reports-messages/official-document/render-official-docx";
+
 export { loadMessageDemandeOfficialLogo } from "@/lib/reports-messages/official-document/message-demande-logo";
 
 export { exportSickDogReportPdf } from "@/lib/reports-messages/official-document/export-sick-dog-pdf";

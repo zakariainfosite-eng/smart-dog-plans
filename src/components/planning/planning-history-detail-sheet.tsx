@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { exportFeuillePresencePlanning } from "@/lib/documents/planning-export";
 import type { PlanningExportFormat } from "@/lib/documents/planning-export-types";
+import { shouldAnnounceBrowserPdfExport } from "@/lib/documents/export-binary";
 import { formatUnknownError } from "@/lib/documents/export-error";
 import { downloadFeuillePresencePdfWithLogo } from "@/lib/documents/feuille-presence-pdf";
 import { deleteStoredPlanning } from "@/lib/planning/delete-stored-planning";
@@ -95,9 +96,11 @@ export function PlanningHistoryDetailSheet({
         return;
       }
 
-      toast.success(
-        format === "both" ? t("history.export.successBoth") : t("history.export.success"),
-      );
+      if (shouldAnnounceBrowserPdfExport()) {
+        toast.success(
+          format === "both" ? t("history.export.successBoth") : t("history.export.success"),
+        );
+      }
     } catch (error) {
       toast.error(`${t("history.export.error")}\n${formatUnknownError(error)}`, {
         duration: 12_000,
@@ -116,7 +119,9 @@ export function PlanningHistoryDetailSheet({
         data: bundle.data,
         filename: `${bundle.basename}.pdf`,
       });
-      toast.success(t("history.export.pdfSuccess"));
+      if (shouldAnnounceBrowserPdfExport()) {
+        toast.success(t("history.export.pdfSuccess"));
+      }
     } catch (error) {
       toast.error(`${t("history.export.error")}\n${formatUnknownError(error)}`, {
         duration: 12_000,

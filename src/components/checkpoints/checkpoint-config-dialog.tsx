@@ -44,12 +44,11 @@ const WEEKDAY_KEYS: Record<Weekday, string> = {
 const DIALOG_SHELL =
   "flex max-h-[min(90vh,720px)] w-[calc(100%-1.5rem)] max-w-[940px] flex-col gap-0 overflow-hidden rounded-2xl border border-border/50 bg-white p-0 shadow-[0_4px_24px_rgba(15,23,42,0.08)] sm:max-w-[940px]";
 
-function configSchema(t: TFunction) {
-  return z
-    .object({
-      name: z.string().trim().min(1, t("validation.nameRequired")).max(120),
+function configSchema() {
+  return z.object({
+      name: z.string().trim().max(120),
       active: z.boolean(),
-      operating_days: z.array(z.number().int().min(1).max(7)).min(1),
+      operating_days: z.array(z.number().int().min(1).max(7)),
       day_shift_enabled: z.boolean(),
       night_shift_enabled: z.boolean(),
       day_explosives: z.coerce.number().int().min(0),
@@ -59,14 +58,7 @@ function configSchema(t: TFunction) {
       female_policy: z.enum(["allowed", "preferred", "not_allowed"]),
       priority: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
       mandatory: z.boolean(),
-    })
-    .refine(
-      (v) =>
-        !v.active ||
-        (v.day_shift_enabled && v.day_explosives + v.day_narcotics > 0) ||
-        (v.night_shift_enabled && v.night_explosives + v.night_narcotics > 0),
-      { message: t("checkpoints.validation.shiftRequired"), path: ["day_shift_enabled"] },
-    );
+    });
 }
 
 type CheckpointConfigDialogProps = {
@@ -454,7 +446,7 @@ export function CheckpointConfigDialog({
   submitting,
 }: CheckpointConfigDialogProps) {
   const { t } = useI18n();
-  const schema = useMemo(() => configSchema(t), [t]);
+  const schema = useMemo(() => configSchema(), []);
   const [config, setConfig] = useState<CheckpointOperationalConfig>(defaultOperationalConfig());
   const [errors, setErrors] = useState<Record<string, string>>({});
   const isCreate = !initial;

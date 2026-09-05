@@ -297,27 +297,13 @@ function exclusionSchema(t: TFunction) {
         "dog_training",
         "dog_other",
       ]),
-      start_date: z.string().min(1, t("validation.startDateRequired")),
+      start_date: z.string(),
       end_date: z.string().optional().nullable(),
       duration_days: z.number().int().optional(),
       notes: z.string().max(500).optional().or(z.literal("")),
       active: z.boolean(),
     })
     .superRefine((v, ctx) => {
-      if (v.apply_to === "agent" && !v.agent_id) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: t("validation.agentRequired"),
-          path: ["agent_id"],
-        });
-      }
-      if (v.apply_to === "dog" && !v.dog_id) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: t("validation.dogRequired"),
-          path: ["dog_id"],
-        });
-      }
       if (v.apply_to === "agent" && isDogLevelExclusionType(v.exclusion_type)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -333,23 +319,16 @@ function exclusionSchema(t: TFunction) {
         });
       }
       if (isOpenEndedExclusionType(v.exclusion_type)) return;
+      const start = v.start_date?.trim() ?? "";
       const end = v.end_date?.trim() ?? "";
-      if (!end) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: t("validation.endDateRequired"),
-          path: ["end_date"],
-        });
-        return;
-      }
-      if (end < v.start_date) {
+      if (start && end && end < start) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: t("validation.endBeforeStart"),
           path: ["end_date"],
         });
       }
-      if (exclusionDurationDays(v.start_date, end) < MIN_EXCLUSION_DURATION_DAYS) {
+      if (start && end && exclusionDurationDays(start, end) < MIN_EXCLUSION_DURATION_DAYS) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: t("validation.durationMin"),
@@ -719,6 +698,11 @@ function ExclusionsPage() {
       };
 
       // Overlap guard: same target type only (agent_id vs dog_id — never via handler↔dog).
+      let hasOverlap = false;
+      const hasOverlapTarget =
+        (values.apply_to === "agent" && Boolean(agentId)) ||
+        (values.apply_to === "dog" && Boolean(dogId));
+      if (hasOverlapTarget) {
       let overlapQuery = db
         .from("agent_exclusions")
         .select("id, agent_id, dog_id, exclusion_type, start_date, end_date")
@@ -731,7 +715,7 @@ function ExclusionsPage() {
       if (values.id) overlapQuery.neq("id", values.id);
       const { data: overlaps, error: overlapErr } = await overlapQuery;
       if (overlapErr) throw overlapErr;
-      const hasOverlap = hasConflictingExistingExclusion(
+      hasOverlap = hasConflictingExistingExclusion(
         {
           applyTo: values.apply_to,
           agentId: values.apply_to === "agent" ? agentId : null,
@@ -749,6 +733,7 @@ function ExclusionsPage() {
           end_date: (row.end_date as string | null) ?? null,
         })),
       );
+      }
       if (hasOverlap) {
         throw new Error(t("exclusions.error.overlap"));
       }
@@ -1959,7 +1944,7 @@ function ExclusionDialog({
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-8">
               <div className="min-w-0 flex-1 space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <ExclusionFormField label={t("exclusions.field.applyTo")} required>
+                  <ExclusionFormField label={t("exclusions.field.applyTo")}>
                     <Select
                       value={applyTo}
                       onValueChange={(v) => handleApplyToChange(v as ExclusionApplyTarget)}
@@ -2017,7 +2002,6 @@ function ExclusionDialog({
                 {applyTo === "agent" ? (
                   <ExclusionFormField
                     label={t("exclusions.field.agent")}
-                    required
                     error={errors.agent_id}
                   >
                     <Popover open={agentOpen} onOpenChange={setAgentOpen}>
@@ -2072,7 +2056,6 @@ function ExclusionDialog({
                 ) : (
                   <ExclusionFormField
                     label={t("exclusions.field.dog")}
-                    required
                     error={errors.dog_id}
                   >
                     <Popover open={dogOpen} onOpenChange={setDogOpen}>
@@ -2152,7 +2135,6 @@ function ExclusionDialog({
                 <div className="grid gap-3 sm:grid-cols-2">
                   <ExclusionFormField
                     label={t("field.startDate")}
-                    required
                     error={errors.start_date}
                     htmlFor="start"
                   >
@@ -2168,7 +2150,6 @@ function ExclusionDialog({
                   {!openEnded ? (
                     <ExclusionFormField
                       label={t("exclusions.field.durationDays")}
-                      required
                       error={errors.duration_days}
                       htmlFor="duration"
                     >
@@ -2209,7 +2190,6 @@ function ExclusionDialog({
                   <div className="grid gap-3 sm:grid-cols-2">
                     <ExclusionFormField
                       label={t("exclusions.field.endDateCalculated")}
-                      required
                       error={errors.end_date}
                       hint={t("exclusions.hint.endDateEditable")}
                       htmlFor="end"

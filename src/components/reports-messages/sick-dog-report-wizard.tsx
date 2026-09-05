@@ -16,6 +16,7 @@ import {
 import { DocumentWorkspace } from "@/components/reports-messages/document-workspace";
 import { SickDogReportPreview } from "@/components/reports-messages/sick-dog-report-preview";
 import {
+  exportOfficialDocumentDocxFromTemplate,
   exportOfficialDocumentFromTemplate,
   getDocumentTemplateConfig,
   validateTemplateRequiredFields,
@@ -194,6 +195,52 @@ export function SickDogReportWizard({
     } catch (error) {
       console.error(error);
       toast.error(t("reportsMessages.sickDogReport.errors.exportPdf"));
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const exportWord = async () => {
+    if (exporting) return;
+    const config = getDocumentTemplateConfig("sick_dog_report");
+    if (!config) return;
+
+    const issues = validateTemplateRequiredFields(config, {
+      ...data,
+      dogId: data.dogId,
+      signatories: data.signatories,
+      attachments: data.attachments,
+    });
+    if (issues.length > 0) {
+      toast.error(t(issues[0].messageKey, issues[0].params));
+      return;
+    }
+
+    setExporting(true);
+    try {
+      await exportOfficialDocumentDocxFromTemplate(
+        {
+          config: effective
+            ? { ...config, sections: effective.visibleSections }
+            : config,
+          builder: "sick_dog",
+          data,
+          dog: selectedDog,
+          t,
+          effective,
+        },
+        `rapport-chien-malade-${(selectedDog?.name || "brouillon")
+          .toLowerCase()
+          .replace(/\s+/g, "-")}.docx`,
+      );
+      const settings = await fetchDocumentTemplatesSettingsOrDefault(db);
+      const override =
+        settings.byId.sick_dog_report ?? buildDefaultOverrideFromConfig(config);
+      const payload = withTemplateSnapshot(buildPayload(), override);
+      onExported?.(payload);
+    } catch (error) {
+      console.error(error);
+      toast.error(t("reportsMessages.sickDogReport.errors.exportWord"));
     } finally {
       setExporting(false);
     }
@@ -755,14 +802,24 @@ export function SickDogReportWizard({
             <p className="text-sm text-muted-foreground">
               {t("reportsMessages.sickDogReport.hints.preview")}
             </p>
-            <Button
-              type="button"
-              onClick={() => void exportPdf()}
-              disabled={exporting || saving}
-            >
-              <FileDown className="mr-1.5 h-4 w-4" />
-              {t("reportsMessages.sickDogReport.actions.exportPdf")}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                onClick={() => void exportPdf()}
+                disabled={exporting || saving}
+              >
+                <FileDown className="mr-1.5 h-4 w-4" />
+                {t("reportsMessages.sickDogReport.actions.exportPdf")}
+              </Button>
+              <Button
+                type="button"
+                onClick={() => void exportWord()}
+                disabled={exporting || saving}
+              >
+                <FileDown className="mr-1.5 h-4 w-4" />
+                {t("reportsMessages.sickDogReport.actions.exportWord")}
+              </Button>
+            </div>
           </div>
         ) : null}
       </div>
@@ -795,6 +852,15 @@ export function SickDogReportWizard({
           >
             <FileDown className="mr-1.5 h-4 w-4" />
             {t("reportsMessages.sickDogReport.actions.exportPdf")}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void exportWord()}
+            disabled={exporting || saving}
+          >
+            <FileDown className="mr-1.5 h-4 w-4" />
+            {t("reportsMessages.sickDogReport.actions.exportWord")}
           </Button>
         </div>
         <div className="flex flex-wrap gap-2">

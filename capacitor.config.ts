@@ -20,6 +20,10 @@ const config: CapacitorConfig = {
       // Do not clear this directory on startup or during cap sync.
       iosDatabaseLocation: "Library/CapacitorDatabase",
       iosIsEncryption: false,
+      // Android: app internal databases/ directory (survives APK updates of the
+      // same applicationId). Same local SQLite file as iOS — not a remote DB.
+      androidDatabaseLocation: "default",
+      androidIsEncryption: false,
     },
   },
 };

@@ -37,6 +37,8 @@ import {
   FP_SECTION_NARCOTICS,
   FP_SIGNATURE_BRIGADE,
   FP_SIGNATURE_SECTION,
+  FP_SUPPORT_ID_COLS,
+  FP_SUPPORT_ID_FONCTIONS,
   FP_TABLE,
   FP_TABLE_COLS,
   FP_WORK_TITLE,
@@ -343,6 +345,38 @@ function attendanceTable(
   });
 }
 
+const SUPPORT_ID_WIDTHS = FP_SUPPORT_ID_COLS.map((col) => convertMillimetersToTwip(col.w));
+
+/** Blank identification rows for handwritten completion — same block as the PDF. */
+function supportIdentificationTable(): Table {
+  return new Table({
+    width: { size: CONTENT_W, type: WidthType.DXA },
+    columnWidths: SUPPORT_ID_WIDTHS,
+    rows: [
+      new TableRow({
+        children: FP_SUPPORT_ID_COLS.map((col, i) =>
+          cell(col.label, SUPPORT_ID_WIDTHS[i], {
+            bold: true,
+            fill: "D3D3D3",
+            fontSize: 14,
+            font: "Arial",
+          }),
+        ),
+      }),
+      ...FP_SUPPORT_ID_FONCTIONS.map(
+        (fonction) =>
+          new TableRow({
+            children: FP_SUPPORT_ID_COLS.map((col, i) =>
+              col.key === "fonction"
+                ? cell(fonction, SUPPORT_ID_WIDTHS[i], { bold: true, fontSize: 15 })
+                : emptyCell(SUPPORT_ID_WIDTHS[i]),
+            ),
+          }),
+      ),
+    ],
+  });
+}
+
 function chefBlock(data: FeuillePresenceData): Paragraph[] {
   if (data.chefNeedsReplacement || data.chefMode === "manual_fill") {
     const field = (label: string, last = false) => [
@@ -588,7 +622,9 @@ export async function generateFeuillePresenceDocx(
             spacing: { after: 160 },
             children: [],
           }),
-          para([textRun("FEUILLE DE PRESENCE", { bold: true, size: 28 })], { spacingAfter: 80 }),
+          para([textRun("FEUILLE DE PRESENCE", { bold: true, size: 28 })], { spacingAfter: 100 }),
+          supportIdentificationTable(),
+          new Paragraph({ spacing: { after: 360 }, children: [] }),
           para([textRun(data.sectionName || "SECTION", { bold: true, size: 24 })], {
             spacingAfter: 100,
           }),

@@ -89,6 +89,7 @@ import { formatPageLastUpdated, paginate, totalPages } from "@/lib/page-ui";
 import { useI18n } from "@/hooks/use-i18n";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { buildDogsListPdfData, dogsListFilename } from "@/lib/documents/build-dogs-list-pdf-data";
+import { shouldAnnounceBrowserPdfExport } from "@/lib/documents/export-binary";
 import { downloadDogsListPdfWithLogo } from "@/lib/documents/feuille-presence-pdf";
 import { EntityPdfTableTemplateDialog } from "@/components/reports-messages/entity-pdf-table-template-dialog";
 import { canEditEntityPdfTable, fetchChienPdfTemplate } from "@/lib/reports-messages/entity-pdf-table-store";
@@ -104,7 +105,7 @@ export const Route = createFileRoute("/_authenticated/dogs")({
 
 function createDogSchema(t: (key: string) => string) {
   return z.object({
-    name: z.string().trim().min(2, t("validation.nameRequired")).max(60),
+    name: z.string().trim().max(60),
     gender: z.enum(["male", "female"]),
     specialty: z.enum(["narcotics", "explosives"]),
     /** Legacy column — operational status comes from exclusions, not this field. */
@@ -462,7 +463,9 @@ function DogsPage() {
         data,
         filename: dogsListFilename(),
       });
-      toast.success(t("dogs.export.pdfSuccess"));
+      if (shouldAnnounceBrowserPdfExport()) {
+        toast.success(t("dogs.export.pdfSuccess"));
+      }
     } catch (error) {
       console.error("[dogs] PDF export failed:", error);
       toast.error(t("dogs.export.pdfError"));

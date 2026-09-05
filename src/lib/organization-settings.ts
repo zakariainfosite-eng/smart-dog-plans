@@ -56,18 +56,31 @@ function pickString(source: Record<string, unknown>, ...keys: string[]): string 
   return "";
 }
 
+function pickPresentString(source: Record<string, unknown>, ...keys: string[]): string | undefined {
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(source, key) && typeof source[key] === "string") {
+      return source[key] as string;
+    }
+  }
+  return undefined;
+}
+
 export function parseOrganizationSettings(value: unknown): OrganizationSettings {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return { ...DEFAULT_ORGANIZATION_SETTINGS };
   }
   const source = value as Record<string, unknown>;
+  if (Object.keys(source).length === 0) {
+    return { ...DEFAULT_ORGANIZATION_SETTINGS };
+  }
   return {
     unitName:
-      pickString(source, "unitName", "unit_name", "organisationName", "organizationName") ||
+      pickPresentString(source, "unitName", "unit_name", "organisationName", "organizationName") ??
       DEFAULT_ORGANIZATION_SETTINGS.unitName,
-    serviceName: pickString(source, "serviceName", "service_name") || DEFAULT_ORGANIZATION_SETTINGS.serviceName,
-    city: pickString(source, "city") || DEFAULT_ORGANIZATION_SETTINGS.city,
-    country: pickString(source, "country") || DEFAULT_ORGANIZATION_SETTINGS.country,
+    serviceName:
+      pickPresentString(source, "serviceName", "service_name") ?? DEFAULT_ORGANIZATION_SETTINGS.serviceName,
+    city: pickPresentString(source, "city") ?? DEFAULT_ORGANIZATION_SETTINGS.city,
+    country: pickPresentString(source, "country") ?? DEFAULT_ORGANIZATION_SETTINGS.country,
     address: pickString(source, "address"),
     phone: pickString(source, "phone", "phoneNumber", "phone_number"),
     email: pickString(source, "email"),
@@ -105,10 +118,6 @@ export function isValidOrganizationPhone(value: string): boolean {
 export function validateOrganizationSettings(input: OrganizationSettings): OrganizationValidationErrors {
   const normalized = normalizeOrganizationSettings(input);
   const errors: OrganizationValidationErrors = {};
-  if (!normalized.unitName) errors.unitName = "required";
-  if (!normalized.serviceName) errors.serviceName = "required";
-  if (!normalized.city) errors.city = "required";
-  if (!normalized.country) errors.country = "required";
   if (!isValidOrganizationEmail(normalized.email)) errors.email = "email";
   if (!isValidOrganizationPhone(normalized.phone)) errors.phone = "phone";
   return errors;

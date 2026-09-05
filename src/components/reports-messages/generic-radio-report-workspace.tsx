@@ -18,6 +18,7 @@ import { DocumentTemplate } from "@/components/reports-messages/official-documen
 import {
   buildOfficialDocumentFromTemplate,
   createDefaultGenericRadioFormData,
+  exportOfficialDocumentDocxFromTemplate,
   exportOfficialDocumentFromTemplate,
   genericRadioValuesForValidation,
   getDocumentTemplateConfig,
@@ -159,6 +160,42 @@ export function GenericRadioReportWorkspace({
     }
   };
 
+  const exportWord = async () => {
+    if (!config || exporting) return;
+    const issues = validateTemplateRequiredFields(config, genericRadioValuesForValidation(data));
+    if (issues.length > 0) {
+      toast.error(t(issues[0].messageKey, issues[0].params));
+      return;
+    }
+    setExporting(true);
+    try {
+      await exportOfficialDocumentDocxFromTemplate(
+        {
+          config: effective
+            ? { ...config, sections: effective.visibleSections }
+            : config,
+          builder: "generic_radio",
+          data,
+          dog: selectedDog,
+          t,
+          effective,
+        },
+        `${config.templateKey}-${selectedDog?.name || "brouillon"}.docx`,
+      );
+      onExported?.(
+        serializeGenericRadioFormData(data, config.payloadBlobKey, {
+          agentId: selectedDog?.agent?.id ?? null,
+          sectionId: selectedDog?.agent?.section?.id ?? null,
+        }),
+      );
+    } catch (error) {
+      console.error(error);
+      toast.error(t("reportsMessages.documentTemplates.errors.exportWord"));
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (!config || !model) {
     return (
       <p className="text-sm text-muted-foreground">
@@ -182,6 +219,10 @@ export function GenericRadioReportWorkspace({
           <Button type="button" onClick={() => void exportPdf()} disabled={exporting || saving}>
             <FileDown className="mr-1.5 h-4 w-4" />
             {t("reportsMessages.sickDogReport.actions.exportPdf")}
+          </Button>
+          <Button type="button" onClick={() => void exportWord()} disabled={exporting || saving}>
+            <FileDown className="mr-1.5 h-4 w-4" />
+            {t("reportsMessages.sickDogReport.actions.exportWord")}
           </Button>
         </>
       }

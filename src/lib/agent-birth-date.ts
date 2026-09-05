@@ -28,13 +28,14 @@ export type AgentBirthDateValidationCode =
 
 /**
  * Validate a birth date for create/edit forms.
- * Empty is invalid when `required` (form always requires a value).
+ * Empty is allowed (column is nullable). Invalid formats and out-of-range dates
+ * still fail when a value is actually entered.
  */
 export function validateAgentBirthDate(
   value: string | null | undefined,
   reference: Date = new Date(),
 ): AgentBirthDateValidationCode | null {
-  if (!value?.trim()) return "required";
+  if (!value?.trim()) return null;
   const iso = normalizeAgentBirthDate(value);
   if (!iso) return "invalid";
 

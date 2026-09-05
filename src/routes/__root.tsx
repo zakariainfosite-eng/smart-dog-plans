@@ -16,6 +16,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { UiPreferencesProvider } from "@/hooks/use-ui-preferences";
 import { AuthProvider } from "@/hooks/use-auth";
 import { getAuthProvider } from "@/integrations/auth";
+import { PdfExportResultDialog } from "@/components/documents/pdf-export-result-dialog";
 import { Toaster } from "@/components/ui/sonner";
 import { I18nProvider, useI18n } from "@/hooks/use-i18n";
 
@@ -149,6 +150,7 @@ function RootComponent() {
             <AuthProvider>
               <Outlet />
               <Toaster />
+              <PdfExportResultDialog />
             </AuthProvider>
           </I18nProvider>
         </UiPreferencesProvider>

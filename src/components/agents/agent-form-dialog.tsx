@@ -301,13 +301,15 @@ export function AgentFormDialog({
                   </Select>
                 </FormField>
                 <FormField
-                  label={`${t("employees.field.maritalStatus")} *`}
+                  label={t("employees.field.maritalStatus")}
                   error={errors.marital_status}
                 >
                   <Select
-                    value={form.marital_status || undefined}
+                    value={form.marital_status || "__none__"}
                     onValueChange={(value) =>
-                      patchForm({ marital_status: value as MaritalStatus })
+                      patchForm({
+                        marital_status: value === "__none__" ? "" : (value as MaritalStatus),
+                      })
                     }
                   >
                     <SelectTrigger className="transition-shadow hover:shadow-sm">
@@ -316,6 +318,7 @@ export function AgentFormDialog({
                       />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="__none__">{t("common.none")}</SelectItem>
                       {MARITAL_STATUSES.map((status) => (
                         <SelectItem key={status} value={status}>
                           {t(`employees.maritalStatus.${status}`)}
@@ -325,7 +328,7 @@ export function AgentFormDialog({
                   </Select>
                 </FormField>
                 <FormField
-                  label={`${t("employees.field.dateOfBirth")} *`}
+                  label={t("employees.field.dateOfBirth")}
                   error={errors.date_naissance}
                 >
                   <Input

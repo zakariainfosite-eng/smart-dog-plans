@@ -29,6 +29,17 @@ describe("planning settings", () => {
     expect(isValidHhmm("9")).toBe(false);
   });
 
+  it("does not treat empty shift hours as a format error", () => {
+    expect(
+      validatePlanningSettings({
+        dayStart: "",
+        dayEnd: "",
+        nightStart: "",
+        nightEnd: "",
+      }),
+    ).toEqual({});
+  });
+
   it("rejects identical start and end times", () => {
     const errors = validatePlanningSettings({
       ...DEFAULT_PLANNING_SETTINGS,

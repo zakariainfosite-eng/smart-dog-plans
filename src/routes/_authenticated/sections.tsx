@@ -37,6 +37,10 @@ import { SectionDetailSheet } from "@/components/sections/section-detail-sheet";
 import { SectionAssignmentsDialog } from "@/components/sections/section-assignments-dialog";
 import { SectionExclusionsSheet } from "@/components/sections/section-exclusions-sheet";
 import {
+  SectionStatDialog,
+  type SectionStatDialogKind,
+} from "@/components/sections/section-stat-dialog";
+import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -75,7 +79,7 @@ export const Route = createFileRoute("/_authenticated/sections")({
 
 function createSectionSchema(t: (key: string) => string) {
   return z.object({
-    name: z.string().trim().min(2, t("validation.nameMinLength")).max(80),
+    name: z.string().trim().max(80),
     shift_type: z.enum(["day", "night"]),
     active: z.boolean(),
     // Commander identity is owned by Personnel (Chef de section) — never edited here.
@@ -112,6 +116,10 @@ function SectionsPage() {
   const [exclusionsBreakdownLabel, setExclusionsBreakdownLabel] = useState<
     string | null
   >(null);
+  const [statDialog, setStatDialog] = useState<{
+    sectionId: string;
+    kind: SectionStatDialogKind;
+  } | null>(null);
 
   const statusReferenceISO = todayISODate();
 
@@ -183,6 +191,11 @@ function SectionsPage() {
     if (!exclusionsSectionId) return null;
     return (data ?? []).find((s) => s.id === exclusionsSectionId) ?? null;
   }, [data, exclusionsSectionId]);
+
+  const statDialogSection = useMemo(() => {
+    if (!statDialog) return null;
+    return (data ?? []).find((s) => s.id === statDialog.sectionId) ?? null;
+  }, [data, statDialog]);
 
   const filtered = useMemo(() => {
     const list = data ?? [];
@@ -432,6 +445,10 @@ function SectionsPage() {
                   deleteLabel={t("action.delete")}
                   openLabel={t("sections.detail.open")}
                   onOpen={() => openDetail(s)}
+                  onAssignedClick={() => setStatDialog({ sectionId: s.id, kind: "assigned" })}
+                  onAvailableClick={() => setStatDialog({ sectionId: s.id, kind: "available" })}
+                  onNarcoticsClick={() => setStatDialog({ sectionId: s.id, kind: "narcotics" })}
+                  onExplosivesClick={() => setStatDialog({ sectionId: s.id, kind: "explosives" })}
                   onExclusionsClick={() => openSectionExclusions(s.id)}
                   onExclusionTypeClick={(types, label) =>
                     openSectionExclusions(s.id, types, label)
@@ -452,7 +469,27 @@ function SectionsPage() {
         agents={agents}
         exclusions={exclusions}
         referenceISO={statusReferenceISO}
+        shiftHoursLabel={
+          selectedSection
+            ? selectedSection.shift_type === "day"
+              ? t("shift.dayHours", shiftHourLabels)
+              : t("shift.nightHours", shiftHourLabels)
+            : ""
+        }
         onManageAssignments={openAssignments}
+      />
+
+      <SectionStatDialog
+        open={!!statDialogSection}
+        onOpenChange={(open) => {
+          if (!open) setStatDialog(null);
+        }}
+        kind={statDialog?.kind ?? null}
+        sectionName={statDialogSection?.name ?? null}
+        sectionId={statDialogSection?.id ?? null}
+        agents={agents}
+        exclusions={exclusions}
+        referenceISO={statusReferenceISO}
       />
 
       <SectionAssignmentsDialog

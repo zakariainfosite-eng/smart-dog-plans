@@ -40,6 +40,7 @@ export {
 export {
   buildOfficialDocumentFromTemplate,
   exportOfficialDocumentFromTemplate,
+  exportOfficialDocumentDocxFromTemplate,
 } from "@/lib/reports-messages/document-templates/engine";
 
 export {

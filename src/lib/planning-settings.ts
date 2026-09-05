@@ -94,17 +94,40 @@ export function validatePlanningSettings(input: PlanningShiftHours): PlanningVal
   const errors: PlanningValidationErrors = {};
   const fields: PlanningShiftField[] = ["dayStart", "dayEnd", "nightStart", "nightEnd"];
   for (const field of fields) {
+    if (!normalized[field].trim()) continue;
     if (!isValidHhmm(normalized[field])) errors[field] = "format";
   }
-  if (!errors.dayStart && !errors.dayEnd && normalized.dayStart === normalized.dayEnd) {
+  if (
+    normalized.dayStart.trim() &&
+    normalized.dayEnd.trim() &&
+    !errors.dayStart &&
+    !errors.dayEnd &&
+    normalized.dayStart === normalized.dayEnd
+  ) {
     errors.dayStart = "same";
     errors.dayEnd = "same";
   }
-  if (!errors.nightStart && !errors.nightEnd && normalized.nightStart === normalized.nightEnd) {
+  if (
+    normalized.nightStart.trim() &&
+    normalized.nightEnd.trim() &&
+    !errors.nightStart &&
+    !errors.nightEnd &&
+    normalized.nightStart === normalized.nightEnd
+  ) {
     errors.nightStart = "same";
     errors.nightEnd = "same";
   }
   return errors;
+}
+
+function coalesceEmptyPlanningSettings(input: PlanningShiftHours): PlanningShiftHours {
+  const normalized = normalizePlanningSettings(input);
+  return {
+    dayStart: normalized.dayStart.trim() ? normalized.dayStart : DEFAULT_PLANNING_SETTINGS.dayStart,
+    dayEnd: normalized.dayEnd.trim() ? normalized.dayEnd : DEFAULT_PLANNING_SETTINGS.dayEnd,
+    nightStart: normalized.nightStart.trim() ? normalized.nightStart : DEFAULT_PLANNING_SETTINGS.nightStart,
+    nightEnd: normalized.nightEnd.trim() ? normalized.nightEnd : DEFAULT_PLANNING_SETTINGS.nightEnd,
+  };
 }
 
 export function planningSettingsEqual(a: PlanningShiftHours, b: PlanningShiftHours): boolean {
@@ -170,8 +193,8 @@ export async function savePlanningSettings(
   db: DbClient,
   input: PlanningShiftHours,
 ): Promise<PlanningShiftHours> {
-  const normalized = normalizePlanningSettings(input);
-  const errors = validatePlanningSettings(normalized);
+  const coalesced = coalesceEmptyPlanningSettings(input);
+  const errors = validatePlanningSettings(coalesced);
   if (Object.keys(errors).length > 0) {
     throw new Error("Invalid planning settings");
   }
@@ -183,22 +206,22 @@ export async function savePlanningSettings(
     const { error } = await db
       .from("application_settings")
       .update({
-        value: normalized,
+        value: coalesced,
         updated_at: timestamp,
       })
       .eq("id", existing.id);
     if (error) throw new Error(error.message);
-    return normalized;
+    return coalesced;
   }
 
   const { error } = await db.from("application_settings").insert({
     id: randomId(),
     key: PLANNING_SETTINGS_KEY,
-    value: normalized,
+    value: coalesced,
     description: "Future planning shift hours",
     created_at: timestamp,
     updated_at: timestamp,
   });
   if (error) throw new Error(error.message);
-  return normalized;
+  return coalesced;
 }

@@ -1,4 +1,13 @@
 {
+  "pdfExport": {
+    "savedTitle": "PDF saved successfully",
+    "open": "📂 Open file",
+    "share": "Share",
+    "close": "Close",
+    "saveError": "Unable to save the PDF",
+    "openError": "Unable to open the PDF",
+    "shareError": "Unable to share the PDF"
+  },
   "nav": {
     "group": "Navigation",
     "groups": {
@@ -18,6 +27,7 @@
     "history": "History",
     "statistics": "Statistics",
     "reportsMessages": "Reports & Messages",
+    "rapportMessage": "Report / Message",
     "settings": "Settings"
   },
   "statisticDetails": {
@@ -620,9 +630,15 @@
     },
     "detail": {
       "title": "Section detail",
+      "namedTitle": "Details — {{name}}",
       "description": "Assignments and headcount for this section.",
       "open": "Open section",
       "close": "Close",
+      "sectionInfo": "Section information",
+      "personnelHeading": "Personnel",
+      "dogsHeading": "Dogs",
+      "assignmentsHeading": "Assignments",
+      "hours": "Working hours",
       "assignedPersonnel": "Assigned personnel",
       "activeCynotechniciens": "Active cynotechnicians",
       "personnelList": "Personnel list",
@@ -630,6 +646,18 @@
       "manageAssignments": "Manage assignments",
       "photo": "Photo",
       "fullName": "Full name"
+    },
+    "statDialog": {
+      "assignedTitle": "Assigned personnel — {{name}}",
+      "availableTitle": "Available personnel — {{name}}",
+      "narcoticsTitle": "Narcotics dogs — {{name}}",
+      "explosivesTitle": "Explosives dogs — {{name}}",
+      "assignedCount": "Total: {{count}}",
+      "availableCount": "{{count}} people available",
+      "specialtySummary": "Total: {{total}} · Operational: {{operational}}",
+      "handler": "Handler: {{name}}",
+      "emptyAvailable": "No available personnel in this section.",
+      "emptyDogs": "No dogs of this specialty in this section."
     },
     "assignments": {
       "title": "Assignments — {{name}}",
@@ -1279,6 +1307,65 @@
         "keepEditing": "Keep editing",
         "confirm": "Discard changes"
       }
+    },
+    "data": {
+      "title": "Data",
+      "description": "Import local data without changing the schema or the planning engine.",
+      "viewOnly": "View only. Administrators can import a Windows database or clear local data.",
+      "desktopUnavailable": "Windows database import and local data clearing are intended for the Android app. They are not available on the Electron desktop.",
+      "windowsImport": {
+        "title": "Windows data import",
+        "description": "Select the SQLite file copied from the Windows version. The existing Android database is kept; records already present are not overwritten.",
+        "button": "Import the Windows database",
+        "hint": ".db, .sqlite or .sqlite3 files. The real file type is checked, not only the extension.",
+        "inspecting": "Analyzing the Windows database…",
+        "importing": "Importing…",
+        "detectedTitle": "Windows database detected",
+        "confirmQuestion": "Do you want to import this data into CynoPlanning?",
+        "cancel": "Cancel",
+        "import": "Import",
+        "close": "Close",
+        "counts": {
+          "agents": "Agents",
+          "dogs": "Dogs",
+          "checkpoints": "Checkpoints",
+          "planning": "Plannings",
+          "exclusions": "Exclusions",
+          "users": "Users"
+        },
+        "incompatible": "Incompatible tables (not imported): {{tables}}",
+        "toast": {
+          "success": "Import finished. {{imported}} record(s) imported, {{skipped}} skipped, {{conflicts}} conflict(s).",
+          "canceled": "Import cancelled. The Android database was not modified.",
+          "invalidFile": "The selected file is not a valid SQLite database.",
+          "unreadable": "The selected file could not be read.",
+          "backupFailed": "The Android database backup failed. Import was cancelled. No data was modified.",
+          "failed": "Import failed. The Android database was restored."
+        },
+        "result": {
+          "title": "Import result",
+          "imported": "Imported: {{count}}",
+          "skipped": "Skipped (already present): {{count}}",
+          "conflicts": "Conflicts: {{count}}"
+        }
+      },
+      "clearLocal": {
+        "title": "Local Android data",
+        "description": "Deletes all local data on this device so you can import a Windows SQLite database. The SQLite schema is kept. The Windows database is not modified.",
+        "button": "Clear local data",
+        "clearing": "Clearing local data…",
+        "confirmTitle": "Clear local data",
+        "confirmDescription": "Warning: this action will delete all local CynoPlanning data on this device. This action does not delete any Windows data.",
+        "cancel": "Cancel",
+        "confirm": "Clear data",
+        "successTitle": "Local data deleted",
+        "success": "Local data has been deleted. You can now import a Windows SQLite database.",
+        "close": "Close",
+        "toast": {
+          "backupFailed": "The local data backup failed. No data was deleted.",
+          "failed": "Local data could not be cleared."
+        }
+      }
     }
   },
   "language": {
@@ -1334,6 +1421,87 @@
     "empty": {
       "title": "No history",
       "description": "Past plannings will appear here."
+    }
+  },
+  "meta": {
+    "rapportMessage": {
+      "title": "Report / Message — CynoPlanning"
+    }
+  },
+  "rapportMessage": {
+    "title": "Report / Message",
+    "description": "Write, save and export an administrative report or message.",
+    "documentTitle": "REPORT / MESSAGE",
+    "fields": {
+      "title": "Subject / Title",
+      "date": "Date",
+      "recipient": "Recipient",
+      "sender": "Sender",
+      "reference": "Reference",
+      "referenceHint": "Optional.",
+      "body": "Message body",
+      "bodyHint": "Use line breaks to separate paragraphs.",
+      "signature": "Signature"
+    },
+    "placeholders": {
+      "title": "Subject of the report or message",
+      "recipient": "Recipient",
+      "sender": "Sender",
+      "reference": "Internal reference",
+      "body": "Write the message…",
+      "signature": "Name, rank or function"
+    },
+    "actions": {
+      "new": "New report",
+      "save": "Save",
+      "saveChanges": "Save changes",
+      "edit": "Edit",
+      "view": "View",
+      "delete": "Delete",
+      "preview": "Print preview",
+      "print": "Print",
+      "exportPdf": "Export PDF",
+      "exportWord": "Export Word",
+      "word": "Word"
+    },
+    "history": {
+      "title": "History",
+      "description": "Saved reports and messages.",
+      "count": "{{count}} document(s)",
+      "date": "Date",
+      "subject": "Subject",
+      "recipient": "Recipient",
+      "author": "Author",
+      "actions": "Actions",
+      "emptyTitle": "No reports",
+      "emptyDescription": "Saved documents will appear here."
+    },
+    "delete": {
+      "title": "Delete this report?",
+      "description": "This cannot be undone. The document will be removed from history."
+    },
+    "errors": {
+      "title": "Subject is required.",
+      "date": "Enter a valid date.",
+      "recipient": "Recipient is required.",
+      "sender": "Sender is required.",
+      "body": "Message body is required.",
+      "not_found": "Document not found.",
+      "forbidden": "You do not have access to this document."
+    },
+    "toasts": {
+      "saved": "Report saved",
+      "saveError": "Unable to save",
+      "deleted": "Report deleted",
+      "deleteError": "Unable to delete",
+      "docxExported": "Word file downloaded",
+      "docxError": "Word export failed",
+      "pdfExported": "PDF downloaded",
+      "pdfError": "PDF export failed"
+    },
+    "forbidden": {
+      "title": "Access denied",
+      "description": "Sign in to write a report or message."
     }
   }
 }

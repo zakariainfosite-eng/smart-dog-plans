@@ -109,7 +109,6 @@ export function AgentHistoryDialog({
         <div className="space-y-4">
           <Field
             label={t("agentDetails.adminHistory.field.type")}
-            required
             error={errors.event_type}
           >
             <Select
@@ -134,7 +133,6 @@ export function AgentHistoryDialog({
           <div className="grid gap-3 sm:grid-cols-2">
             <Field
               label={t("agentDetails.adminHistory.field.startDate")}
-              required
               error={errors.start_date}
               htmlFor="agent-history-start"
             >

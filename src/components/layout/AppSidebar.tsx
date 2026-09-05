@@ -11,6 +11,7 @@ import {
   History,
   FileBarChart,
   FileText,
+  Mail,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -47,6 +48,7 @@ const navItems: NavItem[] = [
   { key: "nav.operationalCases", url: "/operational-cases", icon: Briefcase },
   { key: "nav.history", url: "/history", icon: History },
   { key: "nav.reportsMessages", url: "/reports-messages", icon: FileText },
+  { key: "nav.rapportMessage", url: "/rapport-message", icon: Mail },
   { key: "nav.statistics", url: "/statistics", icon: FileBarChart },
   { key: "nav.settings", url: "/settings", icon: Settings },
 ];

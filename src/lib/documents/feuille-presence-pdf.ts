@@ -70,10 +70,12 @@ export function generateFeuillePresencePdf(options: FeuillePresenceOptions = {})
   return doc;
 }
 
-export function downloadFeuillePresencePdf(options: FeuillePresenceOptions = {}): void {
+export async function downloadFeuillePresencePdf(
+  options: FeuillePresenceOptions = {},
+): Promise<void> {
   const year = options.year ?? new Date().getFullYear();
   const filename = options.filename ?? `feuille-presence-${year}.pdf`;
-  generateFeuillePresencePdf(options).save(filename);
+  await exportJsPdf(generateFeuillePresencePdf(options), filename);
 }
 
 type RawLogoPayload = {
@@ -120,7 +122,7 @@ export async function downloadFeuillePresencePdfWithLogo(
   options: FeuillePresenceOptions & { logoUrl?: string } = {},
 ): Promise<void> {
   const logoDataUrl = await resolveLogoDataUrl(options);
-  downloadFeuillePresencePdf({
+  await downloadFeuillePresencePdf({
     ...options,
     logoDataUrl,
   });

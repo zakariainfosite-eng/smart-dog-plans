@@ -411,12 +411,6 @@ export function validateTemplateOverride(
     }
     fieldIds.add(field.id);
   }
-  if (override.sections.filter((s) => s.visible).length === 0) {
-    errors.push("no_visible_sections");
-  }
-  if (!override.header.organizationName.trim() && !override.header.department.trim()) {
-    errors.push("empty_header");
-  }
   return errors;
 }
 

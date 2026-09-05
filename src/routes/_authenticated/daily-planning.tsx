@@ -58,6 +58,7 @@ import {
   exportFeuillePresencePlanning,
   planningExportBasename,
 } from "@/lib/documents/planning-export";
+import { shouldAnnounceBrowserPdfExport } from "@/lib/documents/export-binary";
 import { formatUnknownError, stackUnknownError } from "@/lib/documents/export-error";
 import type { PlanningExportFormat } from "@/lib/documents/planning-export-types";
 import {
@@ -698,7 +699,9 @@ function DailyPlanningPage() {
         data,
         filename: `${planningExportBasename(planningDate)}.pdf`,
       });
-      toast.success(t("dailyPlanning.attendanceSheet.success"));
+      if (shouldAnnounceBrowserPdfExport()) {
+        toast.success(t("dailyPlanning.attendanceSheet.success"));
+      }
     } catch {
       toast.error(t("dailyPlanning.attendanceSheet.error"));
     }
@@ -724,11 +727,13 @@ function DailyPlanningPage() {
         return;
       }
 
-      toast.success(
-        format === "both"
-          ? t("dailyPlanning.export.successBoth")
-          : t("dailyPlanning.export.success"),
-      );
+      if (shouldAnnounceBrowserPdfExport()) {
+        toast.success(
+          format === "both"
+            ? t("dailyPlanning.export.successBoth")
+            : t("dailyPlanning.export.success"),
+        );
+      }
     } catch (error) {
       const detail = formatUnknownError(error);
       console.error("Planning export failed:", detail);

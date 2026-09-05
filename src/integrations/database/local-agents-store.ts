@@ -64,20 +64,22 @@ function normalizeMaritalStatus(value: string | null | undefined): MaritalStatus
   return null;
 }
 
-function requireMaritalStatus(value: string | null | undefined): MaritalStatus {
+function parseMaritalStatusWrite(value: string | null | undefined): MaritalStatus | null {
+  if (!value?.trim()) return null;
   const normalized = normalizeMaritalStatus(value);
   if (!normalized) {
     throw new Error(
-      `Agent marital_status is required and must be one of: ${[...VALID_MARITAL_STATUSES].join(", ")}`,
+      `Agent marital_status must be one of: ${[...VALID_MARITAL_STATUSES].join(", ")}`,
     );
   }
   return normalized;
 }
 
-function requireBirthDate(value: string | null | undefined): string {
+function requireBirthDate(value: string | null | undefined): string | null {
+  if (!value?.trim()) return null;
   const code = validateAgentBirthDate(value);
   if (code) throw new Error(`Agent date_naissance is invalid (${code})`);
-  return normalizeAgentBirthDate(value)!;
+  return normalizeAgentBirthDate(value);
 }
 
 function resolveAssignmentFields(input: AgentWriteInput) {
@@ -188,7 +190,7 @@ export async function getAgent(db: SqlExecutor, id: string): Promise<AgentRow | 
 export async function createAgent(db: SqlExecutor, input: AgentWriteInput): Promise<Agent> {
   const id = randomId();
   const timestamp = nowIso();
-  const maritalStatus = requireMaritalStatus(input.marital_status);
+  const maritalStatus = parseMaritalStatusWrite(input.marital_status);
   const birthDate = requireBirthDate(input.date_naissance);
   try {
     await db.transaction(async () => {
@@ -221,15 +223,11 @@ export async function updateAgent(db: SqlExecutor, id: string, input: AgentWrite
   const maritalStatus =
     input.marital_status === undefined
       ? previous.marital_status
-      : input.marital_status == null || (input.marital_status as unknown) === ""
-        ? null
-        : requireMaritalStatus(input.marital_status);
+      : parseMaritalStatusWrite(input.marital_status as string | null | undefined);
   const birthDate =
     input.date_naissance === undefined
       ? previous.date_naissance
-      : input.date_naissance == null || input.date_naissance === ""
-        ? null
-        : requireBirthDate(input.date_naissance);
+      : requireBirthDate(input.date_naissance);
   const origine =
     input.origine === undefined ? previous.origine : input.origine?.trim() || null;
   try {

@@ -146,22 +146,24 @@ function normalizeMaritalStatus(value: string | null | undefined): MaritalStatus
   return null;
 }
 
-function requireMaritalStatus(value: string | null | undefined): MaritalStatus {
+function parseMaritalStatusWrite(value: string | null | undefined): MaritalStatus | null {
+  if (!value?.trim()) return null;
   const normalized = normalizeMaritalStatus(value);
   if (!normalized) {
     throw new Error(
-      `Agent marital_status is required and must be one of: ${[...VALID_MARITAL_STATUSES].join(", ")}`,
+      `Agent marital_status must be one of: ${[...VALID_MARITAL_STATUSES].join(", ")}`,
     );
   }
   return normalized;
 }
 
-function requireBirthDate(value: string | null | undefined): string {
+function requireBirthDate(value: string | null | undefined): string | null {
+  if (!value?.trim()) return null;
   const code = validateAgentBirthDate(value);
   if (code) {
     throw new Error(`Agent date_naissance is invalid (${code})`);
   }
-  return normalizeAgentBirthDate(value)!;
+  return normalizeAgentBirthDate(value);
 }
 
 function nowIso(): string {
@@ -342,7 +344,7 @@ export function getAgent(db: Database.Database, id: string): AgentRecord | null 
 export function createAgent(db: Database.Database, input: CreateAgentInput): AgentRecord {
   const id = randomUUID();
   const timestamp = nowIso();
-  const maritalStatus = requireMaritalStatus(input.marital_status);
+  const maritalStatus = parseMaritalStatusWrite(input.marital_status);
   const birthDate = requireBirthDate(input.date_naissance);
 
   try {
@@ -418,9 +420,7 @@ export function updateAgent(db: Database.Database, id: string, input: UpdateAgen
   const maritalStatus =
     input.marital_status === undefined
       ? previous.marital_status
-      : input.marital_status == null || input.marital_status === ""
-        ? null
-        : requireMaritalStatus(input.marital_status);
+      : parseMaritalStatusWrite(input.marital_status);
 
   const birthDate =
     input.date_naissance === undefined

@@ -49,6 +49,22 @@ export function isBrowserRuntime(): boolean {
   return !isElectronDesktopRuntime() && !isNativeCapacitorRuntime();
 }
 
+/** True on the Capacitor Android WebView (not Electron, not iOS). */
+export function isAndroidCapacitorRuntime(): boolean {
+  if (!isNativeCapacitorRuntime()) return false;
+  try {
+    const capacitor = (
+      window as Window & { Capacitor?: { getPlatform?: () => string } }
+    ).Capacitor;
+    if (typeof capacitor?.getPlatform === "function") {
+      return capacitor.getPlatform() === "android";
+    }
+  } catch {
+    // fall through to UA
+  }
+  return typeof navigator !== "undefined" && /android/i.test(navigator.userAgent);
+}
+
 export function getRuntimePlatform(): RuntimePlatform {
   if (isElectronDesktopRuntime()) return "electron";
   if (isNativeCapacitorRuntime()) return "capacitor";

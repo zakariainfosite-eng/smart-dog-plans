@@ -134,6 +134,20 @@ export function isExplosivesSpecialty(value: string): boolean {
   return token === "explosives" || token === "explosifs";
 }
 
+/** True when a specialty token means currency / Monnaie (existing dog specialty). */
+export function isCurrencySpecialty(value: string): boolean {
+  const token = normalizeSpecialtyToken(value);
+  return token === "currency" || token === "devises" || token === "monnaie";
+}
+
+export type SectionSpecialtyKind = "narcotics" | "explosives" | "currency";
+
+function specialtyMatchesKind(token: string, kind: SectionSpecialtyKind): boolean {
+  if (kind === "narcotics") return isNarcoticsSpecialty(token);
+  if (kind === "explosives") return isExplosivesSpecialty(token);
+  return isCurrencySpecialty(token);
+}
+
 /** Collect specialty tokens from a member's assigned dog (primary + multi-list). */
 export function dogSpecialtyTokens(dog: SectionMemberDogInput | null | undefined): string[] {
   if (!dog) return [];
@@ -154,23 +168,96 @@ export function dogSpecialtyTokens(dog: SectionMemberDogInput | null | undefined
 export function memberSpecialtyFlags(agent: SectionMemberInput): {
   narcotics: boolean;
   explosives: boolean;
+  currency: boolean;
 } {
   if (agent.active === false) {
-    return { narcotics: false, explosives: false };
+    return { narcotics: false, explosives: false, currency: false };
   }
   if (!agent.dog_id && !agent.dogs) {
-    return { narcotics: false, explosives: false };
+    return { narcotics: false, explosives: false, currency: false };
   }
 
   const tokens = dogSpecialtyTokens(agent.dogs);
   if (tokens.length === 0) {
-    return { narcotics: false, explosives: false };
+    return { narcotics: false, explosives: false, currency: false };
   }
 
   return {
     narcotics: tokens.some(isNarcoticsSpecialty),
     explosives: tokens.some(isExplosivesSpecialty),
+    currency: tokens.some(isCurrencySpecialty),
   };
+}
+
+/** Assigned personnel of a section — same membership as {@link computeSectionOperationalStats}. */
+export function listSectionMembers<T extends SectionMemberInput>(
+  sectionId: string,
+  agents: readonly T[],
+): T[] {
+  return agents.filter((agent) => agent.section_id === sectionId);
+}
+
+export function isSectionMemberAvailable(
+  agent: SectionMemberInput,
+  exclusions: AgentExclusionRecord[],
+  reference: Date | string = new Date(),
+): boolean {
+  return deriveAgentAvailabilityForAgent(agent, exclusions, reference).status === "available";
+}
+
+/** Assigned members with no active agent/dog exclusion (same rule as the card). */
+export function listSectionAvailableMembers<T extends SectionMemberInput>(
+  sectionId: string,
+  agents: readonly T[],
+  exclusions: AgentExclusionRecord[],
+  reference: Date | string = new Date(),
+): T[] {
+  return listSectionMembers(sectionId, agents).filter((agent) =>
+    isSectionMemberAvailable(agent, exclusions, reference),
+  );
+}
+
+/** Assigned active handlers whose dog specialty matches the card category. */
+export function listSectionSpecialtyMembers<T extends SectionMemberInput>(
+  sectionId: string,
+  agents: readonly T[],
+  kind: SectionSpecialtyKind,
+): T[] {
+  return listSectionMembers(sectionId, agents).filter((agent) => {
+    const tokens = dogSpecialtyTokens(agent.dogs);
+    if (agent.active === false || (!agent.dog_id && !agent.dogs) || tokens.length === 0) {
+      return false;
+    }
+    return tokens.some((token) => specialtyMatchesKind(token, kind));
+  });
+}
+
+/** Specialty members who are currently available (card “Opérationnel”). */
+export function listSectionOperationalSpecialtyMembers<T extends SectionMemberInput>(
+  sectionId: string,
+  agents: readonly T[],
+  exclusions: AgentExclusionRecord[],
+  kind: SectionSpecialtyKind,
+  reference: Date | string = new Date(),
+): T[] {
+  return listSectionSpecialtyMembers(sectionId, agents, kind).filter((agent) =>
+    isSectionMemberAvailable(agent, exclusions, reference),
+  );
+}
+
+export function compareSectionMemberNames(
+  a: { id: string; last_name?: string; first_name?: string },
+  b: { id: string; last_name?: string; first_name?: string },
+): number {
+  const byLast = (a.last_name ?? "").localeCompare(b.last_name ?? "", undefined, {
+    sensitivity: "base",
+  });
+  if (byLast !== 0) return byLast;
+  const byFirst = (a.first_name ?? "").localeCompare(b.first_name ?? "", undefined, {
+    sensitivity: "base",
+  });
+  if (byFirst !== 0) return byFirst;
+  return a.id.localeCompare(b.id);
 }
 
 function isKnownExclusionType(type: string): type is ExclusionType {

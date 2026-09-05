@@ -6,6 +6,15 @@
     "brandTagline": "Planning",
     "description": "Console d'administration professionnelle pour la gestion des unités K9 et la planification."
   },
+  "pdfExport": {
+    "savedTitle": "PDF enregistré avec succès",
+    "open": "📂 Ouvrir le fichier",
+    "share": "Partager",
+    "close": "Fermer",
+    "saveError": "Impossible d'enregistrer le PDF",
+    "openError": "Impossible d'ouvrir le PDF",
+    "shareError": "Impossible de partager le PDF"
+  },
   "nav": {
     "group": "Navigation",
     "groups": {
@@ -24,6 +33,7 @@
     "dailyPlanning": "Planification quotidienne",
     "history": "Historique",
     "reportsMessages": "Rapports & Messages",
+    "rapportMessage": "Rapport / Message",
     "statistics": "Statistiques",
     "settings": "Paramètres"
   },
@@ -240,6 +250,9 @@
       "assistant": "Rapports — Assistant cynotechnique — CynoPlanning",
       "secretary": "Rapports — Secrétaire — CynoPlanning",
       "equipmentChief": "Rapports & Messages — Chef matériel — CynoPlanning"
+    },
+    "rapportMessage": {
+      "title": "Rapport / Message — CynoPlanning"
     }
   },
   "error": {
@@ -1780,9 +1793,15 @@
     },
     "detail": {
       "title": "Détail de la section",
+      "namedTitle": "Détails — {{name}}",
       "description": "Affectations et effectifs de la section.",
       "open": "Ouvrir la section",
       "close": "Fermer",
+      "sectionInfo": "Informations de la section",
+      "personnelHeading": "Personnel",
+      "dogsHeading": "Chiens",
+      "assignmentsHeading": "Affectations",
+      "hours": "Horaires",
       "assignedPersonnel": "Personnel assigné",
       "activeCynotechniciens": "Cynotechniciens actifs",
       "personnelList": "Liste du personnel",
@@ -1790,6 +1809,18 @@
       "manageAssignments": "Gérer les affectations",
       "photo": "Photo",
       "fullName": "Nom complet"
+    },
+    "statDialog": {
+      "assignedTitle": "Personnel assigné — {{name}}",
+      "availableTitle": "Personnel disponible — {{name}}",
+      "narcoticsTitle": "Chiens Stupéfiants — {{name}}",
+      "explosivesTitle": "Chiens Explosifs — {{name}}",
+      "assignedCount": "Total : {{count}}",
+      "availableCount": "{{count}} personnes disponibles",
+      "specialtySummary": "Total : {{total}} · Opérationnels : {{operational}}",
+      "handler": "Maître-chien : {{name}}",
+      "emptyAvailable": "Aucun personnel disponible dans cette section.",
+      "emptyDogs": "Aucun chien de cette spécialité dans cette section."
     },
     "assignments": {
       "title": "Affectations — {{name}}",
@@ -2114,6 +2145,65 @@
         "description": "Les réglages et le logo non enregistrés seront perdus.",
         "keepEditing": "Continuer la modification",
         "confirm": "Annuler les modifications"
+      }
+    },
+    "data": {
+      "title": "Données",
+      "description": "Importation des données locales sans modifier le schéma ni le moteur de planification.",
+      "viewOnly": "Consultation uniquement. Seuls les administrateurs peuvent importer une base Windows ou vider les données locales.",
+      "desktopUnavailable": "L'importation Windows et le vidage des données locales sont destinés à l'application Android. Ils ne sont pas disponibles sur le bureau Electron.",
+      "windowsImport": {
+        "title": "Importation des données Windows",
+        "description": "Sélectionnez le fichier SQLite copié depuis la version Windows. La base Android existante est conservée ; les enregistrements déjà présents ne sont pas écrasés.",
+        "button": "Importer la base de données Windows",
+        "hint": "Fichiers .db, .sqlite ou .sqlite3. Le type réel du fichier est vérifié, pas seulement l'extension.",
+        "inspecting": "Analyse de la base Windows…",
+        "importing": "Importation en cours…",
+        "detectedTitle": "Base Windows détectée",
+        "confirmQuestion": "Voulez-vous importer ces données dans CynoPlanning ?",
+        "cancel": "Annuler",
+        "import": "Importer",
+        "close": "Fermer",
+        "counts": {
+          "agents": "Agents",
+          "dogs": "Chiens",
+          "checkpoints": "Points",
+          "planning": "Plannings",
+          "exclusions": "Exclusions",
+          "users": "Utilisateurs"
+        },
+        "incompatible": "Tables incompatibles (non importées) : {{tables}}",
+        "toast": {
+          "success": "Importation terminée. {{imported}} enregistrement(s) importé(s), {{skipped}} ignoré(s), {{conflicts}} conflit(s).",
+          "canceled": "Importation annulée. La base Android n'a pas été modifiée.",
+          "invalidFile": "Le fichier sélectionné n'est pas une base SQLite valide.",
+          "unreadable": "Impossible de lire le fichier sélectionné.",
+          "backupFailed": "La sauvegarde de la base Android a échoué. L'importation a été annulée. Aucune donnée n'a été modifiée.",
+          "failed": "L'importation a échoué. La base Android a été rétablie."
+        },
+        "result": {
+          "title": "Résultat de l'importation",
+          "imported": "Importés : {{count}}",
+          "skipped": "Ignorés (déjà présents) : {{count}}",
+          "conflicts": "Conflits : {{count}}"
+        }
+      },
+      "clearLocal": {
+        "title": "Données locales Android",
+        "description": "Supprime toutes les données locales de cet appareil pour préparer l'importation d'une base SQLite Windows. Le schéma SQLite est conservé. La base Windows n'est pas modifiée.",
+        "button": "Vider les données locales",
+        "clearing": "Suppression des données locales…",
+        "confirmTitle": "Vider les données locales",
+        "confirmDescription": "Attention : cette action supprimera toutes les données locales de CynoPlanning sur cet appareil. Cette action ne supprime aucune donnée Windows.",
+        "cancel": "Annuler",
+        "confirm": "Vider les données",
+        "successTitle": "Données locales supprimées",
+        "success": "Les données locales ont été supprimées. Vous pouvez maintenant importer une base SQLite Windows.",
+        "close": "Fermer",
+        "toast": {
+          "backupFailed": "La sauvegarde des données locales a échoué. Aucune donnée n'a été supprimée.",
+          "failed": "Impossible de vider les données locales."
+        }
       }
     }
   },
@@ -2911,7 +3001,8 @@
         "back": "Retour",
         "addDiffusion": "Ajouter un destinataire",
         "addSignatory": "Ajouter un signataire",
-        "exportPdf": "Exporter en PDF"
+        "exportPdf": "Exporter en PDF",
+        "exportWord": "Exporter en Word"
       },
       "placeholders": {
         "diffusion": "Service / destinataire de diffusion",
@@ -2941,7 +3032,8 @@
         "diffusion": "DIFFUSION"
       },
       "errors": {
-        "exportPdf": "Impossible d'exporter le PDF."
+        "exportPdf": "Impossible d'exporter le PDF.",
+        "exportWord": "Impossible d'exporter le document Word."
       }
     },
     "documentTemplates": {
@@ -2955,6 +3047,7 @@
       },
       "errors": {
         "exportPdf": "Impossible d'exporter le PDF.",
+        "exportWord": "Impossible d'exporter le document Word.",
         "unknownTemplate": "Modèle de document inconnu."
       },
       "validation": {
@@ -3260,6 +3353,82 @@
         "maritalStatus": "Situation familiale",
         "address": "Adresse"
       }
+    }
+  },
+  "rapportMessage": {
+    "title": "Rapport / Message",
+    "description": "Rédiger, enregistrer et exporter un rapport ou un message administratif.",
+    "documentTitle": "RAPPORT / MESSAGE",
+    "fields": {
+      "title": "Objet / Titre",
+      "date": "Date",
+      "recipient": "Destinataire",
+      "sender": "Expéditeur",
+      "reference": "Référence",
+      "referenceHint": "Facultatif.",
+      "body": "Corps du message",
+      "bodyHint": "Utilisez des retours à la ligne pour séparer les paragraphes.",
+      "signature": "Signature"
+    },
+    "placeholders": {
+      "title": "Objet du rapport ou du message",
+      "recipient": "Destinataire",
+      "sender": "Expéditeur",
+      "reference": "Référence interne",
+      "body": "Rédigez le message…",
+      "signature": "Nom, grade ou fonction"
+    },
+    "actions": {
+      "new": "Nouveau rapport",
+      "save": "Enregistrer",
+      "saveChanges": "Enregistrer les modifications",
+      "edit": "Modifier",
+      "view": "Voir",
+      "delete": "Supprimer",
+      "preview": "Aperçu avant impression",
+      "print": "Imprimer",
+      "exportPdf": "Exporter en PDF",
+      "exportWord": "Exporter Word",
+      "word": "Word"
+    },
+    "history": {
+      "title": "Historique",
+      "description": "Rapports et messages enregistrés.",
+      "count": "{{count}} document(s)",
+      "date": "Date",
+      "subject": "Objet",
+      "recipient": "Destinataire",
+      "author": "Auteur",
+      "actions": "Actions",
+      "emptyTitle": "Aucun rapport",
+      "emptyDescription": "Les documents enregistrés apparaîtront ici."
+    },
+    "delete": {
+      "title": "Supprimer ce rapport ?",
+      "description": "Cette action est définitive. Le document sera retiré de l’historique."
+    },
+    "errors": {
+      "title": "L’objet est obligatoire.",
+      "date": "La date saisie n’est pas valide.",
+      "recipient": "Le destinataire est obligatoire.",
+      "sender": "L’expéditeur est obligatoire.",
+      "body": "Le corps du message est obligatoire.",
+      "not_found": "Document introuvable.",
+      "forbidden": "Vous n’avez pas accès à ce document."
+    },
+    "toasts": {
+      "saved": "Rapport enregistré",
+      "saveError": "Enregistrement impossible",
+      "deleted": "Rapport supprimé",
+      "deleteError": "Suppression impossible",
+      "docxExported": "Fichier Word téléchargé",
+      "docxError": "Export Word impossible",
+      "pdfExported": "PDF téléchargé",
+      "pdfError": "Export PDF impossible"
+    },
+    "forbidden": {
+      "title": "Accès refusé",
+      "description": "Connectez-vous pour rédiger un rapport ou un message."
     }
   }
 }

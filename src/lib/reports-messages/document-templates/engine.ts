@@ -16,10 +16,15 @@ import type { HeatDogReportFormData } from "@/lib/reports-messages/document-temp
 import type { GenericRadioReportFormData } from "@/lib/reports-messages/document-templates/generic-radio-form";
 import type { SickDogReportFormData } from "@/lib/reports-messages/sick-dog-report";
 import { exportJsPdf } from "@/lib/documents/export-jspdf";
+import { savePlanningExportFiles } from "@/lib/documents/planning-export";
 import { renderOfficialDocumentPdf } from "@/lib/reports-messages/official-document/render-official-pdf";
+import { renderOfficialDocumentDocx } from "@/lib/reports-messages/official-document/render-official-docx";
 import { loadMessageDemandeOfficialLogo } from "@/lib/reports-messages/official-document/message-demande-logo";
 import type { OfficialDocumentModel } from "@/lib/reports-messages/official-document/types";
 import { sickDogOfficialLabelsFromT } from "@/lib/reports-messages/official-document/build-sick-dog-document";
+
+const DOCX_MIME =
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 export type TemplateEngineInput =
   | {
@@ -123,4 +128,29 @@ export async function exportOfficialDocumentFromTemplate(
       : undefined;
   const doc = renderOfficialDocumentPdf(model, labels, { logoData });
   await exportJsPdf(doc, filename);
+}
+
+export async function exportOfficialDocumentDocxFromTemplate(
+  input: TemplateEngineInput,
+  filename: string,
+): Promise<void> {
+  const model = buildOfficialDocumentFromTemplate(input);
+  const labels = sickDogOfficialLabelsFromT(input.t);
+  if (input.effective?.header) {
+    labels.agencyLine1 = input.effective.header.organizationName || labels.agencyLine1;
+    labels.agencyLine2 = input.effective.header.department || labels.agencyLine2;
+    labels.radioTitle = input.effective.header.radioTitle || labels.radioTitle;
+  }
+  const logoData =
+    input.builder === "message_demande" || input.builder === "heat_dog"
+      ? await loadMessageDemandeOfficialLogo()
+      : undefined;
+  const bytes = await renderOfficialDocumentDocx(model, labels, { logoData });
+  await savePlanningExportFiles([
+    {
+      filename,
+      mimeType: DOCX_MIME,
+      bytes,
+    },
+  ]);
 }

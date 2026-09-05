@@ -35,7 +35,7 @@ describe("organization settings", () => {
     });
   });
 
-  it("requires organisation, service, city and country", () => {
+  it("allows empty organisation, service, city and country", () => {
     const errors = validateOrganizationSettings({
       ...DEFAULT_ORGANIZATION_SETTINGS,
       unitName: "  ",
@@ -43,10 +43,7 @@ describe("organization settings", () => {
       city: "",
       country: " ",
     });
-    expect(errors.unitName).toBe("required");
-    expect(errors.serviceName).toBe("required");
-    expect(errors.city).toBe("required");
-    expect(errors.country).toBe("required");
+    expect(errors).toEqual({});
   });
 
   it("accepts empty optional fields and trims values", () => {

@@ -1,0 +1,51 @@
+{
+  "path": "/Users/mac/Desktop/smart-dog-plans-main/test-data/cynoplanning_test.db",
+  "bytes": 430080,
+  "integrity": "ok",
+  "foreignKeyViolations": 0,
+  "tables": [
+    "agent_administrative_history",
+    "agent_exclusions",
+    "agents",
+    "application_settings",
+    "checkpoint_posts",
+    "checkpoints",
+    "document_reference_sequences",
+    "dogs",
+    "exclusion_notifications",
+    "operational_case_attachments",
+    "operational_cases",
+    "planning",
+    "planning_assignments",
+    "role_documents",
+    "rotation_history",
+    "schema_migrations",
+    "sections",
+    "users"
+  ],
+  "counts": {
+    "agent_administrative_history": 6,
+    "agent_exclusions": 18,
+    "agents": 30,
+    "application_settings": 4,
+    "checkpoint_posts": 20,
+    "checkpoints": 8,
+    "document_reference_sequences": 2,
+    "dogs": 20,
+    "exclusion_notifications": 8,
+    "operational_case_attachments": 1,
+    "operational_cases": 3,
+    "planning": 40,
+    "planning_assignments": 202,
+    "role_documents": 2,
+    "rotation_history": 175,
+    "schema_migrations": 19,
+    "sections": 4,
+    "users": 10
+  },
+  "testLogin": {
+    "email": "admin.test@cynoplanning.test",
+    "password": "TestImport@2026",
+    "note": "bcryptjs cost 12 — fictional accounts only"
+  }
+}

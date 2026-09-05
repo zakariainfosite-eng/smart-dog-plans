@@ -36,6 +36,37 @@ export const FP_TABLE = {
   borderWidth: 0.12,
 } as const;
 
+/**
+ * Blank identification rows under the title — sum equals FP_CONTENT_W (186 mm).
+ * Émargement is widest so a handwritten signature fits.
+ */
+export const FP_SUPPORT_ID_COLS = [
+  { key: "fonction", label: "Fonction", w: 48 },
+  { key: "name", label: "Nom & Prénom", w: 38 },
+  { key: "matricule", label: "Matricule", w: 20 },
+  { key: "grade", label: "Grade", w: 18 },
+  { key: "heure", label: "Heure", w: 16 },
+  { key: "emargement", label: "Émargement", w: 46 },
+] as const;
+
+export const FP_SUPPORT_ID_FONCTIONS = [
+  "Aide-soignant vétérinaire",
+  "Assistant cynotechnique",
+] as const;
+
+export const FP_SUPPORT_ID = {
+  headerH: 5.8,
+  rowH: 6.8,
+  /** Title baseline → identification table top (mm). */
+  gapAfterTitle: 3.2,
+  /**
+   * Identification table bottom → SECTION baseline (mm).
+   * Includes the section title ascent (~4 mm) plus a clear visible gap so the
+   * table does not touch “SECTION …”.
+   */
+  gapAfterTable: 11.2,
+} as const;
+
 export const FP_TYPO = {
   org: { family: "times" as const, style: "normal" as const, size: 7.2 },
   date: { family: "times" as const, style: "normal" as const, size: 7.2 },

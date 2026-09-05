@@ -94,12 +94,6 @@ export function validateAgentHistoryForm(
   t: (key: string) => string,
 ): AgentHistoryFormErrors {
   const errors: AgentHistoryFormErrors = {};
-  if (!values.event_type) {
-    errors.event_type = t("agentDetails.adminHistory.validation.typeRequired");
-  }
-  if (!values.start_date.trim()) {
-    errors.start_date = t("agentDetails.adminHistory.validation.startRequired");
-  }
   if (
     values.start_date.trim() &&
     values.end_date.trim() &&

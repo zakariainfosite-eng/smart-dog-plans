@@ -21,8 +21,8 @@ describe("agent birth date", () => {
     expect(validateAgentBirthDate("1990-05-15", ref)).toBeNull();
   });
 
-  it("requires a value on forms", () => {
-    expect(validateAgentBirthDate("", ref)).toBe("required");
-    expect(validateAgentBirthDate(null, ref)).toBe("required");
+  it("allows empty values on forms", () => {
+    expect(validateAgentBirthDate("", ref)).toBeNull();
+    expect(validateAgentBirthDate(null, ref)).toBeNull();
   });
 });

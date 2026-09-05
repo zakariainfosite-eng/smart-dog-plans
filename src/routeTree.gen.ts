@@ -16,6 +16,7 @@ import { Route as AuthenticatedStatisticsRouteImport } from './routes/_authentic
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSectionsRouteImport } from './routes/_authenticated/sections'
 import { Route as AuthenticatedReportsMessagesRouteImport } from './routes/_authenticated/reports-messages'
+import { Route as AuthenticatedRapportMessageRouteImport } from './routes/_authenticated/rapport-message'
 import { Route as AuthenticatedOperationalCasesRouteImport } from './routes/_authenticated/operational-cases'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedExclusionsRouteImport } from './routes/_authenticated/exclusions'
@@ -68,6 +69,12 @@ const AuthenticatedReportsMessagesRoute =
   AuthenticatedReportsMessagesRouteImport.update({
     id: '/reports-messages',
     path: '/reports-messages',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedRapportMessageRoute =
+  AuthenticatedRapportMessageRouteImport.update({
+    id: '/rapport-message',
+    path: '/rapport-message',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedOperationalCasesRoute =
@@ -184,6 +191,7 @@ export interface FileRoutesByFullPath {
   '/exclusions': typeof AuthenticatedExclusionsRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/operational-cases': typeof AuthenticatedOperationalCasesRoute
+  '/rapport-message': typeof AuthenticatedRapportMessageRoute
   '/reports-messages': typeof AuthenticatedReportsMessagesRouteWithChildren
   '/sections': typeof AuthenticatedSectionsRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -210,6 +218,7 @@ export interface FileRoutesByTo {
   '/exclusions': typeof AuthenticatedExclusionsRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/operational-cases': typeof AuthenticatedOperationalCasesRoute
+  '/rapport-message': typeof AuthenticatedRapportMessageRoute
   '/sections': typeof AuthenticatedSectionsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/statistics': typeof AuthenticatedStatisticsRoute
@@ -236,6 +245,7 @@ export interface FileRoutesById {
   '/_authenticated/exclusions': typeof AuthenticatedExclusionsRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/operational-cases': typeof AuthenticatedOperationalCasesRoute
+  '/_authenticated/rapport-message': typeof AuthenticatedRapportMessageRoute
   '/_authenticated/reports-messages': typeof AuthenticatedReportsMessagesRouteWithChildren
   '/_authenticated/sections': typeof AuthenticatedSectionsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
@@ -264,6 +274,7 @@ export interface FileRouteTypes {
     | '/exclusions'
     | '/history'
     | '/operational-cases'
+    | '/rapport-message'
     | '/reports-messages'
     | '/sections'
     | '/settings'
@@ -290,6 +301,7 @@ export interface FileRouteTypes {
     | '/exclusions'
     | '/history'
     | '/operational-cases'
+    | '/rapport-message'
     | '/sections'
     | '/settings'
     | '/statistics'
@@ -315,6 +327,7 @@ export interface FileRouteTypes {
     | '/_authenticated/exclusions'
     | '/_authenticated/history'
     | '/_authenticated/operational-cases'
+    | '/_authenticated/rapport-message'
     | '/_authenticated/reports-messages'
     | '/_authenticated/sections'
     | '/_authenticated/settings'
@@ -386,6 +399,13 @@ declare module '@tanstack/react-router' {
       path: '/reports-messages'
       fullPath: '/reports-messages'
       preLoaderRoute: typeof AuthenticatedReportsMessagesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/rapport-message': {
+      id: '/_authenticated/rapport-message'
+      path: '/rapport-message'
+      fullPath: '/rapport-message'
+      preLoaderRoute: typeof AuthenticatedRapportMessageRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/operational-cases': {
@@ -588,6 +608,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedExclusionsRoute: typeof AuthenticatedExclusionsRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedOperationalCasesRoute: typeof AuthenticatedOperationalCasesRoute
+  AuthenticatedRapportMessageRoute: typeof AuthenticatedRapportMessageRoute
   AuthenticatedReportsMessagesRoute: typeof AuthenticatedReportsMessagesRouteWithChildren
   AuthenticatedSectionsRoute: typeof AuthenticatedSectionsRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
@@ -603,6 +624,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedExclusionsRoute: AuthenticatedExclusionsRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedOperationalCasesRoute: AuthenticatedOperationalCasesRoute,
+  AuthenticatedRapportMessageRoute: AuthenticatedRapportMessageRoute,
   AuthenticatedReportsMessagesRoute:
     AuthenticatedReportsMessagesRouteWithChildren,
   AuthenticatedSectionsRoute: AuthenticatedSectionsRoute,

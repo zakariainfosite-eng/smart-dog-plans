@@ -59,6 +59,10 @@ type SectionManagementCardProps = {
   deleteLabel: string;
   openLabel?: string;
   onOpen?: () => void;
+  onAssignedClick?: () => void;
+  onAvailableClick?: () => void;
+  onNarcoticsClick?: () => void;
+  onExplosivesClick?: () => void;
   /** Open all active exclusions for the section. */
   onExclusionsClick?: () => void;
   /** Open active exclusions for one breakdown counter (Maladie, Congé, …). */
@@ -103,6 +107,10 @@ export function SectionManagementCard({
   deleteLabel,
   openLabel,
   onOpen,
+  onAssignedClick,
+  onAvailableClick,
+  onNarcoticsClick,
+  onExplosivesClick,
   onExclusionsClick,
   onExclusionTypeClick,
   onEdit,
@@ -169,7 +177,12 @@ export function SectionManagementCard({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="min-w-0 truncate text-sm font-semibold tracking-tight text-[#0B1F3A] dark:text-foreground">
+            <h3
+              className={cn(
+                "min-w-0 truncate text-sm font-semibold tracking-tight text-[#0B1F3A] dark:text-foreground",
+                onOpen && "underline-offset-2 group-hover:underline decoration-[#023A84]/35",
+              )}
+            >
               {name}
             </h3>
             <StatusBadge
@@ -241,12 +254,14 @@ export function SectionManagementCard({
             icon={<Users className="h-3 w-3" />}
             label={agentsLabel}
             value={agentCount}
+            onClick={onAssignedClick}
           />
           <StatTile
             icon={<UserCheck className="h-3 w-3" />}
             label={availableLabel}
             value={availableCount}
             valueClassName="text-emerald-700 dark:text-emerald-400"
+            onClick={onAvailableClick}
           />
           <div className="col-span-2 rounded-lg border border-[#023A84]/10 bg-[#023A84]/[0.02] px-2.5 py-1.5">
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
@@ -257,6 +272,7 @@ export function SectionManagementCard({
                 totalLabel={totalLabel}
                 operational={narcoticsOperational}
                 total={narcoticsTotal}
+                onClick={onNarcoticsClick}
               />
               <SpecialtyStatTile
                 emoji="💣"
@@ -265,6 +281,7 @@ export function SectionManagementCard({
                 totalLabel={totalLabel}
                 operational={explosivesOperational}
                 total={explosivesTotal}
+                onClick={onExplosivesClick}
               />
             </div>
           </div>
@@ -322,14 +339,39 @@ function StatTile({
   label,
   value,
   valueClassName,
+  onClick,
 }: {
   icon: ReactNode;
   label: string;
   value: number;
   valueClassName?: string;
+  onClick?: () => void;
 }) {
+  const interactive = Boolean(onClick);
   return (
-    <div className="rounded-lg border border-[#023A84]/10 bg-[#023A84]/[0.02] px-2.5 py-1.5">
+    <div
+      className={cn(
+        "rounded-lg border border-[#023A84]/10 bg-[#023A84]/[0.02] px-2.5 py-1.5",
+        interactive &&
+          "cursor-pointer transition-all hover:border-[#023A84]/25 hover:bg-[#023A84]/[0.06] hover:shadow-[0_2px_8px_-2px_rgba(2,58,132,0.12)] active:bg-[#023A84]/[0.08]",
+      )}
+      role={interactive ? "button" : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      aria-label={interactive ? label : undefined}
+      onClick={(event) => {
+        if (!onClick) return;
+        event.stopPropagation();
+        onClick();
+      }}
+      onKeyDown={(event) => {
+        if (!onClick) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          event.stopPropagation();
+          onClick();
+        }
+      }}
+    >
       <div className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
         {icon}
         <span className="truncate">{label}</span>
@@ -353,6 +395,7 @@ function SpecialtyStatTile({
   totalLabel,
   operational,
   total,
+  onClick,
 }: {
   emoji: string;
   label: string;
@@ -360,9 +403,33 @@ function SpecialtyStatTile({
   totalLabel: string;
   operational: number;
   total: number;
+  onClick?: () => void;
 }) {
+  const interactive = Boolean(onClick);
   return (
-    <div className="min-w-0">
+    <div
+      className={cn(
+        "min-w-0 rounded-md px-1 py-0.5",
+        interactive &&
+          "cursor-pointer transition-all hover:bg-[#023A84]/[0.06] active:bg-[#023A84]/[0.08]",
+      )}
+      role={interactive ? "button" : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      aria-label={interactive ? label : undefined}
+      onClick={(event) => {
+        if (!onClick) return;
+        event.stopPropagation();
+        onClick();
+      }}
+      onKeyDown={(event) => {
+        if (!onClick) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          event.stopPropagation();
+          onClick();
+        }
+      }}
+    >
       <p className="flex items-center gap-1 text-[11px] font-semibold text-[#0B1F3A] dark:text-foreground">
         <span aria-hidden className="text-[11px] leading-none">
           {emoji}

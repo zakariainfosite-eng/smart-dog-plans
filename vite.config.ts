@@ -14,7 +14,7 @@ export default defineConfig({
   },
   vite: {
     optimizeDeps: {
-      exclude: ["@capacitor-community/sqlite"],
+      exclude: ["@capacitor-community/sqlite", "pdfjs-dist"],
     },
   },
 });

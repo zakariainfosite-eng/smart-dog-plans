@@ -6,6 +6,15 @@
     "brandTagline": "التخطيط",
     "description": "وحدة تحكم احترافية لإدارة وحدات الكلاب والتخطيط."
   },
+  "pdfExport": {
+    "savedTitle": "تم حفظ ملف PDF بنجاح",
+    "open": "📂 فتح الملف",
+    "share": "مشاركة",
+    "close": "إغلاق",
+    "saveError": "تعذّر حفظ ملف PDF",
+    "openError": "تعذّر فتح ملف PDF",
+    "shareError": "تعذّر مشاركة ملف PDF"
+  },
   "nav": {
     "group": "التنقل",
     "groups": {
@@ -25,6 +34,7 @@
     "history": "السجل",
     "statistics": "الإحصائيات",
     "reportsMessages": "التقارير والرسائل",
+    "rapportMessage": "تقرير / رسالة",
     "settings": "الإعدادات"
   },
   "action": {
@@ -232,6 +242,9 @@
     },
     "history": {
       "title": "السجل — CynoPlanning"
+    },
+    "rapportMessage": {
+      "title": "تقرير / رسالة — CynoPlanning"
     }
   },
   "error": {
@@ -1752,9 +1765,15 @@
     },
     "detail": {
       "title": "تفاصيل القسم",
+      "namedTitle": "التفاصيل — {{name}}",
       "description": "التعيينات والعدد في القسم.",
       "open": "فتح القسم",
       "close": "إغلاق",
+      "sectionInfo": "معلومات القسم",
+      "personnelHeading": "الأفراد",
+      "dogsHeading": "الكلاب",
+      "assignmentsHeading": "التعيينات",
+      "hours": "ساعات العمل",
       "assignedPersonnel": "الأفراد المعيّنون",
       "activeCynotechniciens": "Cynotechniciens النشطون",
       "personnelList": "قائمة الأفراد",
@@ -1762,6 +1781,18 @@
       "manageAssignments": "إدارة التعيينات",
       "photo": "الصورة",
       "fullName": "الاسم الكامل"
+    },
+    "statDialog": {
+      "assignedTitle": "الأفراد المعيّنون — {{name}}",
+      "availableTitle": "الأفراد المتاحون — {{name}}",
+      "narcoticsTitle": "كلاب المخدرات — {{name}}",
+      "explosivesTitle": "كلاب المتفجرات — {{name}}",
+      "assignedCount": "المجموع: {{count}}",
+      "availableCount": "{{count}} أشخاص متاحون",
+      "specialtySummary": "المجموع: {{total}} · الجاهزون: {{operational}}",
+      "handler": "المدرب: {{name}}",
+      "emptyAvailable": "لا أفراد متاحين في هذا القسم.",
+      "emptyDogs": "لا كلاب بهذه التخصص في هذا القسم."
     },
     "assignments": {
       "title": "التعيينات — {{name}}",
@@ -2086,6 +2117,65 @@
         "description": "ستُفقد الإعدادات والشعار غير المحفوظة.",
         "keepEditing": "متابعة التعديل",
         "confirm": "إلغاء التعديلات"
+      }
+    },
+    "data": {
+      "title": "البيانات",
+      "description": "استيراد البيانات المحلية دون تغيير المخطط أو محرك التخطيط.",
+      "viewOnly": "للعرض فقط. يمكن للمسؤولين استيراد قاعدة بيانات Windows أو مسح البيانات المحلية.",
+      "desktopUnavailable": "استيراد قاعدة Windows ومسح البيانات المحلية مخصصان لتطبيق Android. وهما غير متاحين على سطح مكتب Electron.",
+      "windowsImport": {
+        "title": "استيراد بيانات Windows",
+        "description": "اختر ملف SQLite المنسوخ من إصدار Windows. تُحفظ قاعدة Android الحالية ولا تُستبدل السجلات الموجودة.",
+        "button": "استيراد قاعدة بيانات Windows",
+        "hint": "ملفات .db أو .sqlite أو .sqlite3. يتم التحقق من نوع الملف الفعلي وليس الامتداد فقط.",
+        "inspecting": "جارٍ تحليل قاعدة Windows…",
+        "importing": "جارٍ الاستيراد…",
+        "detectedTitle": "تم اكتشاف قاعدة Windows",
+        "confirmQuestion": "هل تريد استيراد هذه البيانات إلى CynoPlanning؟",
+        "cancel": "إلغاء",
+        "import": "استيراد",
+        "close": "إغلاق",
+        "counts": {
+          "agents": "الوكلاء",
+          "dogs": "الكلاب",
+          "checkpoints": "النقاط",
+          "planning": "التخطيطات",
+          "exclusions": "الاستثناءات",
+          "users": "المستخدمون"
+        },
+        "incompatible": "جداول غير متوافقة (لن تُستورد): {{tables}}",
+        "toast": {
+          "success": "انتهى الاستيراد. {{imported}} سجل مستورد، {{skipped}} متجاهل، {{conflicts}} تعارض.",
+          "canceled": "تم إلغاء الاستيراد. لم تُعدَّل قاعدة Android.",
+          "invalidFile": "الملف المحدد ليس قاعدة SQLite صالحة.",
+          "unreadable": "تعذّر قراءة الملف المحدد.",
+          "backupFailed": "فشلت نسخة احتياطية لقاعدة Android. أُلغي الاستيراد ولم تُعدَّل أي بيانات.",
+          "failed": "فشل الاستيراد. تمت استعادة قاعدة Android."
+        },
+        "result": {
+          "title": "نتيجة الاستيراد",
+          "imported": "المستوردة: {{count}}",
+          "skipped": "المتجاهلة (موجودة مسبقاً): {{count}}",
+          "conflicts": "التعارضات: {{count}}"
+        }
+      },
+      "clearLocal": {
+        "title": "البيانات المحلية على Android",
+        "description": "يحذف كل البيانات المحلية على هذا الجهاز لتجهيز استيراد قاعدة SQLite من Windows. يُحفظ مخطط SQLite. لا تُعدَّل قاعدة Windows.",
+        "button": "مسح البيانات المحلية",
+        "clearing": "جارٍ مسح البيانات المحلية…",
+        "confirmTitle": "مسح البيانات المحلية",
+        "confirmDescription": "تنبيه: سيحذف هذا الإجراء كل بيانات CynoPlanning المحلية على هذا الجهاز. لا يحذف هذا الإجراء أي بيانات Windows.",
+        "cancel": "إلغاء",
+        "confirm": "مسح البيانات",
+        "successTitle": "تم حذف البيانات المحلية",
+        "success": "تم حذف البيانات المحلية. يمكنك الآن استيراد قاعدة SQLite من Windows.",
+        "close": "إغلاق",
+        "toast": {
+          "backupFailed": "فشلت النسخة الاحتياطية للبيانات المحلية. لم يُحذف أي شيء.",
+          "failed": "تعذّر مسح البيانات المحلية."
+        }
       }
     }
   },
@@ -2613,5 +2703,81 @@
     "french": "Français",
     "english": "English",
     "arabic": "العربية"
+  },
+  "rapportMessage": {
+    "title": "تقرير / رسالة",
+    "description": "تحرير وحفظ وتصدير تقرير أو رسالة إدارية.",
+    "documentTitle": "تقرير / رسالة",
+    "fields": {
+      "title": "الموضوع / العنوان",
+      "date": "التاريخ",
+      "recipient": "المرسل إليه",
+      "sender": "المرسل",
+      "reference": "المرجع",
+      "referenceHint": "اختياري.",
+      "body": "نص الرسالة",
+      "bodyHint": "استخدم فواصل الأسطر للفصل بين الفقرات.",
+      "signature": "التوقيع"
+    },
+    "placeholders": {
+      "title": "موضوع التقرير أو الرسالة",
+      "recipient": "المرسل إليه",
+      "sender": "المرسل",
+      "reference": "مرجع داخلي",
+      "body": "اكتب الرسالة…",
+      "signature": "الاسم أو الرتبة أو الوظيفة"
+    },
+    "actions": {
+      "new": "تقرير جديد",
+      "save": "حفظ",
+      "saveChanges": "حفظ التعديلات",
+      "edit": "تعديل",
+      "view": "عرض",
+      "delete": "حذف",
+      "preview": "معاينة قبل الطباعة",
+      "print": "طباعة",
+      "exportPdf": "تصدير PDF",
+      "exportWord": "تصدير Word",
+      "word": "Word"
+    },
+    "history": {
+      "title": "السجل",
+      "description": "التقارير والرسائل المحفوظة.",
+      "count": "{{count}} مستند(ات)",
+      "date": "التاريخ",
+      "subject": "الموضوع",
+      "recipient": "المرسل إليه",
+      "author": "المؤلف",
+      "actions": "إجراءات",
+      "emptyTitle": "لا توجد تقارير",
+      "emptyDescription": "ستظهر المستندات المحفوظة هنا."
+    },
+    "delete": {
+      "title": "حذف هذا التقرير؟",
+      "description": "لا يمكن التراجع عن هذا الإجراء. سيُزال المستند من السجل."
+    },
+    "errors": {
+      "title": "الموضوع مطلوب.",
+      "date": "التاريخ غير صالح.",
+      "recipient": "المرسل إليه مطلوب.",
+      "sender": "المرسل مطلوب.",
+      "body": "نص الرسالة مطلوب.",
+      "not_found": "المستند غير موجود.",
+      "forbidden": "ليس لديك صلاحية الوصول إلى هذا المستند."
+    },
+    "toasts": {
+      "saved": "تم حفظ التقرير",
+      "saveError": "تعذر الحفظ",
+      "deleted": "تم حذف التقرير",
+      "deleteError": "تعذر الحذف",
+      "docxExported": "تم تنزيل ملف Word",
+      "docxError": "فشل تصدير Word",
+      "pdfExported": "تم تنزيل PDF",
+      "pdfError": "فشل تصدير PDF"
+    },
+    "forbidden": {
+      "title": "الوصول مرفوض",
+      "description": "سجّل الدخول لتحرير تقرير أو رسالة."
+    }
   }
 }

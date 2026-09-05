@@ -195,7 +195,7 @@ export function DogFormDialog({
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <FormField label={`${t("dogs.field.sex")} *`} error={errors.gender}>
+                <FormField label={t("dogs.field.sex")} error={errors.gender}>
                   <Select
                     value={form.gender}
                     onValueChange={(value) => patchForm({ gender: value as Gender })}

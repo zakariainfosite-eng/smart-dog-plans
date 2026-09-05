@@ -33,6 +33,8 @@ const IDB_STORE = "kv";
 const IDB_KEY = "cynoplanning.db";
 
 let executorPromise: Promise<SqlExecutor> | null = null;
+/** Flush sql.js IndexedDB persistence before dropping the in-memory handle. */
+let sqlJsPersistNow: (() => Promise<void>) | null = null;
 
 /** Same local calendar day as renderer `planningDayISO()` / `todayISODate()`. */
 function todayIsoDate(): string {
@@ -181,6 +183,13 @@ async function createSqlJsExecutor(): Promise<SqlExecutor> {
     persistTimer = setTimeout(() => {
       void idbSet(database.export());
     }, 50);
+  };
+  sqlJsPersistNow = async () => {
+    if (persistTimer) {
+      clearTimeout(persistTimer);
+      persistTimer = null;
+    }
+    await idbSet(database.export());
   };
 
   const query = async <T>(sql: string, params: unknown[] = []): Promise<T[]> => {
@@ -476,5 +485,45 @@ export async function getLocalSqliteExecutor(): Promise<SqlExecutor> {
 
 /** Test-only: drop the in-memory executor handle. Never deletes the on-disk database. */
 export function resetLocalSqliteExecutorForTests(): void {
+  sqlJsPersistNow = null;
   executorPromise = null;
+}
+
+/**
+ * Flush and close the current local SQLite handle.
+ * Never deletes or replaces the on-disk database file.
+ */
+export async function closeLocalSqliteExecutor(): Promise<void> {
+  if (sqlJsPersistNow) {
+    try {
+      await sqlJsPersistNow();
+    } catch {
+      // Persistence is best-effort; the next open still reads the last successful IDB write.
+    }
+    sqlJsPersistNow = null;
+  }
+
+  if (isNativeCapacitorRuntime()) {
+    try {
+      const { CapacitorSQLite, SQLiteConnection } = await import("@capacitor-community/sqlite");
+      const sqlite = new SQLiteConnection(CapacitorSQLite);
+      const isConn = (await sqlite.isConnection(DB_NAME, false)).result;
+      if (isConn) {
+        await sqlite.closeConnection(DB_NAME, false);
+      }
+    } catch {
+      // A failed close still drops the JS handle below so the next open is clean.
+    }
+  }
+
+  executorPromise = null;
+}
+
+/**
+ * Close the current local SQLite handle and open the existing file again.
+ * Never deletes or replaces the on-disk database.
+ */
+export async function reopenLocalSqliteExecutor(): Promise<SqlExecutor> {
+  await closeLocalSqliteExecutor();
+  return getLocalSqliteExecutor();
 }

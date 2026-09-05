@@ -429,11 +429,16 @@ export function OperationalCaseDialog({
                           <Input type="date" value={form.case_date} onChange={(e) => setForm({ ...form, case_date: e.target.value })} />
                         </IconFormField>
                         <IconFormField label={t("operationalCases.field.agent")} icon={User} error={errors.agent_id}>
-                          <Select value={form.agent_id} onValueChange={(v) => setForm({ ...form, agent_id: v })} disabled={lockAgent}>
+                          <Select
+                            value={form.agent_id || "__none__"}
+                            onValueChange={(v) => setForm({ ...form, agent_id: v === "__none__" ? "" : v })}
+                            disabled={lockAgent}
+                          >
                             <SelectTrigger>
                               <SelectValue placeholder={t("operationalCases.field.agentPlaceholder")} />
                             </SelectTrigger>
                             <SelectContent>
+                              <SelectItem value="__none__">{t("common.none")}</SelectItem>
                               {(agents ?? []).map((agent: any) => (
                                 <SelectItem key={agent.id} value={agent.id}>
                                   {agent.first_name} {agent.last_name} (#{agent.professional_number})
@@ -450,11 +455,15 @@ export function OperationalCaseDialog({
                           />
                         </IconFormField>
                         <IconFormField label={t("operationalCases.field.checkpoint")} icon={MapPin} error={errors.checkpoint_id}>
-                          <Select value={form.checkpoint_id} onValueChange={(v) => setForm({ ...form, checkpoint_id: v })}>
+                          <Select
+                            value={form.checkpoint_id || "__none__"}
+                            onValueChange={(v) => setForm({ ...form, checkpoint_id: v === "__none__" ? "" : v })}
+                          >
                             <SelectTrigger>
                               <SelectValue placeholder={t("operationalCases.field.checkpointPlaceholder")} />
                             </SelectTrigger>
                             <SelectContent>
+                              <SelectItem value="__none__">{t("common.none")}</SelectItem>
                               {(checkpoints ?? []).map((cp: any) => (
                                 <SelectItem key={cp.id} value={cp.id}>
                                   {cp.name}
@@ -484,11 +493,17 @@ export function OperationalCaseDialog({
                       {form.specialty === "narcotics" && (
                         <div className="grid gap-4 sm:grid-cols-3">
                           <IconFormField label={t("operationalCases.field.drugType")} icon={FlaskConical} error={errors.drug_type}>
-                            <Select value={form.drug_type} onValueChange={(v) => setForm({ ...form, drug_type: v as SeizureType })}>
+                            <Select
+                              value={form.drug_type || "__none__"}
+                              onValueChange={(v) =>
+                                setForm({ ...form, drug_type: v === "__none__" ? "" : (v as SeizureType) })
+                              }
+                            >
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
+                                <SelectItem value="__none__">{t("common.none")}</SelectItem>
                                 {NARCOTICS_DRUG_TYPES.map((type: any) => (
                                   <SelectItem key={type} value={type}>
                                     {drugTypeLabel(type, t)}
@@ -498,14 +513,31 @@ export function OperationalCaseDialog({
                             </Select>
                           </IconFormField>
                           <IconFormField label={t("operationalCases.field.quantity")} icon={Hash} error={errors.quantity}>
-                            <Input type="number" min={0.001} step="any" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })} />
+                            <Input
+                              type="number"
+                              min={0}
+                              step="any"
+                              value={form.quantity || ""}
+                              onChange={(e) =>
+                                setForm({
+                                  ...form,
+                                  quantity: e.target.value === "" ? 0 : Number(e.target.value),
+                                })
+                              }
+                            />
                           </IconFormField>
                           <IconFormField label={t("operationalCases.field.unit")} icon={Scale} error={errors.unit}>
-                            <Select value={form.unit} onValueChange={(v) => setForm({ ...form, unit: v as SeizureUnit })}>
+                            <Select
+                              value={form.unit || "__none__"}
+                              onValueChange={(v) =>
+                                setForm({ ...form, unit: v === "__none__" ? "" : (v as SeizureUnit) })
+                              }
+                            >
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
+                                <SelectItem value="__none__">{t("common.none")}</SelectItem>
                                 {NARCOTICS_UNITS.map((unit: any) => (
                                   <SelectItem key={unit} value={unit}>
                                     {seizureUnitLabel(unit, t)}
@@ -520,11 +552,20 @@ export function OperationalCaseDialog({
                       {form.specialty === "explosives" && (
                         <div className="grid gap-4 sm:grid-cols-3">
                           <IconFormField label={t("operationalCases.field.objectType")} icon={Package} error={errors.object_type}>
-                            <Select value={form.object_type} onValueChange={(v) => setForm({ ...form, object_type: v as ExplosiveObjectType })}>
+                            <Select
+                              value={form.object_type || "__none__"}
+                              onValueChange={(v) =>
+                                setForm({
+                                  ...form,
+                                  object_type: v === "__none__" ? "" : (v as ExplosiveObjectType),
+                                })
+                              }
+                            >
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
+                                <SelectItem value="__none__">{t("common.none")}</SelectItem>
                                 {EXPLOSIVE_OBJECT_TYPES.map((type: any) => (
                                   <SelectItem key={type} value={type}>
                                     {objectTypeLabel(type, t)}
@@ -534,7 +575,18 @@ export function OperationalCaseDialog({
                             </Select>
                           </IconFormField>
                           <IconFormField label={t("operationalCases.field.objectCount")} icon={Hash} error={errors.object_count}>
-                            <Input type="number" min={1} step={1} value={form.object_count} onChange={(e) => setForm({ ...form, object_count: Number(e.target.value) })} />
+                            <Input
+                              type="number"
+                              min={0}
+                              step={1}
+                              value={form.object_count || ""}
+                              onChange={(e) =>
+                                setForm({
+                                  ...form,
+                                  object_count: e.target.value === "" ? 0 : Number(e.target.value),
+                                })
+                              }
+                            />
                           </IconFormField>
                           <IconFormField label={t("operationalCases.field.threatLevel")} icon={AlertTriangle} error={errors.threat_level}>
                             <Select
@@ -560,11 +612,15 @@ export function OperationalCaseDialog({
                       {form.specialty === "currency" && (
                         <div className="grid gap-4 sm:grid-cols-2">
                           <IconFormField label={t("operationalCases.field.currency")} icon={Banknote} error={errors.currency_code}>
-                            <Select value={form.currency_code} onValueChange={(v) => setForm({ ...form, currency_code: v })}>
+                            <Select
+                              value={form.currency_code || "__none__"}
+                              onValueChange={(v) => setForm({ ...form, currency_code: v === "__none__" ? "" : v })}
+                            >
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
+                                <SelectItem value="__none__">{t("common.none")}</SelectItem>
                                 {CURRENCY_CODES.map((code: any) => (
                                   <SelectItem key={code} value={code}>
                                     {currencyCodeLabel(code, t)}

@@ -57,14 +57,14 @@ export type OperationalCaseFormValues = {
   country: string;
 };
 
-const baseSchema = (t: TFunction) =>
+const baseSchema = () =>
   z.object({
-    case_date: z.string().min(1, t("validation.dateRequired")),
+    case_date: z.string(),
     case_number: z.string().max(80).optional().or(z.literal("")),
-    agent_id: z.string().min(1, t("validation.agentRequired")),
+    agent_id: z.string(),
     dog_id: z.string().optional().or(z.literal("")),
     specialty: z.enum(["narcotics", "explosives", "currency"]),
-    checkpoint_id: z.string().min(1, t("operationalCases.validation.checkpointRequired")),
+    checkpoint_id: z.string(),
     observations: z.string().max(1000).optional().or(z.literal("")),
     drug_type: z.string().optional().or(z.literal("")),
     quantity: z.coerce.number().optional(),
@@ -82,7 +82,7 @@ export function validateOperationalCaseForm(
   t: TFunction,
   values: OperationalCaseFormValues,
 ): { success: true; data: OperationalCaseFormValues } | { success: false; errors: Partial<Record<keyof OperationalCaseFormValues, string>> } {
-  const parsed = baseSchema(t).safeParse(values);
+  const parsed = baseSchema().safeParse(values);
   if (!parsed.success) {
     const errors: Partial<Record<keyof OperationalCaseFormValues, string>> = {};
     for (const issue of parsed.error.issues) {
@@ -95,18 +95,17 @@ export function validateOperationalCaseForm(
   const errors: Partial<Record<keyof OperationalCaseFormValues, string>> = {};
   const v = parsed.data as OperationalCaseFormValues;
 
-  if (v.specialty === "narcotics") {
-    if (!v.drug_type) errors.drug_type = t("operationalCases.validation.drugTypeRequired");
-    if (!v.quantity || v.quantity <= 0) errors.quantity = t("operationalCases.validation.quantityPositive");
-    if (!v.unit) errors.unit = t("operationalCases.validation.unitRequired");
-  } else if (v.specialty === "explosives") {
-    if (!v.object_type) errors.object_type = t("operationalCases.validation.objectTypeRequired");
-    if (!v.object_count || v.object_count <= 0) errors.object_count = t("operationalCases.validation.objectCountPositive");
-  } else if (v.specialty === "currency") {
-    if (!v.currency_code?.trim()) errors.currency_code = t("operationalCases.validation.currencyRequired");
-    if (v.total_amount == null || v.total_amount < 0) errors.total_amount = t("operationalCases.validation.totalAmountRequired");
-    if (v.banknote_count == null || v.banknote_count < 0) errors.banknote_count = t("operationalCases.validation.banknoteCountRequired");
-    if (!v.country?.trim()) errors.country = t("operationalCases.validation.countryRequired");
+  if (v.quantity != null && !Number.isNaN(v.quantity) && v.quantity < 0) {
+    errors.quantity = t("operationalCases.validation.quantityPositive");
+  }
+  if (v.object_count != null && !Number.isNaN(v.object_count) && v.object_count < 0) {
+    errors.object_count = t("operationalCases.validation.objectCountPositive");
+  }
+  if (v.total_amount != null && !Number.isNaN(v.total_amount) && v.total_amount < 0) {
+    errors.total_amount = t("operationalCases.validation.totalAmountRequired");
+  }
+  if (v.banknote_count != null && !Number.isNaN(v.banknote_count) && v.banknote_count < 0) {
+    errors.banknote_count = t("operationalCases.validation.banknoteCountRequired");
   }
 
   if (Object.keys(errors).length > 0) return { success: false, errors };
@@ -122,13 +121,13 @@ export function defaultOperationalCaseForm(agentId = "", specialty: OperationalC
     specialty,
     checkpoint_id: "",
     observations: "",
-    drug_type: "exta",
-    quantity: 1,
-    unit: "kg",
-    object_type: "firearm",
-    object_count: 1,
+    drug_type: "",
+    quantity: 0,
+    unit: "",
+    object_type: "",
+    object_count: 0,
     threat_level: "",
-    currency_code: "MAD",
+    currency_code: "",
     total_amount: 0,
     banknote_count: 0,
     country: "",
@@ -137,12 +136,12 @@ export function defaultOperationalCaseForm(agentId = "", specialty: OperationalC
 
 export function specialtyDefaults(specialty: OperationalCaseSpecialty): Partial<OperationalCaseFormValues> {
   if (specialty === "narcotics") {
-    return { drug_type: "exta", quantity: 1, unit: "kg", object_type: "", object_count: 0, threat_level: "", currency_code: "", total_amount: 0, banknote_count: 0, country: "" };
+    return { drug_type: "", quantity: 0, unit: "", object_type: "", object_count: 0, threat_level: "", currency_code: "", total_amount: 0, banknote_count: 0, country: "" };
   }
   if (specialty === "explosives") {
-    return { drug_type: "", quantity: 0, unit: "", object_type: "firearm", object_count: 1, threat_level: "", currency_code: "", total_amount: 0, banknote_count: 0, country: "" };
+    return { drug_type: "", quantity: 0, unit: "", object_type: "", object_count: 0, threat_level: "", currency_code: "", total_amount: 0, banknote_count: 0, country: "" };
   }
-  return { drug_type: "", quantity: 0, unit: "", object_type: "", object_count: 0, threat_level: "", currency_code: "MAD", total_amount: 0, banknote_count: 0, country: "" };
+  return { drug_type: "", quantity: 0, unit: "", object_type: "", object_count: 0, threat_level: "", currency_code: "", total_amount: 0, banknote_count: 0, country: "" };
 }
 
 export function operationalCaseToForm(row: OperationalCaseWithRelations): OperationalCaseFormValues {
@@ -160,8 +159,8 @@ export function operationalCaseToForm(row: OperationalCaseWithRelations): Operat
     return {
       ...base,
       ...specialtyDefaults("explosives"),
-      object_type: row.object_type ?? "firearm",
-      object_count: row.object_count ?? 1,
+      object_type: row.object_type ?? "",
+      object_count: row.object_count ?? 0,
       threat_level: row.threat_level ?? "",
     } as OperationalCaseFormValues;
   }
@@ -170,7 +169,7 @@ export function operationalCaseToForm(row: OperationalCaseWithRelations): Operat
     return {
       ...base,
       ...specialtyDefaults("currency"),
-      currency_code: row.currency_code ?? "MAD",
+      currency_code: row.currency_code ?? "",
       total_amount: Number(row.total_amount ?? 0),
       banknote_count: row.banknote_count ?? 0,
       country: row.country ?? "",
@@ -180,19 +179,24 @@ export function operationalCaseToForm(row: OperationalCaseWithRelations): Operat
   return {
     ...base,
     ...specialtyDefaults("narcotics"),
-    drug_type: row.seizure_type ?? "exta",
-    quantity: Number(row.quantity ?? 1),
-    unit: row.unit ?? "kg",
+    drug_type: row.seizure_type ?? "",
+    quantity: Number(row.quantity ?? 0),
+    unit: row.unit ?? "",
   } as OperationalCaseFormValues;
 }
 
 export function formToDbPayload(values: OperationalCaseFormValues) {
+  const positiveOrNull = (value: number | null | undefined) =>
+    value != null && !Number.isNaN(value) && value > 0 ? value : null;
+  const nonNegativeOrNull = (value: number | null | undefined) =>
+    value != null && !Number.isNaN(value) && value >= 0 ? value : null;
+
   const base = {
     case_date: values.case_date,
     agent_id: values.agent_id,
     dog_id: values.dog_id?.trim() ? values.dog_id : null,
     specialty: values.specialty,
-    checkpoint_id: values.checkpoint_id,
+    checkpoint_id: values.checkpoint_id?.trim() ? values.checkpoint_id : null,
     location: null,
     observations: values.observations?.trim() ? values.observations.trim() : null,
     seizure_type: null as SeizureType | null,
@@ -210,26 +214,26 @@ export function formToDbPayload(values: OperationalCaseFormValues) {
   if (values.specialty === "narcotics") {
     return {
       ...base,
-      seizure_type: values.drug_type as SeizureType,
-      quantity: values.quantity,
-      unit: values.unit as SeizureUnit,
+      seizure_type: values.drug_type ? (values.drug_type as SeizureType) : null,
+      quantity: positiveOrNull(values.quantity),
+      unit: values.unit ? (values.unit as SeizureUnit) : null,
     };
   }
 
   if (values.specialty === "explosives") {
     return {
       ...base,
-      object_type: values.object_type as ExplosiveObjectType,
-      object_count: values.object_count,
+      object_type: values.object_type ? (values.object_type as ExplosiveObjectType) : null,
+      object_count: positiveOrNull(values.object_count),
       threat_level: values.threat_level ? (values.threat_level as ThreatLevel) : null,
     };
   }
 
   return {
     ...base,
-    currency_code: values.currency_code.trim(),
-    total_amount: values.total_amount,
-    banknote_count: values.banknote_count,
-    country: values.country.trim(),
+    currency_code: values.currency_code.trim() || null,
+    total_amount: nonNegativeOrNull(values.total_amount),
+    banknote_count: nonNegativeOrNull(values.banknote_count),
+    country: values.country.trim() || null,
   };
 }

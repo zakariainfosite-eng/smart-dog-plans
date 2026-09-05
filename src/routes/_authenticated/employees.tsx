@@ -103,6 +103,7 @@ import {
   buildCynotechniciansListPdfData,
   cynotechniciansListFilename,
 } from "@/lib/documents/build-cynotechnicians-list-pdf-data";
+import { shouldAnnounceBrowserPdfExport } from "@/lib/documents/export-binary";
 import { downloadCynotechniciansListPdfWithLogo } from "@/lib/documents/feuille-presence-pdf";
 import {
   DEFAULT_PERSONNEL_FONCTION,
@@ -139,23 +140,14 @@ export const Route = createFileRoute("/_authenticated/employees")({
 function createAgentSchema(t: (key: string) => string) {
   return z
     .object({
-      first_name: z.string().trim().min(2, t("validation.firstNameRequired")).max(60),
-      last_name: z.string().trim().min(2, t("validation.lastNameRequired")).max(60),
-      professional_number: z
-        .string()
-        .trim()
-        .min(1, t("validation.profNumberRequired"))
-        .max(30),
-      grade: z.string().trim().min(1, t("validation.gradeRequired")).max(60),
+      first_name: z.string().trim().max(60),
+      last_name: z.string().trim().max(60),
+      professional_number: z.string().trim().max(30),
+      grade: z.string().trim().max(60),
       gender: z.enum(["male", "female"]),
-      fonction: z.enum(PERSONNEL_FONCTIONS, {
-        required_error: t("validation.fonctionRequired"),
-      }),
-      marital_status: z.enum(MARITAL_STATUSES, {
-        required_error: t("validation.maritalStatusRequired"),
-        invalid_type_error: t("validation.maritalStatusRequired"),
-      }),
-      date_naissance: z.string().trim().min(1, t("validation.dateOfBirthRequired")),
+      fonction: z.enum(PERSONNEL_FONCTIONS),
+      marital_status: z.union([z.enum(MARITAL_STATUSES), z.literal("")]),
+      date_naissance: z.string(),
       origine: z.string().trim().max(120),
       section_id: z.string().uuid().nullable(),
       dog_id: z.string().uuid().nullable(),
@@ -165,13 +157,6 @@ function createAgentSchema(t: (key: string) => string) {
       active: z.boolean(),
     })
     .superRefine((values, ctx) => {
-      if (isChefDeSectionFonction(values.fonction) && !values.section_id) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: t("validation.sectionResponsibleRequired"),
-          path: ["section_id"],
-        });
-      }
       const birthCode = validateAgentBirthDate(values.date_naissance);
       if (birthCode) {
         const messageKey =
@@ -181,9 +166,7 @@ function createAgentSchema(t: (key: string) => string) {
               ? "validation.dateOfBirthTooYoung"
               : birthCode === "tooOld"
                 ? "validation.dateOfBirthTooOld"
-                : birthCode === "invalid"
-                  ? "validation.dateOfBirthInvalid"
-                  : "validation.dateOfBirthRequired";
+                : "validation.dateOfBirthInvalid";
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: t(messageKey),
@@ -653,7 +636,9 @@ function EmployeesPage() {
         data,
         filename: cynotechniciansListFilename(),
       });
-      toast.success(t("employees.export.pdfSuccess"));
+      if (shouldAnnounceBrowserPdfExport()) {
+        toast.success(t("employees.export.pdfSuccess"));
+      }
     } catch (error) {
       console.error("[employees] PDF export failed:", error);
       toast.error(t("employees.export.pdfError"));
@@ -728,12 +713,9 @@ function EmployeesPage() {
     mutationFn: async (values: AgentForm): Promise<AgentRow> => {
       const payload = normalizeAgentForm(values);
       const maritalStatus = normalizeMaritalStatus(payload.marital_status);
-      if (!maritalStatus) {
-        throw new Error(t("validation.maritalStatusRequired"));
-      }
       const birthDate = normalizeAgentBirthDate(payload.date_naissance);
       const birthCode = validateAgentBirthDate(birthDate);
-      if (!birthDate || birthCode) {
+      if (birthCode) {
         const messageKey =
           birthCode === "future"
             ? "validation.dateOfBirthFuture"
@@ -741,9 +723,7 @@ function EmployeesPage() {
               ? "validation.dateOfBirthTooYoung"
               : birthCode === "tooOld"
                 ? "validation.dateOfBirthTooOld"
-                : birthCode === "invalid"
-                  ? "validation.dateOfBirthInvalid"
-                  : "validation.dateOfBirthRequired";
+                : "validation.dateOfBirthInvalid";
         throw new Error(t(messageKey));
       }
       const writePayload = {

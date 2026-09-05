@@ -14,5 +14,8 @@ export default defineConfig({
   },
   vite: {
     envPrefix: ["VITE_", "DATABASE_", "AUTH_"],
+    optimizeDeps: {
+      exclude: ["pdfjs-dist"],
+    },
   },
 });

@@ -119,12 +119,15 @@ export function normalizePersonnelFonction(
 }
 
 /**
- * Write-path validation for create/update — never silently coerce invalid roles.
- * Accepts canonical keys and known aliases (e.g. chef_brigade → chef_brigadier).
+ * Write-path validation for create/update.
+ * Empty uses the schema default `cynotechnicien`. Invalid non-empty values still fail.
  */
 export function parsePersonnelFonctionStrict(
   value: string | null | undefined,
 ): PersonnelFonction {
+  if (!value || !String(value).trim()) {
+    return DEFAULT_PERSONNEL_FONCTION;
+  }
   const resolved = resolveFonctionCandidate(value);
   if (!resolved) {
     throw new Error(
