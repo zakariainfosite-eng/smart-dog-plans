@@ -27,17 +27,41 @@ jobs:
             throw "Runner is not AMD64/x64: $env:PROCESSOR_ARCHITECTURE"
           }
 
+      - name: Enable Git long paths
+        shell: pwsh
+        run: git config --system core.longpaths true
+
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
+
+      - name: Pin npm for lockfile v3
+        shell: pwsh
+        run: |
+          node -v
+          npm install -g npm@10.9.2
+          npm -v
 
       - name: Install dependencies
-        run: npm ci
+        shell: pwsh
+        run: |
+          npm ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) {
+            $logs = Get-ChildItem -Path "$env:LOCALAPPDATA\npm-cache\_logs","$env:USERPROFILE\AppData\Local\npm-cache\_logs" -Filter "*.log" -ErrorAction SilentlyContinue |
+              Sort-Object LastWriteTime -Descending |
+              Select-Object -First 1
+            if ($logs) {
+              Write-Host "----- npm debug log $($logs.FullName) -----"
+              Get-Content $logs.FullName -Tail 120
+            }
+            exit $LASTEXITCODE
+          }
 
       - name: Rebuild SQLite native module for Electron
         run: npm run electron:rebuild-native
