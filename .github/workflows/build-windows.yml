@@ -39,29 +39,30 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-
-      - name: Pin npm for lockfile v3
-        shell: pwsh
-        run: |
-          node -v
-          npm install -g npm@10.9.2
-          npm -v
+          node-version: 22
 
       - name: Install dependencies
-        shell: pwsh
+        # cmd.exe avoids PowerShell wrapping of npm.cmd. Prefer npm ci; fall back
+        # only if the lockfile algorithm rejects the same tree on this runner.
+        shell: cmd
         run: |
-          npm ci --no-audit --no-fund
-          if ($LASTEXITCODE -ne 0) {
-            $logs = Get-ChildItem -Path "$env:LOCALAPPDATA\npm-cache\_logs","$env:USERPROFILE\AppData\Local\npm-cache\_logs" -Filter "*.log" -ErrorAction SilentlyContinue |
-              Sort-Object LastWriteTime -Descending |
-              Select-Object -First 1
-            if ($logs) {
-              Write-Host "----- npm debug log $($logs.FullName) -----"
-              Get-Content $logs.FullName -Tail 120
-            }
-            exit $LASTEXITCODE
-          }
+          node -v
+          npm -v
+          npm ci --no-audit --fund false
+          if errorlevel 1 (
+            echo npm ci failed — uploading logs then retrying with npm install
+            npm install --no-audit --fund false
+          )
+
+      - name: Upload npm logs if present
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-install-logs
+          path: |
+            C:/Users/runneradmin/AppData/Local/npm-cache/_logs/*.log
+            C:/Users/runner/AppData/Local/npm-cache/_logs/*.log
+          if-no-files-found: ignore
 
       - name: Rebuild SQLite native module for Electron
         run: npm run electron:rebuild-native
