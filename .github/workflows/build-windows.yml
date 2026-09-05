@@ -27,42 +27,17 @@ jobs:
             throw "Runner is not AMD64/x64: $env:PROCESSOR_ARCHITECTURE"
           }
 
-      - name: Enable Git long paths
-        shell: pwsh
-        run: git config --system core.longpaths true
-
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          persist-credentials: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
+          cache: npm
 
       - name: Install dependencies
-        # cmd.exe avoids PowerShell wrapping of npm.cmd. Prefer npm ci; fall back
-        # only if the lockfile algorithm rejects the same tree on this runner.
-        shell: cmd
-        run: |
-          node -v
-          npm -v
-          npm ci --no-audit --fund false
-          if errorlevel 1 (
-            echo npm ci failed — uploading logs then retrying with npm install
-            npm install --no-audit --fund false
-          )
-
-      - name: Upload npm logs if present
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: npm-install-logs
-          path: |
-            C:/Users/runneradmin/AppData/Local/npm-cache/_logs/*.log
-            C:/Users/runner/AppData/Local/npm-cache/_logs/*.log
-          if-no-files-found: ignore
+        run: npm ci
 
       - name: Rebuild SQLite native module for Electron
         run: npm run electron:rebuild-native
@@ -85,12 +60,11 @@ jobs:
       - name: Build Windows NSIS x64 installer
         # Application update only. Never publish via electron-builder.
         # Clear tokens so electron-builder cannot authenticate a publish even if misconfigured.
-        # electron:build:win already runs icons, native rebuild, main, desktop Vite,
-        # then: electron-builder --win nsis --x64 --publish never --config electron-builder.yml
+        # --win --x64 forces Intel/AMD Windows (not ARM64). NSIS target comes from electron-builder.yml.
         env:
           GH_TOKEN: ""
           GITHUB_TOKEN: ""
-        run: npm run electron:build:win -- --win nsis --x64
+        run: npm run electron:build:win -- --win --x64
 
       - name: Verify NSIS x64 installer and no packaged database
         shell: pwsh
