@@ -509,6 +509,42 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_checkpoint_restrictions: {
+        Row: {
+          id: string
+          agent_id: string
+          checkpoint_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          agent_id: string
+          checkpoint_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          agent_id?: string
+          checkpoint_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_checkpoint_restrictions_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_checkpoint_restrictions_checkpoint_id_fkey"
+            columns: ["checkpoint_id"]
+            isOneToOne: false
+            referencedRelation: "checkpoints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       checkpoint_posts: {
         Row: {
           active: boolean
@@ -924,6 +960,7 @@ export type Database = {
         | "annual_leave"
         | "mission"
         | "training"
+        | "rest"
         | "other"
         | "suspension"
         | "dog_injured"
@@ -1130,6 +1167,7 @@ export const Constants = {
         "annual_leave",
         "mission",
         "training",
+        "rest",
         "other",
         "suspension",
         "dog_injured",

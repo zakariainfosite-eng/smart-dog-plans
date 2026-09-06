@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { TFunction } from "i18next";
 import { z } from "zod";
-import { Sun, Moon, CalendarDays, Users, MapPin, Flag, AlertTriangle } from "lucide-react";
+import { Sun, Moon, CalendarDays, Users, MapPin, Flag, AlertTriangle, UserX } from "lucide-react";
+import { CheckpointRestrictedHandlersField } from "@/components/checkpoints/checkpoint-restricted-handlers-field";
 import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -391,6 +392,18 @@ function CheckpointConfigFormBody({
             );
           })}
         </RadioGroup>
+      </ConfigSection>
+
+      <ConfigSection
+        icon={UserX}
+        title={t("checkpoints.config.restrictedHandlers")}
+        subtitle={t("checkpoints.config.restrictedHandlersHint")}
+      >
+        <CheckpointRestrictedHandlersField
+          selectedIds={config.restricted_agent_ids}
+          onChange={(restricted_agent_ids) => setConfig((p) => ({ ...p, restricted_agent_ids }))}
+          t={t}
+        />
       </ConfigSection>
 
       <ConfigSection icon={Users} title={t("checkpoints.config.femaleAgents")}>

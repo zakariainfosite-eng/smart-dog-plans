@@ -57,7 +57,7 @@ export async function loadPlanningContext(
   const agentIds = agents.map((agent: any) => agent.id);
   const emptyList = { data: [] as never[], error: null };
 
-  const [checkpointsRes, exclusionsRaw, rotationHistoryRes] = await Promise.all([
+  const [checkpointsRes, exclusionsRaw, rotationHistoryRes, restrictionsRes] = await Promise.all([
     db
       .from("checkpoints")
       .select(CHECKPOINT_PLANNING_SELECT)
@@ -75,6 +75,7 @@ export async function loadPlanningContext(
           .not("checkpoint_post_id", "is", null)
           .in("agent_id", agentIds)
       : Promise.resolve(emptyList),
+    db.from("agent_checkpoint_restrictions").select("agent_id, checkpoint_id"),
   ]);
 
   const sectionAgentIds = new Set(agentIds);
@@ -96,9 +97,19 @@ export async function loadPlanningContext(
   );
   logPlanningExclusionDebug(exclusionDebug);
 
-  const errors = [checkpointsRes.error, rotationHistoryRes.error].filter(Boolean);
+  const errors = [checkpointsRes.error, rotationHistoryRes.error, restrictionsRes.error].filter(
+    Boolean,
+  );
   if (errors.length > 0) {
     throw errors[0];
+  }
+
+  const restrictedByCheckpoint = new Map<string, string[]>();
+  for (const row of restrictionsRes.data ?? []) {
+    if (!row.checkpoint_id || !row.agent_id) continue;
+    const list = restrictedByCheckpoint.get(row.checkpoint_id) ?? [];
+    list.push(row.agent_id);
+    restrictedByCheckpoint.set(row.checkpoint_id, list);
   }
 
   const yesterdayCheckpointByAgent = new Map<string, string>();
@@ -128,7 +139,10 @@ export async function loadPlanningContext(
   return {
     agents,
     checkpoints: (checkpointsRes.data ?? []).map((row: any) =>
-      normalizeCheckpointRow(row as Parameters<typeof normalizeCheckpointRow>[0]),
+      normalizeCheckpointRow({
+        ...(row as Parameters<typeof normalizeCheckpointRow>[0]),
+        restricted_agent_ids: restrictedByCheckpoint.get(row.id) ?? [],
+      }),
     ),
     exclusions: exclusionDebug.inputs,
     exclusionDebug,

@@ -41,3 +41,11 @@ release
 *.db-wal
 *.db-shm
 tmp/
+
+# Local env and secrets — never commit passwords or provider keys.
+.env
+.env.*
+!.env.example
+
+# Generated Planning Word exports written by local tests.
+Planning_*.docx

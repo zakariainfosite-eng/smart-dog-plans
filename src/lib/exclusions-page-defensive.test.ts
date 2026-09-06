@@ -82,6 +82,9 @@ describe("exclusions page defensive helpers", () => {
     expect(exclusionLabel("dog_without_handler", t)).toBe("Chien sans maître");
     expect(isOpenEndedExclusionType("dog_without_handler")).toBe(true);
     expect(isOpenEndedExclusionType("dog_vet_visit")).toBe(true);
+    expect(isOpenEndedExclusionType("training")).toBe(true);
+    expect(isOpenEndedExclusionType("mission")).toBe(true);
+    expect(isOpenEndedExclusionType("rest")).toBe(false);
     expect(isOpenEndedExclusionType("dog_sick")).toBe(false);
   });
 

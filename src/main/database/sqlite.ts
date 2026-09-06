@@ -75,7 +75,7 @@ export function expirePastExclusionsInSqlite(
          WHERE active = 1
            AND end_date IS NOT NULL
            AND end_date < ?
-           AND exclusion_type NOT IN ('dog_vet_visit', 'dog_without_handler')
+           AND exclusion_type NOT IN ('dog_vet_visit', 'dog_without_handler', 'training', 'mission')
            AND is_deleted = 0`,
       )
       .run(todayISO);
@@ -90,7 +90,7 @@ export function expirePastExclusionsInSqlite(
          WHERE active = 1
            AND end_date IS NOT NULL
            AND end_date < ?
-           AND exclusion_type NOT IN ('dog_vet_visit', 'dog_without_handler')`,
+           AND exclusion_type NOT IN ('dog_vet_visit', 'dog_without_handler', 'training', 'mission')`,
       )
       .run(todayISO);
     return legacy.changes;

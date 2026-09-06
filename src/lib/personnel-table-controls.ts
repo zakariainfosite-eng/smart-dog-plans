@@ -24,6 +24,7 @@ export const PERSONNEL_STATUS_FILTER_TYPES = [
   "absence",
   "mission",
   "training",
+  "rest",
   "suspension",
   "other",
   "dog_sick",

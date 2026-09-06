@@ -55,6 +55,8 @@ export type CheckpointOperationalConfig = {
   priority: CheckpointPriority;
   /** Persisted for UI/DB compatibility; ignored by the Rotation Engine. */
   mandatory: boolean;
+  /** Permanent cynotechnician bans for this checkpoint only. */
+  restricted_agent_ids: string[];
 };
 
 export const DEFAULT_OPERATING_DAYS: Weekday[] = [1, 2, 3, 4, 5, 6, 7];
@@ -76,6 +78,7 @@ export function defaultOperationalConfig(): CheckpointOperationalConfig {
     female_policy: "allowed",
     priority: DEFAULT_CHECKPOINT_PRIORITY,
     mandatory: DEFAULT_CHECKPOINT_MANDATORY,
+    restricted_agent_ids: [],
   };
 }
 
@@ -103,6 +106,14 @@ export function isCheckpointOpenOnDate(operatingDays: Weekday[], date: Date): bo
   return operatingDays.includes(isoWeekdayFromDate(date));
 }
 
+export function normalizeRestrictedAgentIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const ids = value
+    .map((id) => (typeof id === "string" ? id.trim() : ""))
+    .filter((id) => id.length > 0);
+  return [...new Set(ids)];
+}
+
 export type CheckpointRowOperational = Pick<
   Database["public"]["Tables"]["checkpoints"]["Row"],
   | "name"
@@ -117,7 +128,9 @@ export type CheckpointRowOperational = Pick<
   | "female_policy"
   | "priority"
   | "mandatory"
->;
+> & {
+  restricted_agent_ids?: string[];
+};
 
 export function operationalConfigFromRow(
   row: Partial<CheckpointRowOperational> | null | undefined,
@@ -140,6 +153,7 @@ export function operationalConfigFromRow(
     female_policy: row.female_policy ?? "allowed",
     priority: normalizeCheckpointPriority(row.priority),
     mandatory: normalizeCheckpointMandatory(row.mandatory),
+    restricted_agent_ids: normalizeRestrictedAgentIds(row.restricted_agent_ids),
   };
 }
 

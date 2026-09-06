@@ -74,6 +74,7 @@ const FEUILLE_PRESENCE_EXCLUSION_LABELS: Record<string, string> = {
   female_dog_heat: "Chien en chaleur",
   absence: "Permission",
   mission: "Mission",
+  rest: "Repos",
   other: "Indisponibilité",
 };
 

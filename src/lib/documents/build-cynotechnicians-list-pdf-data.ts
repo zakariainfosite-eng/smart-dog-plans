@@ -45,6 +45,7 @@ const STATUS_PDF_LABEL: Record<string, string> = {
   absence: "Absence",
   mission: "Mission",
   training: "Formation",
+  rest: "Repos",
   suspension: "Suspension",
   other: "Indisponible",
   dog_sick: "Chien malade",

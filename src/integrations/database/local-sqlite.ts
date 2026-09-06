@@ -54,6 +54,13 @@ async function localSqliteOpenEndedExclusionsReady(executor: SqlExecutor): Promi
   return Boolean(master?.sql?.includes("dog_without_handler"));
 }
 
+async function localSqliteRestExclusionTypeReady(executor: SqlExecutor): Promise<boolean> {
+  const master = await executor.get<{ sql: string }>(
+    "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'agent_exclusions'",
+  );
+  return Boolean(master?.sql?.includes("'rest'"));
+}
+
 async function idbGet(): Promise<Uint8Array | null> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(IDB_NAME, 1);
@@ -417,9 +424,12 @@ async function initializeSchema(executor: SqlExecutor): Promise<void> {
     const alreadyOpenEnded =
       migration.id === "019_open_ended_dog_exclusions" &&
       (await localSqliteOpenEndedExclusionsReady(executor));
+    const alreadyHasRest =
+      migration.id === "021_agent_exclusions_rest_type" &&
+      (await localSqliteRestExclusionTypeReady(executor));
 
     const runStatements = async () => {
-      if (alreadyOpenEnded) return;
+      if (alreadyOpenEnded || alreadyHasRest) return;
       for (const statement of migration.statements) {
         // Migration 015 is additive and idempotent: skip ALTER when the column
         // is already present (e.g. a fresh DB created from the current schema).
@@ -461,7 +471,7 @@ async function initializeSchema(executor: SqlExecutor): Promise<void> {
        WHERE active = 1
          AND end_date IS NOT NULL
          AND end_date < ?
-         AND exclusion_type NOT IN ('dog_vet_visit', 'dog_without_handler')
+         AND exclusion_type NOT IN ('dog_vet_visit', 'dog_without_handler', 'training', 'mission')
          AND is_deleted = 0`,
       [todayIsoDate()],
     );

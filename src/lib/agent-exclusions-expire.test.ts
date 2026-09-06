@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   exclusionCalendarStatus,
+  exclusionEffectiveEndDate,
   isAgentExclusionActive,
   isExclusionPastEndDate,
+  isOpenEndedExclusionType,
   toPlanningExclusionInputs,
   type AgentExclusionRecord,
 } from "@/lib/agent-exclusions";
@@ -145,6 +147,63 @@ describe("automatic exclusion expiration rules", () => {
     expect(toPlanningExclusionInputs([leftover], today)).toEqual([
       { agent_id: leftover.agent_id, dog_id: "d1", exclusion_type: "dog_vet_visit" },
     ]);
+  });
+
+  it("treats Formation and Mission as open-ended like Sous observation", () => {
+    for (const exclusion_type of ["training", "mission"] as const) {
+      const row = exclusion({
+        agent_id: "a1",
+        dog_id: null,
+        exclusion_type,
+        start_date: "2026-07-01",
+        end_date: null,
+        active: true,
+      });
+      expect(isExclusionPastEndDate(row, today)).toBe(false);
+      expect(isAgentExclusionActive(row, today)).toBe(true);
+    }
+  });
+
+  it("treats Repos as a dated exclusion like Malade and Congé", () => {
+    const rest = exclusion({
+      agent_id: "a1",
+      dog_id: null,
+      exclusion_type: "rest",
+      start_date: "2026-08-01",
+      end_date: "2026-08-10",
+      active: true,
+    });
+    expect(isOpenEndedExclusionType("rest")).toBe(false);
+    expect(exclusionEffectiveEndDate(rest)).toBe("2026-08-10");
+    expect(isAgentExclusionActive(rest, "2026-07-31")).toBe(false);
+    expect(exclusionCalendarStatus(rest, "2026-07-31")).toBe("upcoming");
+    expect(isAgentExclusionActive(rest, "2026-08-01")).toBe(true);
+    expect(isAgentExclusionActive(rest, "2026-08-06")).toBe(true);
+    expect(isAgentExclusionActive(rest, "2026-08-10")).toBe(true);
+    expect(isExclusionPastEndDate(rest, "2026-08-10")).toBe(false);
+    expect(isAgentExclusionActive(rest, "2026-08-11")).toBe(false);
+    expect(isExclusionPastEndDate(rest, "2026-08-11")).toBe(true);
+    expect(exclusionCalendarStatus(rest, "2026-08-11")).toBe("expired");
+    expect(deriveAgentAvailability("a1", [rest], "2026-08-10")).toEqual({
+      status: "excluded",
+      exclusionType: "rest",
+    });
+    expect(deriveAgentAvailability("a1", [rest], "2026-08-11")).toEqual({ status: "available" });
+  });
+
+  it("preserves existing Repos rows that have no end_date yet", () => {
+    const legacy = exclusion({
+      agent_id: "a1",
+      dog_id: null,
+      exclusion_type: "rest",
+      start_date: "2026-07-01",
+      end_date: null,
+      active: true,
+    });
+    expect(legacy.exclusion_type).toBe("rest");
+    expect(legacy.start_date).toBe("2026-07-01");
+    expect(legacy.end_date).toBeNull();
+    expect(isExclusionPastEndDate(legacy, today)).toBe(false);
   });
 
   it("does not keep dated dog_sick active after end_date", () => {

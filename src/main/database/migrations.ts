@@ -959,6 +959,76 @@ function migrateOpenEndedDogExclusions(database: Database.Database): void {
   }
 }
 
+/** True when `rest` (Repos) is missing from the exclusion_type CHECK. */
+export function agentExclusionsNeedsRestTypeRebuild(database: Database.Database): boolean {
+  if (!tableColumnNames(database, "agent_exclusions").has("exclusion_type")) return false;
+  return !agentExclusionsCreateSql(database).includes("'rest'");
+}
+
+/**
+ * Add personnel exclusion type `rest` (UI: Repos). Copies every existing row.
+ */
+function migrateAgentExclusionsRestType(database: Database.Database): void {
+  if (!agentExclusionsNeedsRestTypeRebuild(database)) return;
+
+  const beforeCount = (
+    database.prepare(`SELECT COUNT(*) AS n FROM agent_exclusions`).get() as { n: number }
+  ).n;
+
+  runCrashAtomicTableRebuild(database, () => {
+    database.exec(`
+      CREATE TABLE agent_exclusions__rest (
+        id TEXT PRIMARY KEY NOT NULL,
+        agent_id TEXT REFERENCES agents(id) ON DELETE CASCADE,
+        dog_id TEXT REFERENCES dogs(id) ON DELETE CASCADE,
+        exclusion_type TEXT NOT NULL CHECK (exclusion_type IN (
+          'absence', 'sickness', 'administrative_leave', 'special_leave',
+          'dog_sick', 'female_dog_heat', 'annual_leave', 'mission', 'training', 'rest', 'other',
+          'suspension',
+          'dog_injured', 'dog_temporary_retirement', 'dog_vet_visit', 'dog_without_handler',
+          'dog_training', 'dog_other'
+        )),
+        start_date TEXT NOT NULL,
+        end_date TEXT,
+        notes TEXT,
+        active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+        is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        CHECK (end_date IS NULL OR end_date >= start_date),
+        CHECK (agent_id IS NOT NULL OR dog_id IS NOT NULL)
+      );
+      INSERT INTO agent_exclusions__rest (
+        id, agent_id, dog_id, exclusion_type, start_date, end_date, notes,
+        active, is_deleted, created_at, updated_at
+      )
+      SELECT
+        id, agent_id, dog_id, exclusion_type, start_date, end_date, notes,
+        active, is_deleted, created_at, updated_at
+      FROM agent_exclusions;
+      DROP TABLE agent_exclusions;
+      ALTER TABLE agent_exclusions__rest RENAME TO agent_exclusions;
+      CREATE INDEX IF NOT EXISTS idx_agent_exclusions_agent ON agent_exclusions(agent_id);
+      CREATE INDEX IF NOT EXISTS idx_agent_exclusions_dog ON agent_exclusions(dog_id);
+      CREATE INDEX IF NOT EXISTS idx_agent_exclusions_dates ON agent_exclusions(start_date, end_date);
+      CREATE INDEX IF NOT EXISTS idx_agent_exclusions_active ON agent_exclusions(active);
+      CREATE INDEX IF NOT EXISTS idx_agent_exclusions_is_deleted ON agent_exclusions(is_deleted);
+    `);
+  });
+
+  const afterCount = (
+    database.prepare(`SELECT COUNT(*) AS n FROM agent_exclusions`).get() as { n: number }
+  ).n;
+  if (afterCount !== beforeCount) {
+    throw new Error(
+      `021_agent_exclusions_rest_type: row count changed (${beforeCount} → ${afterCount})`,
+    );
+  }
+  if (agentExclusionsNeedsRestTypeRebuild(database)) {
+    throw new Error("021_agent_exclusions_rest_type: rest is still missing from exclusion_type CHECK");
+  }
+}
+
 /**
  * Informational-only table: manual (and future imported) administrative events.
  * Automatic events stay in their own modules and are merged at read time, so no
@@ -991,6 +1061,22 @@ function migrateAgentAdministrativeHistory(database: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_agent_admin_history_start_date ON agent_administrative_history(start_date);
     CREATE INDEX IF NOT EXISTS idx_agent_admin_history_type ON agent_administrative_history(event_type);
     CREATE INDEX IF NOT EXISTS idx_agent_admin_history_source ON agent_administrative_history(source_type, source_id);
+  `);
+}
+
+function migrateAgentCheckpointRestrictions(database: Database.Database): void {
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS agent_checkpoint_restrictions (
+      id TEXT PRIMARY KEY NOT NULL,
+      agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+      checkpoint_id TEXT NOT NULL REFERENCES checkpoints(id) ON DELETE CASCADE,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (agent_id, checkpoint_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_agent_checkpoint_restrictions_checkpoint
+      ON agent_checkpoint_restrictions(checkpoint_id);
+    CREATE INDEX IF NOT EXISTS idx_agent_checkpoint_restrictions_agent
+      ON agent_checkpoint_restrictions(agent_id);
   `);
 }
 
@@ -1102,6 +1188,17 @@ export const SQLITE_MIGRATIONS: readonly SqliteMigration[] = [
     id: "020_agent_administrative_history",
     description: "Historique administratif du fonctionnaire — saisie manuelle et import",
     up: migrateAgentAdministrativeHistory,
+  },
+  {
+    id: "021_agent_exclusions_rest_type",
+    description: "Add Repos (rest) personnel exclusion type to CHECK",
+    up: migrateAgentExclusionsRestType,
+    noTransaction: true,
+  },
+  {
+    id: "022_agent_checkpoint_restrictions",
+    description: "Permanent per-checkpoint cynotechnician restrictions",
+    up: migrateAgentCheckpointRestrictions,
   },
 ];
 

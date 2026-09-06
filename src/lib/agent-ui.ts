@@ -40,7 +40,8 @@ export const AGENT_EXCLUSION_STATUS_PRIORITY: Record<string, number> = {
   absence: 5,
   mission: 6,
   training: 7,
-  other: 8,
+  rest: 8,
+  other: 9,
 };
 
 export function agentExclusionStatusPriority(type: string): number {
@@ -179,6 +180,8 @@ export function availabilityBadgeTone(
     case "training":
     case "dog_training":
       return "info";
+    case "rest":
+      return "purple";
     case "annual_leave":
     case "special_leave":
     case "dog_temporary_retirement":

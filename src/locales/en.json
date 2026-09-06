@@ -187,7 +187,14 @@
       "mandatory": "Mandatory",
       "mandatoryHint": "Independent of priority. Optional checkpoints never break Smart Rotation.",
       "mandatoryYes": "YES",
-      "mandatoryNo": "NO"
+      "mandatoryNo": "NO",
+      "restrictedHandlers": "Cynotechnicians excluded from this checkpoint",
+      "restrictedHandlersHint": "These cynotechnicians will never be assigned to this checkpoint by Smart Rotation. They remain eligible everywhere else.",
+      "restrictedHandlersSearch": "Search a cynotechnician…",
+      "restrictedHandlersEmpty": "No matching cynotechnician.",
+      "restrictedHandlersNone": "No cynotechnician excluded from this checkpoint.",
+      "restrictedHandlersSelected": "{{count}} excluded",
+      "restrictedHandlersRemove": "Remove this restriction"
     },
     "badge": {
       "mandatory": "Mandatory",
@@ -424,6 +431,7 @@
       "administrative_leave": "Administrative leave",
       "mission": "Mission",
       "training": "Training",
+      "rest": "Rest",
       "dog_sick": "Sick",
       "female_dog_heat": "In heat",
       "other": "Other",
@@ -1204,7 +1212,7 @@
         }
       },
       "rules": {
-        "openEnded": "“Under observation” and “Dog without handler” stay open-ended: start date required, no automatic expiration, no d2 / d1 / d0 reminder. This rule is not configurable.",
+        "openEnded": "“Under observation”, “Dog without handler”, “Training” and “Mission” stay open-ended: start date required, no automatic expiration, no d2 / d1 / d0 reminder. This rule is not configurable.",
         "disableCreationOnly": "Disabling a type hides it from creation only. Already recorded exclusions stay valid and visible in history, tables, statistics and reports."
       },
       "info": {

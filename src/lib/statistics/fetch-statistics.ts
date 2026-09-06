@@ -61,7 +61,7 @@ const EXCLUSION_REASON_GROUPS: Record<string, ExclusionType[]> = {
   leave: ["administrative_leave", "special_leave", "absence"],
   training: ["training"],
   vacation: ["annual_leave"],
-  other: ["other", "mission"],
+  other: ["other", "mission", "rest"],
 };
 
 function includesType(types: readonly string[], value: string | null): boolean {

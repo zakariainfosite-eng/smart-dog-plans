@@ -132,7 +132,7 @@ const SCHEMA_STATEMENTS = [
     dog_id TEXT REFERENCES dogs(id) ON DELETE CASCADE,
     exclusion_type TEXT NOT NULL CHECK (exclusion_type IN (
       'absence', 'sickness', 'administrative_leave', 'special_leave',
-      'dog_sick', 'female_dog_heat', 'annual_leave', 'mission', 'training', 'other',
+      'dog_sick', 'female_dog_heat', 'annual_leave', 'mission', 'training', 'rest', 'other',
       'suspension',
       'dog_injured', 'dog_temporary_retirement', 'dog_vet_visit', 'dog_without_handler',
       'dog_training', 'dog_other'

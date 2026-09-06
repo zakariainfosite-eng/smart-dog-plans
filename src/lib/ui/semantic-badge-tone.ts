@@ -59,7 +59,7 @@ function exclusionTone(normalized: string): StatusTone | null {
   if (includesAny(normalized, ["mission", "observation", "vet", "veterinaire"])) return "warning";
   if (includesAny(normalized, ["sans maitre", "without handler", "بدون"])) return "warning";
   if (includesAny(normalized, ["dressage", "formation", "training"])) return "info";
-  if (includesAny(normalized, ["repos", "retraite"])) return "purple";
+  if (normalized === "rest" || includesAny(normalized, ["repos", "retraite", "راحة"])) return "purple";
   return null;
 }
 

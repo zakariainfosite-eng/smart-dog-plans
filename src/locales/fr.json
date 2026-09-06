@@ -1042,7 +1042,14 @@
         "allowed": "Autorisées",
         "preferred": "Préférées",
         "not_allowed": "Non autorisées"
-      }
+      },
+      "restrictedHandlers": "Cynotechniciens exclus de ce point",
+      "restrictedHandlersHint": "Ces cynotechniciens ne seront jamais affectés à ce point par la Smart Rotation. Ils restent éligibles partout ailleurs.",
+      "restrictedHandlersSearch": "Rechercher un cynotechnicien…",
+      "restrictedHandlersEmpty": "Aucun cynotechnicien ne correspond.",
+      "restrictedHandlersNone": "Aucun cynotechnicien exclu de ce point.",
+      "restrictedHandlersSelected": "{{count}} exclus",
+      "restrictedHandlersRemove": "Retirer cette restriction"
     },
     "validation": {
       "shiftRequired": "Activez au moins un quartier (jour ou nuit) avec des équipes requises."
@@ -1192,6 +1199,7 @@
       "administrative_leave": "Congé",
       "mission": "Mission",
       "training": "Formation",
+      "rest": "Repos",
       "dog_sick": "Chien malade",
       "female_dog_heat": "Chienne en chaleur",
       "other": "Indisponible",
@@ -2043,7 +2051,7 @@
         }
       },
       "rules": {
-        "openEnded": "« Sous observation » et « Chien sans maître » restent sans date de fin : date de début obligatoire, pas d'expiration automatique, pas de rappel d2 / d1 / d0. Cette règle n'est pas configurable.",
+        "openEnded": "« Sous observation », « Chien sans maître », « Formation » et « Mission » restent sans date de fin : date de début obligatoire, pas d'expiration automatique, pas de rappel d2 / d1 / d0. Cette règle n'est pas configurable.",
         "disableCreationOnly": "Désactiver un type le masque uniquement à la création. Les exclusions déjà enregistrées restent valides et visibles dans l'historique, les tableaux, les statistiques et les rapports."
       },
       "info": {

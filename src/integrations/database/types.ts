@@ -209,6 +209,7 @@ export type Checkpoint = {
 
 export type CheckpointWithPosts = Checkpoint & {
   posts: CheckpointPost[];
+  restricted_agent_ids: string[];
 };
 
 export type CheckpointOperationalInput = {
@@ -223,6 +224,8 @@ export type CheckpointOperationalInput = {
   priority: CheckpointPriority;
   /** true = Mandatory, false = Optional. Default true. */
   mandatory: boolean;
+  /** Permanent cynotechnician bans for this checkpoint only. */
+  restricted_agent_ids?: string[];
 };
 
 export type CreateCheckpointInput = CheckpointOperationalInput;

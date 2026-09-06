@@ -217,12 +217,16 @@ function pageWatermarkAnchorParagraph(
   });
 }
 
+function sanitizeDocxText(value: unknown): string {
+  return String(value ?? "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "");
+}
+
 function textRun(
   text: string,
   opts?: { bold?: boolean; italics?: boolean; size?: number; font?: string },
 ): TextRun {
   return new TextRun({
-    text,
+    text: sanitizeDocxText(text),
     bold: opts?.bold,
     italics: opts?.italics,
     size: opts?.size ?? 16,
@@ -564,14 +568,15 @@ export async function generateFeuillePresenceDocx(
     ],
   });
 
+  const signatureCol = Math.round(CONTENT_W / 2);
   const signatures = new Table({
     width: { size: CONTENT_W, type: WidthType.DXA },
-    columnWidths: [CONTENT_W / 2, CONTENT_W / 2],
+    columnWidths: [signatureCol, signatureCol],
     rows: [
       new TableRow({
         children: [
           new TableCell({
-            width: { size: CONTENT_W / 2, type: WidthType.DXA },
+            width: { size: signatureCol, type: WidthType.DXA },
             borders: NO_BORDERS,
             children: [
               new Paragraph({
@@ -581,7 +586,7 @@ export async function generateFeuillePresenceDocx(
             ],
           }),
           new TableCell({
-            width: { size: CONTENT_W / 2, type: WidthType.DXA },
+            width: { size: signatureCol, type: WidthType.DXA },
             borders: NO_BORDERS,
             children: [
               new Paragraph({

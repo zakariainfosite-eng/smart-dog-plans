@@ -283,6 +283,65 @@ async function syncSlot(
   await insertActivePost(db, checkpointId, specialty, payload);
 }
 
+function restrictedAgentIdsFromInput(input: CreateCheckpointInput): string[] {
+  const raw = input.restricted_agent_ids ?? [];
+  return [...new Set(raw.filter((id) => typeof id === "string" && id.trim().length > 0))];
+}
+
+async function loadRestrictedAgentIdsByCheckpoint(
+  db: SqlExecutor,
+  checkpointId?: string,
+): Promise<Map<string, string[]>> {
+  const rows = checkpointId
+    ? await db.query<{ checkpoint_id: string; agent_id: string }>(
+        `SELECT checkpoint_id, agent_id FROM agent_checkpoint_restrictions WHERE checkpoint_id = ?`,
+        [checkpointId],
+      )
+    : await db.query<{ checkpoint_id: string; agent_id: string }>(
+        `SELECT checkpoint_id, agent_id FROM agent_checkpoint_restrictions`,
+      );
+  const grouped = new Map<string, string[]>();
+  for (const row of rows) {
+    const list = grouped.get(row.checkpoint_id) ?? [];
+    list.push(row.agent_id);
+    grouped.set(row.checkpoint_id, list);
+  }
+  return grouped;
+}
+
+async function syncCheckpointRestrictedAgents(
+  db: SqlExecutor,
+  checkpointId: string,
+  input: CreateCheckpointInput,
+): Promise<void> {
+  const wanted = restrictedAgentIdsFromInput(input);
+  const existing = await db.query<{ agent_id: string }>(
+    `SELECT agent_id FROM agent_checkpoint_restrictions WHERE checkpoint_id = ?`,
+    [checkpointId],
+  );
+  const existingIds = new Set(existing.map((row) => row.agent_id));
+  const wantedIds = new Set(wanted);
+
+  for (const row of existing) {
+    if (!wantedIds.has(row.agent_id)) {
+      await db.run(
+        `DELETE FROM agent_checkpoint_restrictions WHERE checkpoint_id = ? AND agent_id = ?`,
+        [checkpointId, row.agent_id],
+      );
+    }
+  }
+
+  const timestamp = nowIso();
+  for (const agentId of wanted) {
+    if (existingIds.has(agentId)) continue;
+    await db.run(
+      `INSERT INTO agent_checkpoint_restrictions (id, agent_id, checkpoint_id, created_at)
+       VALUES (?, ?, ?, ?)`,
+      [randomId(), agentId, checkpointId, timestamp],
+    );
+  }
+}
+
 async function syncCheckpointPostsFromConfig(
   db: SqlExecutor,
   checkpointId: string,
@@ -329,7 +388,12 @@ export async function getCheckpoints(db: SqlExecutor): Promise<CheckpointWithPos
     list.push(mapPost(row));
     grouped.set(row.checkpoint_id, list);
   }
-  return rows.map((row) => ({ ...mapCheckpoint(row), posts: grouped.get(row.id) ?? [] }));
+  const restricted = await loadRestrictedAgentIdsByCheckpoint(db);
+  return rows.map((row) => ({
+    ...mapCheckpoint(row),
+    posts: grouped.get(row.id) ?? [],
+    restricted_agent_ids: restricted.get(row.id) ?? [],
+  }));
 }
 
 export async function getCheckpoint(db: SqlExecutor, id: string): Promise<CheckpointWithPosts | null> {
@@ -339,7 +403,12 @@ export async function getCheckpoint(db: SqlExecutor, id: string): Promise<Checkp
     `SELECT * FROM checkpoint_posts WHERE checkpoint_id = ?`,
     [id],
   );
-  return { ...mapCheckpoint(row), posts: posts.map(mapPost) };
+  const restricted = await loadRestrictedAgentIdsByCheckpoint(db, id);
+  return {
+    ...mapCheckpoint(row),
+    posts: posts.map(mapPost),
+    restricted_agent_ids: restricted.get(id) ?? [],
+  };
 }
 
 export async function createCheckpoint(db: SqlExecutor, input: CreateCheckpointInput): Promise<Checkpoint> {
@@ -362,6 +431,7 @@ export async function createCheckpoint(db: SqlExecutor, input: CreateCheckpointI
         ],
       );
       await syncCheckpointPostsFromConfig(db, id, input);
+      await syncCheckpointRestrictedAgents(db, id, input);
     });
   } catch (error) {
     rethrowConstraint(error);
@@ -397,6 +467,7 @@ export async function updateCheckpoint(
       );
       if (result.changes === 0) throw new Error(`Checkpoint not found: ${id}`);
       await syncCheckpointPostsFromConfig(db, id, input);
+      await syncCheckpointRestrictedAgents(db, id, input);
     });
   } catch (error) {
     rethrowConstraint(error);

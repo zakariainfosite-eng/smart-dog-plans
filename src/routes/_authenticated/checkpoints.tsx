@@ -18,7 +18,6 @@ import {
   getCheckpoints,
   getDogs,
   updateCheckpoint,
-  type Checkpoint,
   type CheckpointWithPosts,
 } from "@/integrations/database";
 import {
@@ -149,7 +148,7 @@ function CheckpointsPage() {
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState<FilterValue>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<Checkpoint | null>(null);
+  const [editing, setEditing] = useState<CheckpointWithPosts | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CheckpointWithPosts | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const details = useStatisticDetailsDialog();
@@ -297,7 +296,7 @@ function CheckpointsPage() {
   });
 
   const openCreate = () => { setEditing(null); setDialogOpen(true); };
-  const openEdit = (c: Checkpoint) => { setEditing(c); setDialogOpen(true); };
+  const openEdit = (c: CheckpointWithPosts) => { setEditing(c); setDialogOpen(true); };
 
   const toggleExpanded = (id: string) => {
     setExpanded((prev) => {

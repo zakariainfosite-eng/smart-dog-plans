@@ -29,12 +29,21 @@ describe("exclusion settings", () => {
     expect(EXCLUSION_SETTINGS_CATALOG.map((row) => row.type)).toEqual(EXCLUSION_SETTINGS_CREATION_TYPES);
   });
 
-  it("keeps Sous observation and Chien sans maître as open-ended", () => {
-    expect(OPEN_ENDED_EXCLUSION_TYPES).toEqual(["dog_vet_visit", "dog_without_handler"]);
+  it("keeps Sous observation, Chien sans maître, Formation and Mission as open-ended", () => {
+    expect(OPEN_ENDED_EXCLUSION_TYPES).toEqual([
+      "dog_vet_visit",
+      "dog_without_handler",
+      "training",
+      "mission",
+    ]);
     expect(exclusionTypeDurationKind("dog_vet_visit")).toBe("openEnded");
     expect(exclusionTypeDurationKind("dog_without_handler")).toBe("openEnded");
+    expect(exclusionTypeDurationKind("training")).toBe("openEnded");
+    expect(exclusionTypeDurationKind("mission")).toBe("openEnded");
+    expect(exclusionTypeDurationKind("rest")).toBe("dated");
     expect(exclusionTypeDurationKind("dog_sick")).toBe("dated");
     expect(isOpenEndedExclusionType("dog_injured")).toBe(false);
+    expect(isOpenEndedExclusionType("rest")).toBe(false);
   });
 
   it("ignores stored duration overrides so open-ended types cannot gain an end date", () => {

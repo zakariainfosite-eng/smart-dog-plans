@@ -25,14 +25,38 @@ const WORD2007_NAMESPACE_URIS: Readonly<Record<string, string>> = {
   vt: "http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes",
 };
 
-/** Default namespace (no prefix) for package roots. */
+const CONTENT_TYPES_NS = "http://schemas.openxmlformats.org/package/2006/content-types";
+const RELS_NS = "http://schemas.openxmlformats.org/package/2006/relationships";
+const EXTENDED_PROPS_NS =
+  "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties";
+const CUSTOM_PROPS_NS =
+  "http://schemas.openxmlformats.org/officeDocument/2006/custom-properties";
+
+/** Default namespace (no prefix) for package roots — never guess `Properties` by tag name. */
 const WORD2007_DEFAULT_ROOT_NS: Readonly<Record<string, string>> = {
-  Types: "http://schemas.openxmlformats.org/package/2006/content-types",
-  Relationships: "http://schemas.openxmlformats.org/package/2006/relationships",
-  Properties: "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties",
+  Types: CONTENT_TYPES_NS,
+  Relationships: RELS_NS,
 };
 
-/** Prefixes introduced after Word 2007 — strip declarations and mc:Ignorable. */
+function normalizePartPath(partPath: string): string {
+  return partPath.replace(/\\/g, "/").replace(/^\.\//, "");
+}
+
+function defaultNamespaceForPart(
+  partPath: string,
+  bareTag: string,
+  originalDefaultNs: string | null,
+): string | null {
+  const path = normalizePartPath(partPath);
+  if (path === "[Content_Types].xml" || bareTag === "Types") return CONTENT_TYPES_NS;
+  if (path.endsWith(".rels") || bareTag === "Relationships") return RELS_NS;
+  if (path === "docProps/custom.xml") return CUSTOM_PROPS_NS;
+  if (path === "docProps/app.xml") return EXTENDED_PROPS_NS;
+  if (originalDefaultNs) return originalDefaultNs;
+  return WORD2007_DEFAULT_ROOT_NS[bareTag] ?? null;
+}
+
+/** Prefixes introduced after Word 2007 — strip declarations, attributes, and mc:Ignorable. */
 const MODERN_ONLY_PREFIXES = new Set([
   "wpc",
   "w14",
@@ -60,6 +84,12 @@ const MODERN_ONLY_PREFIXES = new Set([
   "am3d",
 ]);
 
+const MODERN_PREFIX_PATTERN = [...MODERN_ONLY_PREFIXES].join("|");
+const MODERN_ATTRIBUTE_RE = new RegExp(
+  `\\s+(?:${MODERN_PREFIX_PATTERN}):[A-Za-z0-9]+="[^"]*"`,
+  "g",
+);
+
 const XML_DECL =
   '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
 
@@ -68,7 +98,7 @@ function collectUsedPrefixes(xml: string): Set<string> {
 
   for (const match of xml.matchAll(/<\/?([A-Za-z0-9]+):/g)) {
     const prefix = match[1];
-    if (prefix !== "xmlns" && !MODERN_ONLY_PREFIXES.has(prefix)) {
+    if (prefix !== "xmlns" && prefix !== "xml" && !MODERN_ONLY_PREFIXES.has(prefix)) {
       prefixes.add(prefix);
     }
   }
@@ -76,7 +106,7 @@ function collectUsedPrefixes(xml: string): Set<string> {
   // Relationship / schema prefixes appear on attributes (r:embed, r:id, xsi:type, …).
   for (const match of xml.matchAll(/(?:^|\s)(?!xmlns)([A-Za-z0-9]+):[A-Za-z0-9]+="/g)) {
     const prefix = match[1];
-    if (!MODERN_ONLY_PREFIXES.has(prefix)) {
+    if (prefix !== "xml" && !MODERN_ONLY_PREFIXES.has(prefix)) {
       prefixes.add(prefix);
     }
   }
@@ -88,7 +118,7 @@ function stripModernNamespaceDeclarations(attrs: string): string {
   return attrs.replace(/\s+xmlns:[A-Za-z0-9]+="[^"]*"/g, "").replace(/\s+xmlns="[^"]*"/g, "");
 }
 
-function rebuildXmlRootNamespaces(xml: string): string {
+function rebuildXmlRootNamespaces(xml: string, partPath = ""): string {
   const trimmed = xml.trim();
   const xmlDeclMatch = trimmed.match(/^<\?xml[^?]*\?>/);
   const xmlDecl = xmlDeclMatch?.[0] ?? XML_DECL;
@@ -99,7 +129,8 @@ function rebuildXmlRootNamespaces(xml: string): string {
 
   const [, tagName, rawAttrs, selfClose] = rootMatch;
   const afterRoot = content.slice(rootMatch[0].length);
-  const bareTag = tagName.includes(":") ? tagName.split(":")[1] : tagName;
+  const bareTag = tagName.includes(":") ? tagName.split(":")[1]! : tagName;
+  const originalDefaultNs = rawAttrs.match(/\sxmlns="([^"]*)"/)?.[1] ?? null;
 
   let keptAttrs = stripModernNamespaceDeclarations(rawAttrs)
     .replace(/\s+mc:Ignorable="[^"]*"/g, "")
@@ -108,7 +139,7 @@ function rebuildXmlRootNamespaces(xml: string): string {
   const usedPrefixes = collectUsedPrefixes(content);
   const xmlnsParts: string[] = [];
 
-  const defaultNs = WORD2007_DEFAULT_ROOT_NS[bareTag];
+  const defaultNs = defaultNamespaceForPart(partPath, bareTag, originalDefaultNs);
   if (defaultNs) {
     xmlnsParts.push(`xmlns="${defaultNs}"`);
   }
@@ -125,11 +156,100 @@ function rebuildXmlRootNamespaces(xml: string): string {
   return `${xmlDecl}<${tagName}${attrSegment ? ` ${attrSegment}` : ""}${close}${afterRoot}`;
 }
 
+function stripIllegalXmlChars(xml: string): string {
+  return xml.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "");
+}
+
+/** Word Android rejects W3CDTF timestamps that include milliseconds. */
+function normalizeW3CdtfTimestamps(xml: string): string {
+  return xml.replace(
+    /(<(?:[A-Za-z0-9]+:)?(?:created|modified)\b[^>]*>)(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\.\d+Z(<\/)/g,
+    "$1$2Z$3",
+  );
+}
+
+function ensureRequiredWordStyles(xml: string): string {
+  if (!xml.includes("<w:styles")) return xml;
+  let out = xml;
+  if (!/w:styleId="Normal"/.test(out)) {
+    const normal =
+      '<w:style w:type="paragraph" w:styleId="Normal" w:default="1"><w:name w:val="Normal"/><w:qFormat/></w:style>';
+    out = out.includes("</w:docDefaults>")
+      ? out.replace("</w:docDefaults>", `</w:docDefaults>${normal}`)
+      : out.replace(/<w:styles\b[^>]*>/, (open) => `${open}${normal}`);
+  }
+  if (!/w:styleId="DefaultParagraphFont"/.test(out)) {
+    const def =
+      '<w:style w:type="character" w:styleId="DefaultParagraphFont" w:default="1"><w:name w:val="Default Paragraph Font"/><w:semiHidden/><w:unhideWhenUsed/></w:style>';
+    out = out.replace(
+      /(<w:style\b[^>]*w:styleId="Normal"[^>]*>[\s\S]*?<\/w:style>)/,
+      `$1${def}`,
+    );
+  }
+  return out;
+}
+
+function replaceEmptyOrOpenRoot(
+  xml: string,
+  rootLocalName: string,
+  inner: string,
+): string {
+  const empty = new RegExp(`<(${rootLocalName})(\\b[^>]*)\\/>`);
+  if (empty.test(xml)) {
+    return xml.replace(empty, `<$1$2>${inner}</$1>`);
+  }
+  const open = new RegExp(`<(${rootLocalName})(\\b[^>]*)>`);
+  return xml.replace(open, `<$1$2>${inner}`);
+}
+
+/** Word Android repairs an empty font table when the document names fonts. */
+function ensureRequiredFonts(xml: string): string {
+  if (!xml.includes("<w:fonts") || /<w:font\b/.test(xml)) return xml;
+  const fonts =
+    '<w:font w:name="Times New Roman"><w:family w:val="roman"/><w:pitch w:val="variable"/></w:font>' +
+    '<w:font w:name="Arial"><w:family w:val="swiss"/><w:pitch w:val="variable"/></w:font>';
+  return replaceEmptyOrOpenRoot(xml, "w:fonts", fonts);
+}
+
+/** Empty extended-properties part is invalid for Word's document inspector. */
+function ensureAppProperties(xml: string): string {
+  if (!xml.includes("<Properties") || /<Application[\s>]/.test(xml)) return xml;
+  const children =
+    "<Application>Microsoft Office Word</Application><AppVersion>12.0000</AppVersion>";
+  return replaceEmptyOrOpenRoot(xml, "Properties", children);
+}
+
+function isEmptyCustomProperties(xml: string): boolean {
+  return xml.includes("<Properties") && !/<property[\s>/]/i.test(xml);
+}
+
+function dropEmptyCustomPropertiesPart(parts: Record<string, string>): void {
+  const custom = parts["docProps/custom.xml"];
+  if (!custom || !isEmptyCustomProperties(custom)) return;
+  delete parts["docProps/custom.xml"];
+
+  const types = parts["[Content_Types].xml"];
+  if (types) {
+    parts["[Content_Types].xml"] = types.replace(
+      /<Override\b[^>]*PartName="\/docProps\/custom\.xml"[^>]*\/>/g,
+      "",
+    );
+  }
+  const rels = parts["_rels/.rels"];
+  if (rels) {
+    parts["_rels/.rels"] = rels.replace(
+      /<Relationship\b[^>]*Target="docProps\/custom\.xml"[^>]*\/>/g,
+      "",
+    );
+  }
+}
+
 /**
  * Sanitize one OOXML part for Word 2007 (pure string transform — testable without JSZip).
  */
 export function sanitizeWordXmlPart(xml: string, partPath = ""): string {
-  let out = xml;
+  let out = stripIllegalXmlChars(xml);
+  const path = normalizePartPath(partPath);
 
   // Word 2010+ — not understood by Word 2007.
   out = out.replace(/<w:displayBackgroundShape\s*\/>/g, "");
@@ -144,9 +264,21 @@ export function sanitizeWordXmlPart(xml: string, partPath = ""): string {
   );
 
   out = out.replace(/\s+mc:Ignorable="[^"]*"/g, "");
+  out = out.replace(MODERN_ATTRIBUTE_RE, "");
+  out = normalizeW3CdtfTimestamps(out);
 
-  if (/\.(xml|rels)$/i.test(partPath) || partPath === "") {
-    out = rebuildXmlRootNamespaces(out);
+  if (path === "word/styles.xml" || (path === "" && out.includes("<w:styles"))) {
+    out = ensureRequiredWordStyles(out);
+  }
+  if (path === "word/fontTable.xml" || (path === "" && out.includes("<w:fonts"))) {
+    out = ensureRequiredFonts(out);
+  }
+  if (path === "docProps/app.xml") {
+    out = ensureAppProperties(out);
+  }
+
+  if (/\.(xml|rels)$/i.test(path) || path === "") {
+    out = rebuildXmlRootNamespaces(out, path);
   }
 
   return out;
@@ -185,33 +317,146 @@ export function inspectWord2007DocxCompliance(
     issues.push("word/settings.xml: compatibilityMode is not 12 (Word 2007)");
   }
 
+  const custom = parts["docProps/custom.xml"];
+  if (custom?.includes(EXTENDED_PROPS_NS) && !custom.includes(CUSTOM_PROPS_NS)) {
+    issues.push("docProps/custom.xml: wrong root namespace (extended-properties)");
+  }
+
+  const core = parts["docProps/core.xml"];
+  if (core && /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z/.test(core)) {
+    issues.push("docProps/core.xml: W3CDTF timestamp includes milliseconds");
+  }
+
+  const styles = parts["word/styles.xml"];
+  if (styles && !/w:styleId="Normal"/.test(styles)) {
+    issues.push("word/styles.xml: missing required Normal style");
+  }
+
+  const fonts = parts["word/fontTable.xml"];
+  if (fonts && !/<w:font\b/.test(fonts)) {
+    issues.push("word/fontTable.xml: empty font table");
+  }
+
+  const app = parts["docProps/app.xml"];
+  if (app && !/<Application[\s>]/.test(app)) {
+    issues.push("docProps/app.xml: missing Application");
+  }
+
   return { ok: issues.length === 0, issues };
 }
 
 /**
- * Re-pack a .docx buffer after sanitizing every XML / RELS part.
+ * Re-pack a .docx as a Word-Android-safe OOXML ZIP:
+ * files only (no directory entries), DOS platform, DEFLATE, sanitized XML.
  * Safe to call on every export — idempotent for already-compatible files.
  */
 export async function applyWord2007DocxCompatibility(bytes: Uint8Array): Promise<Uint8Array> {
   const { default: JSZip } = await import("jszip");
-  const zip = await JSZip.loadAsync(bytes);
+  const source = await JSZip.loadAsync(bytes);
+  const out = new JSZip();
+  const xmlParts: Record<string, string> = {};
+  const binaryParts: Record<string, Uint8Array> = {};
 
-  for (const [path, file] of Object.entries(zip.files)) {
+  for (const [path, file] of Object.entries(source.files)) {
     if (file.dir) continue;
-    if (!/\.(xml|rels)$/i.test(path)) continue;
 
-    const original = await file.async("string");
-    const sanitized = sanitizeWordXmlPart(original, path);
-    if (sanitized !== original) {
-      zip.file(path, sanitized);
+    if (/\.(xml|rels)$/i.test(path)) {
+      xmlParts[path] = sanitizeWordXmlPart(await file.async("string"), path);
+    } else {
+      binaryParts[path] = toZipSafeUint8Array(await file.async("uint8array"));
     }
   }
 
-  const packed = await zip.generateAsync({
+  dropEmptyCustomPropertiesPart(xmlParts);
+
+  for (const [path, xml] of Object.entries(xmlParts)) {
+    out.file(path, xml, { createFolders: false });
+  }
+  for (const [path, data] of Object.entries(binaryParts)) {
+    out.file(path, data, { createFolders: false });
+  }
+
+  for (const [path, file] of Object.entries(out.files)) {
+    if (file.dir) delete out.files[path];
+  }
+
+  const packed = await out.generateAsync({
     type: "uint8array",
     compression: "DEFLATE",
     compressionOptions: { level: 6 },
+    platform: "DOS",
+    streamFiles: false,
   });
 
   return toZipSafeUint8Array(packed);
+}
+
+function collectUndeclaredPrefixes(xml: string): string[] {
+  const declared = new Set(
+    [...xml.matchAll(/\sxmlns:([A-Za-z0-9]+)="/g)].map((match) => match[1]),
+  );
+  const used = new Set<string>();
+  for (const match of xml.matchAll(/<\/?([A-Za-z0-9]+):/g)) {
+    const prefix = match[1];
+    if (prefix !== "xmlns" && prefix !== "xml") used.add(prefix);
+  }
+  for (const match of xml.matchAll(/(?:^|[\s<])(?!xmlns)([A-Za-z0-9]+):[A-Za-z0-9.-]+="/g)) {
+    const prefix = match[1];
+    if (prefix !== "xml") used.add(prefix);
+  }
+  return [...used].filter((prefix) => !declared.has(prefix)).sort();
+}
+
+/**
+ * Structural OOXML checks Word Android uses before offering "contenu illisible".
+ */
+export async function validateWordCompatibleDocx(
+  bytes: Uint8Array,
+): Promise<Word2007ComplianceReport> {
+  const { default: JSZip } = await import("jszip");
+  const zip = await JSZip.loadAsync(bytes, { checkCRC32: true });
+  const parts: Record<string, string> = {};
+  const fileNames = new Set<string>();
+
+  for (const [path, file] of Object.entries(zip.files)) {
+    if (file.dir) continue;
+    fileNames.add(path);
+    if (/\.(xml|rels)$/i.test(path)) {
+      parts[path] = await file.async("string");
+    }
+  }
+
+  const issues = [...inspectWord2007DocxCompliance(parts).issues];
+
+  for (const [path, xml] of Object.entries(parts)) {
+    if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(xml)) {
+      issues.push(`${path}: illegal XML characters`);
+    }
+    const undeclared = collectUndeclaredPrefixes(xml);
+    if (undeclared.length > 0) {
+      issues.push(`${path}: undeclared prefixes (${undeclared.join(", ")})`);
+    }
+  }
+
+  for (const [path, xml] of Object.entries(parts)) {
+    if (!path.endsWith(".rels")) continue;
+    const baseDir = path.replace(/_rels\/[^/]+$/, "");
+    const ids = [...xml.matchAll(/\bId="([^"]+)"/g)].map((match) => match[1]);
+    const uniqueIds = new Set(ids);
+    if (uniqueIds.size !== ids.length) {
+      issues.push(`${path}: duplicate relationship IDs`);
+    }
+    for (const match of xml.matchAll(/\bTarget="([^"]+)"/g)) {
+      const target = match[1];
+      if (/^https?:\/\//i.test(target) || target.startsWith("mailto:")) continue;
+      const resolved = target.startsWith("/")
+        ? target.slice(1)
+        : `${baseDir}${target}`.replace(/\/{2,}/g, "/");
+      if (!fileNames.has(resolved)) {
+        issues.push(`${path}: missing target ${target}`);
+      }
+    }
+  }
+
+  return { ok: issues.length === 0, issues };
 }

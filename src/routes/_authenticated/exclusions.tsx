@@ -284,6 +284,7 @@ function exclusionSchema(t: TFunction) {
         "administrative_leave",
         "mission",
         "training",
+        "rest",
         "dog_sick",
         "female_dog_heat",
         "other",

@@ -87,6 +87,8 @@ export type CheckpointInput = Pick<
   | "night_shift_enabled"
 > & {
   posts: CheckpointPostInput[];
+  /** Permanent cynotechnician bans for this checkpoint only. */
+  restricted_agent_ids?: readonly string[];
 };
 
 export type AgentInput = {
@@ -432,6 +434,15 @@ export function teamMatchesGenderRequirement(
   return team.gender === "female";
 }
 
+/** Permanent checkpoint restriction — does not affect other checkpoints or general availability. */
+export function isAgentRestrictedFromCheckpoint(
+  agentId: string,
+  checkpoint: Pick<CheckpointInput, "restricted_agent_ids">,
+): boolean {
+  const ids = checkpoint.restricted_agent_ids;
+  return Array.isArray(ids) && ids.includes(agentId);
+}
+
 /** Specialty + gender + dog requirement match for a checkpoint post. */
 export function teamMatchesPostRequirements(
   team: EligibleTeam,
@@ -442,6 +453,7 @@ export function teamMatchesPostRequirements(
   assignedToday: Set<string>,
   allowNightFallback: boolean,
 ): boolean {
+  if (isAgentRestrictedFromCheckpoint(team.agent_id, checkpoint)) return false;
   if (!teamMatchesFemalePolicy(team, checkpoint.female_policy ?? "allowed")) return false;
 
   const allowedGender = resolveHardGenderRequirement(
@@ -513,12 +525,10 @@ export function qualifyTeams(
         excluded.push({ agent_id: a.id, agent_name: name, reason: "Dog inactive" });
         continue;
       }
+      // Operational dog unavailability is exclusion records only.
+      // Leftover dogs.status (sick/heat) after an exclusion ends must not force Point 653.
       const dogExcludedByRecord = exTypes.some(isDogLevelExclusionType);
-      if (dogExcludedByRecord || dog.status === "sick" || dog.status === "heat") {
-        continue;
-      }
-      if (dog.status !== "available") {
-        excluded.push({ agent_id: a.id, agent_name: name, reason: `Dog status: ${dog.status}` });
+      if (dogExcludedByRecord) {
         continue;
       }
       if (dog.specialty !== "narcotics" && dog.specialty !== "explosives") {
@@ -581,9 +591,6 @@ function resolvePoint653Reason(
 
   const dog = Array.isArray(agent.dogs) ? agent.dogs[0] : agent.dogs;
   if (!agent.dog_id || !dog) return "no_assigned_dog";
-  // Legacy dogs.status fallback — operational truth is exclusions.
-  if (dog.status === "sick") return "dog_sick";
-  if (dog.status === "heat") return "dog_in_heat";
   return "no_operational_assignment";
 }
 
@@ -1905,7 +1912,6 @@ function agentHasOperationalDog(
   const dog = Array.isArray(agent.dogs) ? agent.dogs[0] : agent.dogs;
   if (!agent.dog_id || !dog) return false;
   if (!dog.active) return false;
-  if (dog.status !== "available") return false;
   if (dog.specialty !== "narcotics" && dog.specialty !== "explosives") return false;
   const exTypes = exclusionTypesForAgent(agent, byAgent, byDog);
   if (exTypes.some(isDogLevelExclusionType)) return false;
@@ -2286,13 +2292,6 @@ export function auditExclusionViolations(
         "assigned to operational checkpoint",
         "personnel excluded",
       );
-    }
-
-    const dog = agent ? (Array.isArray(agent.dogs) ? agent.dogs[0] : agent.dogs) : null;
-    if (dog?.status === "sick") {
-      pushViolation(assignment.agent_id, "assigned to operational checkpoint", "dog sick");
-    } else if (dog?.status === "heat") {
-      pushViolation(assignment.agent_id, "assigned to operational checkpoint", "dog in heat");
     }
 
     const topDogExclusion = pickHighestPriorityDogExclusionTypeName(exTypes);
@@ -2870,6 +2869,7 @@ export function normalizeCheckpointRow(row: {
   day_shift_enabled?: boolean;
   night_shift_enabled?: boolean;
   posts: CheckpointPostInput[] | CheckpointPostInput | null;
+  restricted_agent_ids?: readonly string[] | null;
 }): CheckpointInput {
   const rawPosts = row.posts;
   const posts = dedupePostsBySpecialty(
@@ -2895,5 +2895,8 @@ export function normalizeCheckpointRow(row: {
     night_shift_enabled:
       row.night_shift_enabled ?? (row.night_only ? true : false),
     posts,
+    restricted_agent_ids: Array.isArray(row.restricted_agent_ids)
+      ? [...new Set(row.restricted_agent_ids.filter((id) => typeof id === "string" && id.length > 0))]
+      : [],
   };
 }

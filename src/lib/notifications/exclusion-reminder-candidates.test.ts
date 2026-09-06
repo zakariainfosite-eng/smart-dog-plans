@@ -68,9 +68,12 @@ describe("exclusion reminder candidates", () => {
     ).toBe(false);
   });
 
-  it("does not generate end-date reminders for open-ended dog types", () => {
+  it("does not generate end-date reminders for open-ended types", () => {
     expect(isOpenEndedExclusionType("dog_vet_visit")).toBe(true);
     expect(isOpenEndedExclusionType("dog_without_handler")).toBe(true);
+    expect(isOpenEndedExclusionType("training")).toBe(true);
+    expect(isOpenEndedExclusionType("mission")).toBe(true);
+    expect(isOpenEndedExclusionType("rest")).toBe(false);
     expect(isOpenEndedExclusionType("dog_sick")).toBe(false);
   });
 

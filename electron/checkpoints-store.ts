@@ -13,6 +13,7 @@ export type CreateCheckpointInput = {
   priority: 1 | 2 | 3 | 4;
   /** true = Mandatory (YES), false = Optional (NO). Default true. */
   mandatory: boolean;
+  restricted_agent_ids?: string[];
 };
 
 export type UpdateCheckpointInput = CreateCheckpointInput;
@@ -95,6 +96,7 @@ export type CheckpointRecord = {
 
 export type CheckpointWithPostsRecord = CheckpointRecord & {
   posts: CheckpointPostRecord[];
+  restricted_agent_ids: string[];
 };
 
 const SPECIALTIES: CheckpointSpecialty[] = ["narcotics", "explosives"];
@@ -216,13 +218,74 @@ function getPostsByCheckpointId(db: Database.Database): Map<string, CheckpointPo
   return grouped;
 }
 
+function restrictedAgentIdsFromInput(input: CreateCheckpointInput): string[] {
+  const raw = input.restricted_agent_ids ?? [];
+  return [...new Set(raw.filter((id) => typeof id === "string" && id.trim().length > 0))];
+}
+
+function loadRestrictedAgentIdsByCheckpoint(
+  db: Database.Database,
+  checkpointId?: string,
+): Map<string, string[]> {
+  const rows = (
+    checkpointId
+      ? db
+          .prepare(
+            `SELECT checkpoint_id, agent_id FROM agent_checkpoint_restrictions WHERE checkpoint_id = ?`,
+          )
+          .all(checkpointId)
+      : db.prepare(`SELECT checkpoint_id, agent_id FROM agent_checkpoint_restrictions`).all()
+  ) as Array<{ checkpoint_id: string; agent_id: string }>;
+  const grouped = new Map<string, string[]>();
+  for (const row of rows) {
+    const list = grouped.get(row.checkpoint_id) ?? [];
+    list.push(row.agent_id);
+    grouped.set(row.checkpoint_id, list);
+  }
+  return grouped;
+}
+
+function syncCheckpointRestrictedAgents(
+  db: Database.Database,
+  checkpointId: string,
+  input: CreateCheckpointInput,
+): void {
+  const wanted = restrictedAgentIdsFromInput(input);
+  const existing = db
+    .prepare(`SELECT agent_id FROM agent_checkpoint_restrictions WHERE checkpoint_id = ?`)
+    .all(checkpointId) as Array<{ agent_id: string }>;
+  const existingIds = new Set(existing.map((row) => row.agent_id));
+  const wantedIds = new Set(wanted);
+
+  const remove = db.prepare(
+    `DELETE FROM agent_checkpoint_restrictions WHERE checkpoint_id = ? AND agent_id = ?`,
+  );
+  for (const row of existing) {
+    if (!wantedIds.has(row.agent_id)) {
+      remove.run(checkpointId, row.agent_id);
+    }
+  }
+
+  const insert = db.prepare(
+    `INSERT INTO agent_checkpoint_restrictions (id, agent_id, checkpoint_id, created_at)
+     VALUES (?, ?, ?, ?)`,
+  );
+  const timestamp = nowIso();
+  for (const agentId of wanted) {
+    if (existingIds.has(agentId)) continue;
+    insert.run(randomUUID(), agentId, checkpointId, timestamp);
+  }
+}
+
 function attachPosts(
   checkpoint: CheckpointRecord,
   postsByCheckpoint: Map<string, CheckpointPostRecord[]>,
+  restrictedByCheckpoint: Map<string, string[]>,
 ): CheckpointWithPostsRecord {
   return {
     ...checkpoint,
     posts: postsByCheckpoint.get(checkpoint.id) ?? [],
+    restricted_agent_ids: restrictedByCheckpoint.get(checkpoint.id) ?? [],
   };
 }
 
@@ -448,7 +511,10 @@ export function getCheckpoints(db: Database.Database): CheckpointWithPostsRecord
     .prepare(`SELECT * FROM checkpoints ORDER BY name COLLATE NOCASE`)
     .all() as CheckpointRowDb[];
   const postsByCheckpoint = getPostsByCheckpointId(db);
-  return rows.map((row) => attachPosts(mapCheckpoint(row), postsByCheckpoint));
+  const restrictedByCheckpoint = loadRestrictedAgentIdsByCheckpoint(db);
+  return rows.map((row) =>
+    attachPosts(mapCheckpoint(row), postsByCheckpoint, restrictedByCheckpoint),
+  );
 }
 
 export function getCheckpoint(db: Database.Database, id: string): CheckpointWithPostsRecord | null {
@@ -459,9 +525,11 @@ export function getCheckpoint(db: Database.Database, id: string): CheckpointWith
   const posts = db
     .prepare(`SELECT * FROM checkpoint_posts WHERE checkpoint_id = ?`)
     .all(id) as CheckpointPostRowDb[];
+  const restricted = loadRestrictedAgentIdsByCheckpoint(db, id);
   return {
     ...mapCheckpoint(row),
     posts: posts.map(mapPost),
+    restricted_agent_ids: restricted.get(id) ?? [],
   };
 }
 
@@ -503,6 +571,7 @@ export function createCheckpoint(
     );
 
     syncCheckpointPostsFromConfig(db, id, input);
+    syncCheckpointRestrictedAgents(db, id, input);
   });
 
   try {
@@ -576,6 +645,7 @@ export function updateCheckpoint(
     }
 
     syncCheckpointPostsFromConfig(db, id, input);
+    syncCheckpointRestrictedAgents(db, id, input);
   });
 
   try {

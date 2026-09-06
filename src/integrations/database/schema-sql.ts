@@ -122,13 +122,27 @@ export const SCHEMA_STATEMENTS: readonly string[] = [
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`,
 
+  `CREATE TABLE IF NOT EXISTS agent_checkpoint_restrictions (
+    id TEXT PRIMARY KEY NOT NULL,
+    agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    checkpoint_id TEXT NOT NULL REFERENCES checkpoints(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (agent_id, checkpoint_id)
+  )`,
+
+  `CREATE INDEX IF NOT EXISTS idx_agent_checkpoint_restrictions_checkpoint
+    ON agent_checkpoint_restrictions(checkpoint_id)`,
+
+  `CREATE INDEX IF NOT EXISTS idx_agent_checkpoint_restrictions_agent
+    ON agent_checkpoint_restrictions(agent_id)`,
+
   `CREATE TABLE IF NOT EXISTS agent_exclusions (
     id TEXT PRIMARY KEY NOT NULL,
     agent_id TEXT REFERENCES agents(id) ON DELETE CASCADE,
     dog_id TEXT REFERENCES dogs(id) ON DELETE CASCADE,
     exclusion_type TEXT NOT NULL CHECK (exclusion_type IN (
       'absence', 'sickness', 'administrative_leave', 'special_leave',
-      'dog_sick', 'female_dog_heat', 'annual_leave', 'mission', 'training', 'other',
+      'dog_sick', 'female_dog_heat', 'annual_leave', 'mission', 'training', 'rest', 'other',
       'suspension',
       'dog_injured', 'dog_temporary_retirement', 'dog_vet_visit', 'dog_without_handler',
       'dog_training', 'dog_other'
@@ -569,6 +583,68 @@ export const LOCAL_SQLITE_MIGRATIONS: readonly {
       `CREATE INDEX IF NOT EXISTS idx_agent_admin_history_start_date ON agent_administrative_history(start_date)`,
       `CREATE INDEX IF NOT EXISTS idx_agent_admin_history_type ON agent_administrative_history(event_type)`,
       `CREATE INDEX IF NOT EXISTS idx_agent_admin_history_source ON agent_administrative_history(source_type, source_id)`,
+    ],
+  },
+  {
+    id: "021_agent_exclusions_rest_type",
+    name: "Add Repos (rest) personnel exclusion type to CHECK",
+    noTransaction: true,
+    statements: [
+      `PRAGMA foreign_keys = OFF`,
+      `CREATE TABLE agent_exclusions__rest (
+        id TEXT PRIMARY KEY NOT NULL,
+        agent_id TEXT REFERENCES agents(id) ON DELETE CASCADE,
+        dog_id TEXT REFERENCES dogs(id) ON DELETE CASCADE,
+        exclusion_type TEXT NOT NULL CHECK (exclusion_type IN (
+          'absence', 'sickness', 'administrative_leave', 'special_leave',
+          'dog_sick', 'female_dog_heat', 'annual_leave', 'mission', 'training', 'rest', 'other',
+          'suspension',
+          'dog_injured', 'dog_temporary_retirement', 'dog_vet_visit', 'dog_without_handler',
+          'dog_training', 'dog_other'
+        )),
+        start_date TEXT NOT NULL,
+        end_date TEXT,
+        notes TEXT,
+        active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+        is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        CHECK (end_date IS NULL OR end_date >= start_date),
+        CHECK (agent_id IS NOT NULL OR dog_id IS NOT NULL)
+      )`,
+      `INSERT INTO agent_exclusions__rest (
+        id, agent_id, dog_id, exclusion_type, start_date, end_date, notes,
+        active, is_deleted, created_at, updated_at
+      )
+      SELECT
+        id, agent_id, dog_id, exclusion_type, start_date, end_date, notes,
+        active, is_deleted, created_at, updated_at
+      FROM agent_exclusions`,
+      `DROP TABLE agent_exclusions`,
+      `ALTER TABLE agent_exclusions__rest RENAME TO agent_exclusions`,
+      `CREATE INDEX IF NOT EXISTS idx_agent_exclusions_agent ON agent_exclusions(agent_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_agent_exclusions_dog ON agent_exclusions(dog_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_agent_exclusions_dates ON agent_exclusions(start_date, end_date)`,
+      `CREATE INDEX IF NOT EXISTS idx_agent_exclusions_active ON agent_exclusions(active)`,
+      `CREATE INDEX IF NOT EXISTS idx_agent_exclusions_is_deleted ON agent_exclusions(is_deleted)`,
+      `PRAGMA foreign_keys = ON`,
+    ],
+  },
+  {
+    id: "022_agent_checkpoint_restrictions",
+    name: "Permanent per-checkpoint cynotechnician restrictions",
+    statements: [
+      `CREATE TABLE IF NOT EXISTS agent_checkpoint_restrictions (
+        id TEXT PRIMARY KEY NOT NULL,
+        agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+        checkpoint_id TEXT NOT NULL REFERENCES checkpoints(id) ON DELETE CASCADE,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE (agent_id, checkpoint_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_agent_checkpoint_restrictions_checkpoint
+        ON agent_checkpoint_restrictions(checkpoint_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_agent_checkpoint_restrictions_agent
+        ON agent_checkpoint_restrictions(agent_id)`,
     ],
   },
 ];

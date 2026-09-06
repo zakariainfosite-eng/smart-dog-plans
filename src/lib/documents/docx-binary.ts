@@ -86,6 +86,51 @@ export function assertDocxZipArchive(bytes: Uint8Array, context: string): void {
   }
 }
 
+function findZipEocdOffset(bytes: Uint8Array): number {
+  const maxScan = Math.min(bytes.byteLength - 22, 0xffff);
+  for (let i = bytes.byteLength - 22; i >= bytes.byteLength - 22 - maxScan; i -= 1) {
+    if (
+      bytes[i] === DOCX_ZIP_EOCD[0]
+      && bytes[i + 1] === DOCX_ZIP_EOCD[1]
+      && bytes[i + 2] === DOCX_ZIP_EOCD[2]
+      && bytes[i + 3] === DOCX_ZIP_EOCD[3]
+    ) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Real ZIP central-directory names (not JSZip's synthesized folders).
+ * Word Android rejects packages that store directory-only entries (`word/`).
+ */
+export function listZipCentralDirectoryNames(bytes: Uint8Array): string[] {
+  assertDocxZipArchive(bytes, "zip-cd");
+  const eocd = findZipEocdOffset(bytes);
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const entryCount = view.getUint16(eocd + 10, true);
+  let offset = view.getUint32(eocd + 16, true);
+  const names: string[] = [];
+  const decoder = new TextDecoder("utf-8");
+  for (let i = 0; i < entryCount; i += 1) {
+    if (
+      bytes[offset] !== 0x50
+      || bytes[offset + 1] !== 0x4b
+      || bytes[offset + 2] !== 0x01
+      || bytes[offset + 3] !== 0x02
+    ) {
+      throw new Error(`zip-cd: central-directory entry ${i} is not PK\\x01\\x02`);
+    }
+    const nameLen = view.getUint16(offset + 28, true);
+    const extraLen = view.getUint16(offset + 30, true);
+    const commentLen = view.getUint16(offset + 32, true);
+    names.push(decoder.decode(bytes.subarray(offset + 46, offset + 46 + nameLen)));
+    offset += 46 + nameLen + extraLen + commentLen;
+  }
+  return names;
+}
+
 /**
  * Full integrity check: structural ZIP + CRC32 of every entry via JSZip.
  * Call before IPC save (renderer) and after IPC decode (main).
@@ -106,6 +151,19 @@ export async function assertDocxZipIntegrity(
     for (const name of required) {
       if (!zip.file(name)) {
         throw new Error(`${context}: missing required OOXML part ${name}`);
+      }
+    }
+    const storedNames = listZipCentralDirectoryNames(bytes);
+    const directoryEntries = storedNames.filter((name) => name.endsWith("/"));
+    if (directoryEntries.length > 0) {
+      throw new Error(
+        `${context}: ZIP stores directory entries (${directoryEntries.join(", ")}). `
+          + "Microsoft Word Android rejects these packages.",
+      );
+    }
+    for (const name of required) {
+      if (!storedNames.includes(name)) {
+        throw new Error(`${context}: central directory missing ${name}`);
       }
     }
   } catch (error) {

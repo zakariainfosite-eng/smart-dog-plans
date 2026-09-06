@@ -24,6 +24,7 @@ export const AGENT_LEVEL_EXCLUSION_TYPES = new Set<string>([
   "administrative_leave",
   "mission",
   "training",
+  "rest",
   "suspension",
   "other",
 ]);
@@ -46,6 +47,7 @@ export const PERSONNEL_EXCLUSION_FORM_TYPES: ExclusionType[] = [
   "annual_leave",
   "mission",
   "training",
+  "rest",
   "suspension",
 ];
 
@@ -59,10 +61,17 @@ export const DOG_EXCLUSION_FORM_TYPES: ExclusionType[] = [
 ];
 
 /**
- * Dog exclusions with no end date: active while enabled and start_date <= today.
+ * Exclusions with no end date: active while enabled and start_date <= today.
  * Stored code `dog_vet_visit` is displayed as "Sous observation".
+ * Formation (`training`) and Mission use the same date rule.
+ * Repos (`rest`) is dated: start + end required, like Malade / Congé.
  */
-export const OPEN_ENDED_EXCLUSION_TYPES = ["dog_vet_visit", "dog_without_handler"] as const;
+export const OPEN_ENDED_EXCLUSION_TYPES = [
+  "dog_vet_visit",
+  "dog_without_handler",
+  "training",
+  "mission",
+] as const;
 
 export function isOpenEndedExclusionType(type: string | null | undefined): boolean {
   return Boolean(type && (OPEN_ENDED_EXCLUSION_TYPES as readonly string[]).includes(type));
@@ -86,6 +95,7 @@ export const ALL_EXCLUSION_TYPES: ExclusionType[] = [
   "absence",
   "mission",
   "training",
+  "rest",
   "suspension",
   "dog_sick",
   "female_dog_heat",
