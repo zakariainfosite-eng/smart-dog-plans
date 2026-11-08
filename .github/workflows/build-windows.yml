@@ -8,6 +8,7 @@ on:
 
 jobs:
   build-windows:
+    name: Build Windows installer (x64)
     runs-on: windows-latest
 
     steps:
@@ -21,17 +22,20 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        # Windows runners invoke npm.cmd; cmd.exe reports its exit code correctly.
-        shell: cmd
         run: npm ci
 
-      - name: Build application
-        run: npm run build
+      - name: Prepare packager resources
+        shell: pwsh
+        run: |
+          if (-not (Test-Path .env)) {
+            New-Item -ItemType File -Path .env -Force | Out-Null
+          }
 
-      - name: Build Windows installer
+      - name: Build Windows x64 installer
         env:
           GH_TOKEN: ""
           GITHUB_TOKEN: ""
+          CI: true
         run: npm run electron:build:win
 
       - name: Upload Windows installer
