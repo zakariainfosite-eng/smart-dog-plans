@@ -281,3 +281,9 @@ export function closeDatabase(): void {
     db = null;
   }
 }
+
+/** Closes the singleton handle and opens userData/cynoplanning.db again (post-import, etc.). */
+export function reopenDatabase(app: App): Database.Database {
+  closeDatabase();
+  return initializeDatabase(app);
+}

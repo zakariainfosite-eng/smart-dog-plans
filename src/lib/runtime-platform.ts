@@ -18,6 +18,7 @@ export function isElectronDesktopDataBridgeAvailable(): boolean {
       typeof data.pickSqliteDatabase === "function" &&
       typeof data.inspectPickedSqliteDatabase === "function" &&
       typeof data.restorePickedSqliteDatabase === "function" &&
+      typeof data.getActiveDatabaseDiagnostics === "function" &&
       typeof data.clearLocalData === "function",
   );
 }

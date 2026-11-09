@@ -11,6 +11,7 @@ import type { CreateDogInput, UpdateDogInput } from "./dogs-store";
 import {
   clearElectronLocalData,
   clearPendingSqlitePick,
+  getActiveDatabaseDiagnostics,
   inspectPickedSqliteDatabase,
   pickSqliteDatabaseFile,
   restorePickedSqliteDatabase,
@@ -186,8 +187,25 @@ export function registerIpcHandlers(app: App): void {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (message === "backup_failed") throw new Error("backup_failed");
+      if (message.startsWith("import_verify_failed")) {
+        throw new Error(message);
+      }
       throw new Error("import_failed");
     }
+  });
+
+  handle("data:getActiveDatabaseDiagnostics", () => {
+    initializeDatabase(app);
+    const session = readAuthSession(app);
+    if (!session || session.user.role !== "admin") {
+      throw new Error("forbidden");
+    }
+    return getActiveDatabaseDiagnostics(app);
+  });
+
+  handle("app:relaunch", () => {
+    app.relaunch({ args: process.argv.slice(1).filter((arg) => arg !== "--relaunch") });
+    app.exit(0);
   });
 
   handle("data:clearLocalData", () => {

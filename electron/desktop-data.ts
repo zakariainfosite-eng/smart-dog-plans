@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 import { BrowserWindow, dialog, type App } from "electron";
-import { copyFileSync, existsSync, readFileSync, statSync, unlinkSync } from "node:fs";
+import { copyFileSync, existsSync, readFileSync, rmSync, statSync, unlinkSync } from "node:fs";
 import { basename, join } from "node:path";
 
 import {
@@ -9,9 +9,11 @@ import {
 } from "../src/integrations/database/schema-sql";
 import type { ClearLocalDataResult } from "../src/lib/clear-local-data";
 import type {
+  ActiveDatabaseDiagnostics,
   SqliteColumnInfo,
   WindowsDbConfirmationCounts,
   WindowsDbImportResult,
+  WindowsDbImportVerification,
   WindowsDbInspection,
   WindowsDbIncompatibleTable,
 } from "../src/lib/windows-db-import";
@@ -23,7 +25,12 @@ import {
   getDatabasePath,
   getUserDataPath,
   initializeDatabase,
+  reopenDatabase,
 } from "./database";
+
+const CORE_COUNT_TABLES = ["users", "agents", "dogs"] as const;
+
+export type CoreTableCounts = Record<(typeof CORE_COUNT_TABLES)[number], number>;
 
 const SQLITE_MAGIC = "SQLite format 3\0";
 const ALWAYS_SKIP_COLUMNS = new Set(["total_required_staff"]);
@@ -125,6 +132,127 @@ function tableCount(database: Database.Database, table: string): number {
     .prepare(`SELECT COUNT(*) AS n FROM ${quoteIdent(table)}`)
     .get() as { n: number };
   return Number(row?.n ?? 0);
+}
+
+export function readCoreTableCounts(database: Database.Database): CoreTableCounts {
+  return {
+    users: tableCount(database, "users"),
+    agents: tableCount(database, "agents"),
+    dogs: tableCount(database, "dogs"),
+  };
+}
+
+function readCoreTableCountsFromSourcePath(sourcePath: string): CoreTableCounts {
+  const source = new Database(sourcePath, { readonly: true, fileMustExist: true });
+  try {
+    return readCoreTableCounts(source);
+  } finally {
+    source.close();
+  }
+}
+
+function removeDatabaseSidecars(dbPath: string): void {
+  for (const suffix of ["", "-wal", "-shm", "-journal"]) {
+    const filePath = suffix ? `${dbPath}${suffix}` : dbPath;
+    if (existsSync(filePath)) {
+      rmSync(filePath, { force: true });
+    }
+  }
+}
+
+/**
+ * Ensures the on-disk file was replaced and the reopened connection reads imported row counts.
+ */
+export function verifyActiveDatabaseAfterImport(
+  database: Database.Database,
+  dbPath: string,
+  expected: CoreTableCounts,
+): WindowsDbImportVerification {
+  const actual = readCoreTableCounts(database);
+  const line = `[electron][data-import] activeDatabasePath=${dbPath} users=${actual.users} agents=${actual.agents} dogs=${actual.dogs} (expected users=${expected.users} agents=${expected.agents} dogs=${expected.dogs})`;
+  console.log(line);
+
+  const mismatched = CORE_COUNT_TABLES.filter((table) => actual[table] !== expected[table]);
+  if (mismatched.length > 0) {
+    throw new Error(
+      `import_verify_failed:${mismatched
+        .map((table) => `${table}=${actual[table]} expected=${expected[table]}`)
+        .join(",")}`,
+    );
+  }
+
+  return {
+    activeDatabasePath: dbPath,
+    ...actual,
+    expectedUsers: expected.users,
+    expectedAgents: expected.agents,
+    expectedDogs: expected.dogs,
+  };
+}
+
+export function getActiveDatabaseDiagnostics(app: App): ActiveDatabaseDiagnostics {
+  const database = getDatabase();
+  const dbPath = getDatabasePath(app);
+  const counts = readCoreTableCounts(database);
+  return {
+    activeDatabasePath: dbPath,
+    ...counts,
+  };
+}
+
+function replaceActiveDatabaseFile(
+  app: App,
+  sourcePath: string,
+): { verification: WindowsDbImportVerification; backupPath: string } {
+  const dbPath = getDatabasePath(app);
+  const userDataPath = getUserDataPath(app);
+  const expected = readCoreTableCountsFromSourcePath(sourcePath);
+  const sourceSize = statSync(sourcePath).size;
+
+  initializeDatabase(app);
+  const live = getDatabase();
+  let backupPath: string | null = null;
+
+  try {
+    assertValidSqliteFile(sourcePath);
+    try {
+      backupPath = createPreMigrationBackup(live, userDataPath, dbPath);
+    } catch {
+      throw new Error("backup_failed");
+    }
+    live.pragma("wal_checkpoint(FULL)");
+    closeDatabase();
+    removeDatabaseSidecars(dbPath);
+    copyFileSync(sourcePath, dbPath);
+
+    if (!existsSync(dbPath) || statSync(dbPath).size !== sourceSize) {
+      throw new Error(
+        `import_verify_failed:file_size actual=${existsSync(dbPath) ? statSync(dbPath).size : 0} expected=${sourceSize}`,
+      );
+    }
+
+    assertValidSqliteFile(dbPath);
+    const reopened = reopenDatabase(app);
+    const integrity = String(reopened.pragma("integrity_check", { simple: true })).toLowerCase();
+    if (integrity && integrity !== "ok") {
+      throw new Error(`integrity:${integrity}`);
+    }
+
+    const verification = verifyActiveDatabaseAfterImport(reopened, dbPath, expected);
+    return { verification, backupPath: backupPath! };
+  } catch (error) {
+    if (backupPath && existsSync(backupPath)) {
+      try {
+        closeDatabase();
+        removeDatabaseSidecars(dbPath);
+        copyFileSync(backupPath, dbPath);
+        reopenDatabase(app);
+      } catch {
+        // surface original error
+      }
+    }
+    throw error;
+  }
 }
 
 function inspectSourceAgainstLive(
@@ -306,44 +434,25 @@ export function inspectPickedSqliteDatabase(app: App): WindowsDbInspection {
 }
 
 export function restorePickedSqliteDatabase(app: App): WindowsDbImportResult {
-  initializeDatabase(app);
   if (!pendingSqlitePick) {
     throw new Error("no_pick");
   }
 
   const pick = pendingSqlitePick;
-  const dbPath = getDatabasePath(app);
-  const userDataPath = getUserDataPath(app);
-  const live = getDatabase();
-  let backupPath: string | null = null;
 
   try {
-    assertValidSqliteFile(pick.filePath);
-    try {
-      backupPath = createPreMigrationBackup(live, userDataPath, dbPath);
-    } catch {
-      throw new Error("backup_failed");
-    }
-    closeDatabase();
-
-    for (const suffix of ["-wal", "-shm"]) {
-      const sidecar = `${dbPath}${suffix}`;
-      if (existsSync(sidecar)) unlinkSync(sidecar);
-    }
-    copyFileSync(pick.filePath, dbPath);
-
-    initializeDatabase(app);
-    const reopened = getDatabase();
-    const integrity = String(reopened.pragma("integrity_check", { simple: true })).toLowerCase();
-    if (integrity && integrity !== "ok") {
-      throw new Error(`integrity:${integrity}`);
-    }
-
+    const replaced = replaceActiveDatabaseFile(app, pick.filePath);
+    const verification = replaced.verification;
+    const backupPath = replaced.backupPath;
     const inspection = inspectSourceAgainstLive(pick.filePath, pick.fileName, pick.fileSize);
     const imported = Object.values(inspection.recordCounts).reduce((sum, count) => sum + count, 0);
 
     clearAuthSession(app);
     pendingSqlitePick = null;
+
+    console.log(
+      `[electron][data-import] verified active database at ${verification.activeDatabasePath}`,
+    );
 
     return {
       backupPath,
@@ -353,21 +462,16 @@ export function restorePickedSqliteDatabase(app: App): WindowsDbImportResult {
       importedByTable: { ...inspection.recordCounts },
       skippedByTable: {},
       conflictReports: [],
+      verification,
     };
   } catch (error) {
     pendingSqlitePick = null;
-    if (backupPath && existsSync(backupPath)) {
-      try {
-        closeDatabase();
-        copyFileSync(backupPath, dbPath);
-        for (const suffix of ["-wal", "-shm"]) {
-          const sidecar = `${dbPath}${suffix}`;
-          if (existsSync(sidecar)) unlinkSync(sidecar);
-        }
-        initializeDatabase(app);
-      } catch {
-        // backup restore failed — surface original error
-      }
+    const message = error instanceof Error ? error.message : String(error);
+    if (message === "backup_failed" || message.includes("backup_failed")) {
+      throw new Error("backup_failed");
+    }
+    if (message.startsWith("import_verify_failed")) {
+      throw error;
     }
     throw error;
   }
@@ -422,4 +526,13 @@ export function clearElectronLocalData(app: App): ClearLocalDataResult {
 
 export function clearPendingSqlitePick(): void {
   pendingSqlitePick = null;
+}
+
+/** Test-only staging helper — mirrors a successful file-picker result. */
+export function stagePendingSqliteDatabasePick(
+  filePath: string,
+  fileName: string,
+  fileSize: number,
+): void {
+  pendingSqlitePick = { filePath, fileName, fileSize };
 }

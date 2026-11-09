@@ -178,6 +178,13 @@ export function DataSettingsCard() {
       setPending(null);
       setResult(imported);
       await queryClient.invalidateQueries();
+      if (imported.verification) {
+        console.info(
+          "[windows-db-import] active database verified",
+          imported.verification.activeDatabasePath,
+          imported.verification,
+        );
+      }
       toast.success(
         t("settings.data.windowsImport.toast.success", {
           imported: imported.imported,
@@ -186,7 +193,8 @@ export function DataSettingsCard() {
         }),
       );
       if (pending.electronPick) {
-        window.location.reload();
+        const { relaunchElectronApp } = await import("@/lib/electron-desktop-data");
+        await relaunchElectronApp();
       }
     } catch (error) {
       const code = error instanceof WindowsDbImportError ? error.code : "import_failed";

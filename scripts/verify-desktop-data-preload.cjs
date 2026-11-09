@@ -15,7 +15,9 @@ const required = [
   "data:pickSqliteDatabase",
   "data:inspectPickedSqliteDatabase",
   "data:restorePickedSqliteDatabase",
+  "data:getActiveDatabaseDiagnostics",
   "data:clearLocalData",
+  "app:relaunch",
   "desktopData: true",
 ];
 

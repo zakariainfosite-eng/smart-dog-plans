@@ -3,7 +3,11 @@ import type { ElectronAuthBridge } from "@/integrations/auth/window";
 import type { RestQueryRequest, RestQueryResult } from "./rest-query-types";
 
 import type { ClearLocalDataResult } from "@/lib/clear-local-data";
-import type { WindowsDbImportResult, WindowsDbInspection } from "@/lib/windows-db-import";
+import type {
+  ActiveDatabaseDiagnostics,
+  WindowsDbImportResult,
+  WindowsDbInspection,
+} from "@/lib/windows-db-import";
 
 type ElectronDataBridge = {
   pickSqliteDatabase(): Promise<
@@ -12,8 +16,13 @@ type ElectronDataBridge = {
   >;
   inspectPickedSqliteDatabase(): Promise<WindowsDbInspection>;
   restorePickedSqliteDatabase(): Promise<WindowsDbImportResult>;
+  getActiveDatabaseDiagnostics(): Promise<ActiveDatabaseDiagnostics>;
   clearLocalData(): Promise<ClearLocalDataResult>;
   clearPendingPick(): Promise<void>;
+};
+
+type ElectronAppBridge = {
+  relaunch(): Promise<void>;
 };
 
 type ElectronFilesBridge = {
@@ -54,6 +63,7 @@ declare global {
       auth?: ElectronAuthBridge;
       database?: ElectronDatabaseBridge;
       data?: ElectronDataBridge;
+      app?: ElectronAppBridge;
       rest?: ElectronRestBridge;
       files?: ElectronFilesBridge;
     };

@@ -10,6 +10,7 @@ export {
   getDatabasePath,
   getUserDataPath,
   initializeDatabase,
+  reopenDatabase,
   initializeSchema,
   SCHEMA_INDEX_STATEMENTS,
   SCHEMA_STATEMENTS,

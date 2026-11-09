@@ -122,6 +122,19 @@ export type WindowsDbImportConflict = {
   detail: string;
 };
 
+export type ActiveDatabaseDiagnostics = {
+  activeDatabasePath: string;
+  users: number;
+  agents: number;
+  dogs: number;
+};
+
+export type WindowsDbImportVerification = ActiveDatabaseDiagnostics & {
+  expectedUsers: number;
+  expectedAgents: number;
+  expectedDogs: number;
+};
+
 export type WindowsDbImportResult = {
   backupPath: string | null;
   imported: number;
@@ -130,6 +143,8 @@ export type WindowsDbImportResult = {
   importedByTable: Record<string, number>;
   skippedByTable: Record<string, number>;
   conflictReports: WindowsDbImportConflict[];
+  /** Populated by Electron full-file replace after counts are verified on the live DB. */
+  verification?: WindowsDbImportVerification;
 };
 
 export type PlannedImportRow =

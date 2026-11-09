@@ -72,8 +72,13 @@ contextBridge.exposeInMainWorld("cynoplanning", {
     > => ipcRenderer.invoke("data:pickSqliteDatabase"),
     inspectPickedSqliteDatabase: () => ipcRenderer.invoke("data:inspectPickedSqliteDatabase"),
     restorePickedSqliteDatabase: () => ipcRenderer.invoke("data:restorePickedSqliteDatabase"),
+    getActiveDatabaseDiagnostics: () => ipcRenderer.invoke("data:getActiveDatabaseDiagnostics"),
     clearLocalData: () => ipcRenderer.invoke("data:clearLocalData"),
     clearPendingPick: () => ipcRenderer.invoke("data:clearPendingPick"),
+  },
+
+  app: {
+    relaunch: () => ipcRenderer.invoke("app:relaunch"),
   },
 
   files: {
