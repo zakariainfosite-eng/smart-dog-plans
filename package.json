@@ -5,6 +5,9 @@
   "description": "CynoPlanning desktop application",
   "author": "CynoPlanning",
   "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "main": "dist-electron/boot.cjs",
   "sideEffects": false,
   "type": "module",
