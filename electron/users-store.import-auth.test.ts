@@ -44,12 +44,41 @@ describe("seedLocalAuthUserFromEnv after import", () => {
     if (existsSync(dbPath)) unlinkSync(dbPath);
   });
 
-  it("does not overwrite imported credentials when env seed password differs", () => {
-    seedLocalAuthUserFromEnv(db);
+  it("does not touch users when the table is not empty", () => {
+    expect(seedLocalAuthUserFromEnv(db)).toBeNull();
     expect(() => verifyUserCredentials(db, "karim@cynoplanning.local", "karim@123")).not.toThrow();
     expect(() =>
       verifyUserCredentials(db, "karim@cynoplanning.local", "InstallerDefault@999"),
     ).toThrow(/Invalid login credentials/);
+  });
+});
+
+describe("seedLocalAuthUserFromEnv packaged defaults", () => {
+  let dbPath: string;
+  let db: Database.Database;
+  let previousEnv: NodeJS.ProcessEnv;
+
+  beforeEach(() => {
+    previousEnv = { ...process.env };
+    delete process.env.LOCAL_AUTH_SEED_EMAIL;
+    delete process.env.LOCAL_AUTH_SEED_PASSWORD;
+    delete process.env.LOCAL_AUTH_SEED_ROLE;
+    dbPath = join(tmpdir(), `users-store-packaged-${Date.now()}.db`);
+    db = new Database(dbPath);
+    db.exec(USERS_DDL);
+  });
+
+  afterEach(() => {
+    process.env = previousEnv;
+    db.close();
+    if (existsSync(dbPath)) unlinkSync(dbPath);
+  });
+
+  it("creates karim@cynoplanning.local without .env on an empty users table", () => {
+    const user = seedLocalAuthUserFromEnv(db);
+    expect(user?.email).toBe("karim@cynoplanning.local");
+    expect(() => verifyUserCredentials(db, "karim@cynoplanning.local", "karim@123")).not.toThrow();
+    expect(seedLocalAuthUserFromEnv(db)).toBeNull();
   });
 });
 

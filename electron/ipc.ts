@@ -1,5 +1,10 @@
 import { ipcMain, protocol, type App } from "electron";
 
+import {
+  diagnoseSignInFailure,
+  logAuthDatabaseSnapshot,
+  logAuthDiagnostic,
+} from "./auth-diagnostics";
 import { clearAuthSession, readAuthSession, writeAuthSession } from "./auth-session";
 import * as agentsStore from "./agents-store";
 import type { CreateAgentInput, UpdateAgentInput } from "./agents-store";
@@ -44,10 +49,27 @@ export function registerIpcHandlers(app: App): void {
 
   handle("auth:signIn", (_event, email: string, password: string) => {
     initializeDatabase(app);
-    // Re-run seed before login so an empty users table (missed bootstrap env) self-heals.
-    seedLocalAuthUserFromEnv(getDatabase());
-    const user = verifyUserCredentials(getDatabase(), email, password);
-    return writeAuthSession(app, user);
+    const db = getDatabase();
+    const seeded = seedLocalAuthUserFromEnv(db);
+    if (seeded) {
+      logAuthDiagnostic(app, "auth:signIn:bootstrap_seeded", { email: seeded.email, role: seeded.role });
+    }
+    logAuthDatabaseSnapshot(app, db, "auth:signIn:before_verify", {
+      attemptedEmail: String(email ?? "").trim().toLowerCase(),
+    });
+    try {
+      const user = verifyUserCredentials(db, email, password);
+      logAuthDiagnostic(app, "auth:signIn:success", { email: user.email, role: user.role });
+      return writeAuthSession(app, user);
+    } catch (error) {
+      const reason = diagnoseSignInFailure(db, email, password);
+      logAuthDiagnostic(app, "auth:signIn:failed", {
+        attemptedEmail: String(email ?? "").trim().toLowerCase(),
+        reason,
+        internalError: error instanceof Error ? error.message : "unknown",
+      });
+      throw error;
+    }
   });
 
   handle("auth:signOut", () => {
@@ -278,8 +300,12 @@ export function registerMediaProtocol(app: App): void {
   });
 }
 
-/** Call after DB init to optionally seed a local admin from env. */
+/** Call after DB init to seed the default admin when `users` is empty. */
 export function bootstrapLocalAuthSeed(app: App): void {
   initializeDatabase(app);
-  seedLocalAuthUserFromEnv(getDatabase());
+  const db = getDatabase();
+  const seeded = seedLocalAuthUserFromEnv(db);
+  logAuthDatabaseSnapshot(app, db, "auth:bootstrap", {
+    seededDefaultUser: seeded ? { email: seeded.email, role: seeded.role } : null,
+  });
 }

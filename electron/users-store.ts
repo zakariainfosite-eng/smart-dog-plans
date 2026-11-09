@@ -25,6 +25,10 @@ type UserRow = {
 
 const BCRYPT_ROUNDS = 12;
 
+/** Packaged desktop default — used when `users` is empty and `.env` seed vars are absent. */
+export const PACKAGED_DEFAULT_ADMIN_EMAIL = "karim@cynoplanning.local";
+export const PACKAGED_DEFAULT_ADMIN_PASSWORD = "karim@123";
+
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
@@ -106,35 +110,27 @@ export function verifyUserCredentials(
 }
 
 /**
- * Bootstraps LOCAL_AUTH_SEED_* only on an empty `users` table (first install).
- * After a database import, existing rows — including password hashes — are left unchanged.
+ * Creates the default administrator only when `users` is empty (first install).
+ * Uses LOCAL_AUTH_SEED_* when set; otherwise packaged defaults (karim@cynoplanning.local).
+ * Never updates or deletes existing users on later launches.
  */
 export function seedLocalAuthUserFromEnv(db: Database.Database): LocalAuthUser | null {
-  const emailRaw = process.env.LOCAL_AUTH_SEED_EMAIL?.trim();
-  const password = process.env.LOCAL_AUTH_SEED_PASSWORD;
-  if (!emailRaw || !password) {
-    console.warn(
-      "[electron][auth] LOCAL_AUTH_SEED_EMAIL / LOCAL_AUTH_SEED_PASSWORD not set — users table not seeded",
-    );
+  const totalUsers = countUsers(db);
+  if (totalUsers > 0) {
     return null;
   }
 
-  const email = normalizeEmail(emailRaw);
+  const email = normalizeEmail(
+    process.env.LOCAL_AUTH_SEED_EMAIL?.trim() || PACKAGED_DEFAULT_ADMIN_EMAIL,
+  );
+  const password =
+    process.env.LOCAL_AUTH_SEED_PASSWORD?.trim() || PACKAGED_DEFAULT_ADMIN_PASSWORD;
   const roleEnv = process.env.LOCAL_AUTH_SEED_ROLE?.trim().toLowerCase();
   const role: AuthRole = roleEnv === "user" ? "user" : "admin";
 
-  const totalUsers = countUsers(db);
-  const existing = findUserByEmail(db, email);
-
-  if (totalUsers === 0) {
-    const user = createUser(db, { email, password, role });
-    console.log(`[electron][auth] Seeded local ${role} user: ${user.email}`);
-    return user;
-  }
-
-  if (existing) {
-    return mapUser(existing);
-  }
-
-  return null;
+  const user = createUser(db, { email, password, role });
+  console.log(
+    `[electron][auth] Seeded default ${role} user on empty database: ${user.email} (packaged bootstrap)`,
+  );
+  return user;
 }
