@@ -10,6 +10,11 @@ import type { RestQueryRequest, RestQueryResult } from "../src/integrations/data
 console.log("[electron][preload] 6. BEFORE contextBridge.exposeInMainWorld");
 
 contextBridge.exposeInMainWorld("cynoplanning", {
+  meta: {
+    platform: "electron" as const,
+    desktopData: true,
+  },
+
   auth: {
     signIn: (email: string, password: string): Promise<PersistedAuthSession> =>
       ipcRenderer.invoke("auth:signIn", email, password),
@@ -58,6 +63,17 @@ contextBridge.exposeInMainWorld("cynoplanning", {
       ipcRenderer.invoke("media:remove", request),
     storageDownload: (request: { bucket: string; path: string }) =>
       ipcRenderer.invoke("media:download", request),
+  },
+
+  data: {
+    pickSqliteDatabase: (): Promise<
+      | { canceled: true }
+      | { canceled: false; fileName: string; fileSize: number }
+    > => ipcRenderer.invoke("data:pickSqliteDatabase"),
+    inspectPickedSqliteDatabase: () => ipcRenderer.invoke("data:inspectPickedSqliteDatabase"),
+    restorePickedSqliteDatabase: () => ipcRenderer.invoke("data:restorePickedSqliteDatabase"),
+    clearLocalData: () => ipcRenderer.invoke("data:clearLocalData"),
+    clearPendingPick: () => ipcRenderer.invoke("data:clearPendingPick"),
   },
 
   files: {

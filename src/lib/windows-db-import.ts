@@ -148,7 +148,7 @@ export class WindowsDbImportError extends Error {
 }
 
 export function canImportWindowsDatabase(role: string | null | undefined): boolean {
-  return role === "admin" && !isElectronDesktopRuntime();
+  return role === "admin";
 }
 
 export function isSqliteDatabaseBytes(bytes: Uint8Array): boolean {

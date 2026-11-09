@@ -22,7 +22,10 @@ import {
   canClearLocalData,
   clearLocalAndroidData,
 } from "@/lib/clear-local-data";
-import { isElectronDesktopRuntime } from "@/lib/runtime-platform";
+import {
+  isElectronDesktopDataBridgeAvailable,
+  isElectronDesktopRuntime,
+} from "@/lib/runtime-platform";
 import {
   WindowsDbImportError,
   canImportWindowsDatabase,
@@ -43,7 +46,9 @@ export function DataSettingsCard() {
   const fileRef = useRef<HTMLInputElement>(null);
   const canImport = canImportWindowsDatabase(role);
   const canClear = canClearLocalData(role);
-  const onDesktop = isElectronDesktopRuntime();
+  const onDesktop = isElectronDesktopDataBridgeAvailable();
+  const electronWithoutDataBridge =
+    isElectronDesktopRuntime() && !isElectronDesktopDataBridgeAvailable();
 
   const [busy, setBusy] = useState(false);
   const [phase, setPhase] = useState<"idle" | "inspecting" | "importing" | "clearing">("idle");
@@ -52,13 +57,45 @@ export function DataSettingsCard() {
   const [pending, setPending] = useState<{
     fileName: string;
     fileSize: number;
-    bytes: Uint8Array;
+    bytes?: Uint8Array;
     inspection: WindowsDbInspection;
+    electronPick?: boolean;
   } | null>(null);
   const [result, setResult] = useState<WindowsDbImportResult | null>(null);
 
   const resetFileInput = () => {
     if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const onPickElectron = async () => {
+    if (!canImport || busy) return;
+
+    setBusy(true);
+    setPhase("inspecting");
+    setResult(null);
+    try {
+      const { pickElectronSqliteDatabase, inspectElectronPickedDatabase } = await import(
+        "@/lib/electron-desktop-data"
+      );
+      const picked = await pickElectronSqliteDatabase();
+      if (!picked) return;
+      const inspection = await inspectElectronPickedDatabase();
+      setPending({
+        ...picked,
+        inspection,
+        electronPick: true,
+      });
+    } catch (error) {
+      const code = error instanceof WindowsDbImportError ? error.code : "unreadable";
+      toast.error(
+        code === "invalid_file"
+          ? t("settings.data.windowsImport.toast.invalidFile")
+          : t("settings.data.windowsImport.toast.unreadable"),
+      );
+    } finally {
+      setBusy(false);
+      setPhase("idle");
+    }
   };
 
   const onPickFile = async (file: File | null) => {
@@ -104,12 +141,22 @@ export function DataSettingsCard() {
 
   const onCancelImport = () => {
     if (busy) return;
+    if (onDesktop) {
+      void import("@/lib/electron-desktop-data").then(({ cancelElectronDatabasePick }) =>
+        cancelElectronDatabasePick(),
+      );
+    }
     setPending(null);
     toast.message(t("settings.data.windowsImport.toast.canceled"));
   };
 
   const closePendingDialog = (open: boolean) => {
     if (open || busy) return;
+    if (onDesktop) {
+      void import("@/lib/electron-desktop-data").then(({ cancelElectronDatabasePick }) =>
+        cancelElectronDatabasePick(),
+      );
+    }
     setPending(null);
   };
 
@@ -118,7 +165,16 @@ export function DataSettingsCard() {
     setBusy(true);
     setPhase("importing");
     try {
-      const imported = await importWindowsDatabase(pending);
+      const imported = pending.electronPick
+        ? await (
+            await import("@/lib/electron-desktop-data")
+          ).restoreElectronPickedDatabase()
+        : await importWindowsDatabase({
+            fileName: pending.fileName,
+            fileSize: pending.fileSize,
+            bytes: pending.bytes!,
+            inspection: pending.inspection,
+          });
       setPending(null);
       setResult(imported);
       await queryClient.invalidateQueries();
@@ -129,6 +185,9 @@ export function DataSettingsCard() {
           conflicts: imported.conflicts,
         }),
       );
+      if (pending.electronPick) {
+        window.location.reload();
+      }
     } catch (error) {
       const code = error instanceof WindowsDbImportError ? error.code : "import_failed";
       if (code === "backup_failed") {
@@ -158,6 +217,9 @@ export function DataSettingsCard() {
       setCleared(true);
       await queryClient.invalidateQueries();
       toast.success(t("settings.data.clearLocal.success"));
+      if (onDesktop) {
+        window.location.reload();
+      }
     } catch (error) {
       const code = error instanceof ClearLocalDataError ? error.code : "clear_failed";
       toast.error(
@@ -173,11 +235,7 @@ export function DataSettingsCard() {
 
   const counts = pending?.inspection.confirmationCounts;
   const incompatible = pending?.inspection.incompatibleTables ?? [];
-  const statusNote = onDesktop
-    ? t("settings.data.desktopUnavailable")
-    : canImport
-      ? t("settings.data.windowsImport.hint")
-      : t("settings.data.viewOnly");
+  const statusNote = canImport ? t("settings.data.windowsImport.hint") : t("settings.data.viewOnly");
 
   return (
     <PageContentShell padding={false} className="min-w-0 overflow-hidden">
@@ -215,8 +273,11 @@ export function DataSettingsCard() {
               />
               <Button
                 type="button"
-                onClick={() => fileRef.current?.click()}
-                disabled={!canImport || busy}
+                onClick={() => {
+                  if (onDesktop) void onPickElectron();
+                  else fileRef.current?.click();
+                }}
+                disabled={!canImport || busy || electronWithoutDataBridge}
               >
                 <HardDriveUpload className="h-4 w-4" />
                 {busy && phase === "inspecting"
@@ -242,7 +303,7 @@ export function DataSettingsCard() {
                 type="button"
                 variant="destructive"
                 onClick={() => setConfirmClear(true)}
-                disabled={!canClear || busy}
+                disabled={!canClear || busy || electronWithoutDataBridge}
               >
                 <Trash2 className="h-4 w-4" />
                 {busy && phase === "clearing"

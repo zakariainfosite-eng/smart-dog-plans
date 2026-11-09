@@ -38,7 +38,7 @@ type LocalDbBackup = {
 };
 
 export function canClearLocalData(role: string | null | undefined): boolean {
-  return role === "admin" && !isElectronDesktopRuntime();
+  return role === "admin";
 }
 
 /** Application tables that may be emptied. Never includes schema_migrations. */
@@ -231,10 +231,8 @@ export async function verifyClearedLocalDatabase(executor: SqlExecutor): Promise
 
 export async function clearLocalAndroidData(): Promise<ClearLocalDataResult> {
   if (isElectronDesktopRuntime()) {
-    throw new ClearLocalDataError(
-      "unavailable",
-      "Clearing local data is not available on the Windows Electron application.",
-    );
+    const { clearLocalElectronData } = await import("@/lib/electron-desktop-data");
+    return clearLocalElectronData();
   }
 
   const { closeLocalSqliteExecutor, getLocalSqliteExecutor } = await import(

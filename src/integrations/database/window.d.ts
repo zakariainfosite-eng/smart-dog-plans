@@ -2,6 +2,20 @@ import type { ElectronDatabaseBridge } from "./electron-bridge";
 import type { ElectronAuthBridge } from "@/integrations/auth/window";
 import type { RestQueryRequest, RestQueryResult } from "./rest-query-types";
 
+import type { ClearLocalDataResult } from "@/lib/clear-local-data";
+import type { WindowsDbImportResult, WindowsDbInspection } from "@/lib/windows-db-import";
+
+type ElectronDataBridge = {
+  pickSqliteDatabase(): Promise<
+    | { canceled: true }
+    | { canceled: false; fileName: string; fileSize: number }
+  >;
+  inspectPickedSqliteDatabase(): Promise<WindowsDbInspection>;
+  restorePickedSqliteDatabase(): Promise<WindowsDbImportResult>;
+  clearLocalData(): Promise<ClearLocalDataResult>;
+  clearPendingPick(): Promise<void>;
+};
+
 type ElectronFilesBridge = {
   saveExportFiles(request: {
     defaultBasename: string;
@@ -36,8 +50,10 @@ type ElectronRestBridge = {
 declare global {
   interface Window {
     cynoplanning?: {
+      meta?: { platform: "electron"; desktopData: boolean };
       auth?: ElectronAuthBridge;
       database?: ElectronDatabaseBridge;
+      data?: ElectronDataBridge;
       rest?: ElectronRestBridge;
       files?: ElectronFilesBridge;
     };

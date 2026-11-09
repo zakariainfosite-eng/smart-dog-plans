@@ -8,6 +8,13 @@ import type { CreateCheckpointInput, UpdateCheckpointInput } from "./checkpoints
 import { getDatabase, initializeDatabase } from "./database";
 import * as dogsStore from "./dogs-store";
 import type { CreateDogInput, UpdateDogInput } from "./dogs-store";
+import {
+  clearElectronLocalData,
+  clearPendingSqlitePick,
+  inspectPickedSqliteDatabase,
+  pickSqliteDatabaseFile,
+  restorePickedSqliteDatabase,
+} from "./desktop-data";
 import { saveExportFiles, type SaveExportFilesRequest } from "./export-files";
 import { getMediaAbsolutePath, readMediaFile, removeMediaFiles, saveMediaFile } from "./media-store";
 import { executeRestQuery } from "./rest-gateway";
@@ -159,6 +166,47 @@ export function registerIpcHandlers(app: App): void {
     checkpointsStore.deleteCheckpoint(getDatabase(), id);
   });
 
+  handle("data:pickSqliteDatabase", () => {
+    try {
+      return pickSqliteDatabaseFile(app);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message === "invalid_file") {
+        throw new Error("invalid_file");
+      }
+      throw error;
+    }
+  });
+
+  handle("data:inspectPickedSqliteDatabase", () => inspectPickedSqliteDatabase(app));
+
+  handle("data:restorePickedSqliteDatabase", () => {
+    try {
+      return restorePickedSqliteDatabase(app);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message === "backup_failed") throw new Error("backup_failed");
+      throw new Error("import_failed");
+    }
+  });
+
+  handle("data:clearLocalData", () => {
+    try {
+      return clearElectronLocalData(app);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message === "backup_failed") throw new Error("backup_failed");
+      if (message.startsWith("integrity:") || message.startsWith("leftover:")) {
+        throw new Error("clear_failed");
+      }
+      throw error;
+    }
+  });
+
+  handle("data:clearPendingPick", () => {
+    clearPendingSqlitePick();
+  });
+
   // Planning export (PDF / Word / both) — single shared save dialog + filesystem write.
   handle("fs:saveExportFiles", (_event, request: SaveExportFilesRequest) =>
     saveExportFiles(app, request),
@@ -189,7 +237,7 @@ export function registerIpcHandlers(app: App): void {
 
   // ipcMain has no public list API — log the critical REST channel explicitly.
   console.log(
-    "[electron][ipc] registered channels include: db:restQuery, fs:saveExportFiles, media:*, auth:*, db:get*/create*/update*/delete*",
+    "[electron][ipc] registered channels include: db:restQuery, data:*, fs:saveExportFiles, media:*, auth:*, db:get*/create*/update*/delete*",
   );
 }
 

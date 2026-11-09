@@ -9,6 +9,19 @@ function hasCynoplanningBridge(): boolean {
   return typeof window !== "undefined" && Boolean(window.cynoplanning);
 }
 
+/** True when the preload exposes desktop SQLite import/clear IPC (dev + packaged Electron). */
+export function isElectronDesktopDataBridgeAvailable(): boolean {
+  if (typeof window === "undefined") return false;
+  const data = window.cynoplanning?.data;
+  return Boolean(
+    data &&
+      typeof data.pickSqliteDatabase === "function" &&
+      typeof data.inspectPickedSqliteDatabase === "function" &&
+      typeof data.restorePickedSqliteDatabase === "function" &&
+      typeof data.clearLocalData === "function",
+  );
+}
+
 function hasElectronProcessVersion(): boolean {
   try {
     const versions = (globalThis as { process?: { versions?: { electron?: string } } }).process
