@@ -15,6 +15,7 @@ import type {
   WindowsDbInspection,
   WindowsDbIncompatibleTable,
 } from "../src/lib/windows-db-import";
+import { clearAuthSession } from "./auth-session";
 import {
   closeDatabase,
   createPreMigrationBackup,
@@ -341,6 +342,7 @@ export function restorePickedSqliteDatabase(app: App): WindowsDbImportResult {
     const inspection = inspectSourceAgainstLive(pick.filePath, pick.fileName, pick.fileSize);
     const imported = Object.values(inspection.recordCounts).reduce((sum, count) => sum + count, 0);
 
+    clearAuthSession(app);
     pendingSqlitePick = null;
 
     return {

@@ -106,8 +106,8 @@ export function verifyUserCredentials(
 }
 
 /**
- * Ensures the LOCAL_AUTH_SEED_* user exists with the configured password/role.
- * Creates on first run; updates hash/role when env credentials change.
+ * Bootstraps LOCAL_AUTH_SEED_* only on an empty `users` table (first install).
+ * After a database import, existing rows — including password hashes — are left unchanged.
  */
 export function seedLocalAuthUserFromEnv(db: Database.Database): LocalAuthUser | null {
   const emailRaw = process.env.LOCAL_AUTH_SEED_EMAIL?.trim();
@@ -123,25 +123,18 @@ export function seedLocalAuthUserFromEnv(db: Database.Database): LocalAuthUser |
   const roleEnv = process.env.LOCAL_AUTH_SEED_ROLE?.trim().toLowerCase();
   const role: AuthRole = roleEnv === "user" ? "user" : "admin";
 
+  const totalUsers = countUsers(db);
   const existing = findUserByEmail(db, email);
-  if (!existing) {
+
+  if (totalUsers === 0) {
     const user = createUser(db, { email, password, role });
     console.log(`[electron][auth] Seeded local ${role} user: ${user.email}`);
     return user;
   }
 
-  const passwordMatches = bcrypt.compareSync(password, existing.password_hash);
-  if (passwordMatches && existing.role === role) {
+  if (existing) {
     return mapUser(existing);
   }
 
-  const passwordHash = bcrypt.hashSync(password, BCRYPT_ROUNDS);
-  db.prepare(
-    `UPDATE users
-     SET password_hash = ?, role = ?, updated_at = datetime('now')
-     WHERE id = ?`,
-  ).run(passwordHash, role, existing.id);
-
-  console.log(`[electron][auth] Updated local ${role} user credentials: ${email}`);
-  return { id: existing.id, email, role };
+  return null;
 }
