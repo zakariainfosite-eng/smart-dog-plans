@@ -36,6 +36,7 @@ release
 # Local / generated SQLite — never commit user or test databases.
 # The installed Windows app keeps data in %APPDATA%\CynoPlanning\.
 *.db
+!test-data/cynoplanning-test.db
 *.sqlite
 *.sqlite3
 *.db-wal

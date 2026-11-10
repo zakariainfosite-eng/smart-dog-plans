@@ -1,5 +1,5 @@
 /**
- * Standalone generator for test-data/cynoplanning_test.db
+ * Standalone generator for test-data/cynoplanning-test.db
  * Uses the current CynoPlanning DDL from src/integrations/database/schema-sql.ts.
  * Does not open or write any application / Electron / Android live database.
  */
@@ -13,8 +13,10 @@ const bcrypt = require("bcryptjs");
 const initSqlJs = (await import("sql.js")).default;
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const OUT = join(ROOT, "test-data", "cynoplanning_test.db");
-const TEST_PASSWORD = "TestImport@2026";
+const OUT = join(ROOT, "test-data", "cynoplanning-test.db");
+const SUMMARY_OUT = join(ROOT, "test-data", "cynoplanning-test.summary.json");
+const ADMIN_PASSWORD = "Admin@123";
+const TEST_USER_PASSWORD = "Test@123";
 const NOW = "2026-09-01 10:00:00";
 
 const SCHEMA_STATEMENTS = [
@@ -401,7 +403,8 @@ function queryAll(db, sql) {
 mkdirSync(dirname(OUT), { recursive: true });
 if (existsSync(OUT)) unlinkSync(OUT);
 
-const passwordHash = bcrypt.hashSync(TEST_PASSWORD, 12);
+const adminPasswordHash = bcrypt.hashSync(ADMIN_PASSWORD, 12);
+const testUserPasswordHash = bcrypt.hashSync(TEST_USER_PASSWORD, 12);
 const SQL = await initSqlJs({
   wasmBinary: readFileSync(join(ROOT, "node_modules/sql.js/dist/sql-wasm.wasm")),
 });
@@ -412,16 +415,18 @@ for (const statement of SCHEMA_STATEMENTS) db.run(statement);
 for (const statement of INDEX_STATEMENTS) db.run(statement);
 
 const users = [
-  ["win-usr-01", "admin.test@cynoplanning.test", "admin"],
-  ["win-usr-02", "chef.planning@cynoplanning.test", "user"],
-  ["win-usr-03", "chef.section@cynoplanning.test", "user"],
-  ["win-usr-04", "operateur.jour@cynoplanning.test", "user"],
-  ["win-usr-05", "operateur.nuit@cynoplanning.test", "user"],
-  ["win-usr-06", "secretariat@cynoplanning.test", "user"],
-  ["win-usr-07", "veterinaire@cynoplanning.test", "user"],
-  ["win-usr-08", "materiel@cynoplanning.test", "user"],
-  ["win-usr-09", "statistiques@cynoplanning.test", "user"],
-  ["win-usr-10", "consultation@cynoplanning.test", "user"],
+  {
+    id: "win-usr-01",
+    email: "admin@cynoplanning.local",
+    role: "admin",
+    password_hash: adminPasswordHash,
+  },
+  {
+    id: "win-usr-02",
+    email: "test@cynoplanning.local",
+    role: "user",
+    password_hash: testUserPasswordHash,
+  },
 ];
 
 const sections = [
@@ -671,12 +676,12 @@ const exclusions = [
 ];
 
 const seed = () => {
-  for (const [id, email, role] of users) {
+  for (const user of users) {
     insert(db, "users", {
-      id,
-      email,
-      password_hash: passwordHash,
-      role,
+      id: user.id,
+      email: user.email,
+      password_hash: user.password_hash,
+      role: user.role,
       created_at: NOW,
       updated_at: NOW,
     });
@@ -922,7 +927,7 @@ const seed = () => {
         planning_date: date,
         section_id,
         shift,
-        created_by: shift === "day" ? "win-usr-04" : "win-usr-05",
+        created_by: "win-usr-02",
         validated: date < "2026-09-01" ? 1 : 0,
         created_at: NOW,
         updated_at: NOW,
@@ -1103,9 +1108,9 @@ const seed = () => {
     dog_id: "win-dog-05",
     section_id: "win-sec-bravo",
     payload: JSON.stringify({ kind: "test", note: "document fictif" }),
-    created_by_user_id: "win-usr-07",
-    created_by_email: "veterinaire@cynoplanning.test",
-    created_by_name: "Compte vétérinaire test",
+    created_by_user_id: "win-usr-01",
+    created_by_email: "admin@cynoplanning.local",
+    created_by_name: "Administrateur test",
     finalized_at: null,
     created_at: NOW,
     updated_at: NOW,
@@ -1124,9 +1129,9 @@ const seed = () => {
     dog_id: null,
     section_id: "win-sec-alpha",
     payload: JSON.stringify({ kind: "test" }),
-    created_by_user_id: "win-usr-06",
-    created_by_email: "secretariat@cynoplanning.test",
-    created_by_name: "Secrétariat test",
+    created_by_user_id: "win-usr-02",
+    created_by_email: "test@cynoplanning.local",
+    created_by_name: "Utilisateur test",
     finalized_at: "2026-08-29 16:00:00",
     created_at: NOW,
     updated_at: NOW,
@@ -1178,8 +1183,11 @@ const seed = () => {
     ["015_agents_origine_column", "origine"],
     ["016_role_documents_module", "role documents"],
     ["017_role_documents_equipment_chief", "equipment chief"],
+    ["018_exclusion_notifications_d2_milestone", "exclusion d2 milestone"],
     ["019_open_ended_dog_exclusions", "open ended exclusions"],
     ["020_agent_administrative_history", "admin history"],
+    ["021_agent_exclusions_rest_type", "exclusions rest type"],
+    ["022_agent_checkpoint_restrictions", "checkpoint restrictions"],
   ];
   for (const [id, name] of migrations) {
     insert(db, "schema_migrations", {
@@ -1220,11 +1228,30 @@ for (const table of tables) {
   counts[table] = queryAll(db, `SELECT COUNT(*) AS n FROM "${table}"`)[0].n;
 }
 
+const adminRow = queryAll(
+  db,
+  `SELECT email, password_hash, role FROM users WHERE email = 'admin@cynoplanning.local'`,
+)[0];
+const testRow = queryAll(
+  db,
+  `SELECT email, password_hash, role FROM users WHERE email = 'test@cynoplanning.local'`,
+)[0];
+if (
+  !adminRow ||
+  !testRow ||
+  !bcrypt.compareSync(ADMIN_PASSWORD, adminRow.password_hash) ||
+  !bcrypt.compareSync(TEST_USER_PASSWORD, testRow.password_hash)
+) {
+  db.close();
+  throw new Error("bcrypt verification failed for packaged test users");
+}
+
 const exported = Buffer.from(db.export());
 db.close();
 writeFileSync(OUT, exported);
 
 const bytes = statSync(OUT).size;
+
 const report = {
   path: OUT,
   bytes,
@@ -1232,11 +1259,18 @@ const report = {
   foreignKeyViolations: fkViolations.length,
   tables,
   counts,
-  testLogin: {
-    email: "admin.test@cynoplanning.test",
-    password: TEST_PASSWORD,
-    note: "bcryptjs cost 12 — fictional accounts only",
+  logins: {
+    admin: { email: "admin@cynoplanning.local", password: ADMIN_PASSWORD, role: "admin" },
+    testUser: { email: "test@cynoplanning.local", password: TEST_USER_PASSWORD, role: "user" },
   },
+  coreCounts: {
+    users: counts.users,
+    sections: counts.sections,
+    agents: counts.agents,
+    dogs: counts.dogs,
+    checkpoints: counts.checkpoints,
+  },
+  note: "bcryptjs cost 12 — compatible with electron/users-store.ts",
 };
-writeFileSync(join(dirname(OUT), "cynoplanning_test.summary.json"), `${JSON.stringify(report, null, 2)}\n`);
+writeFileSync(SUMMARY_OUT, `${JSON.stringify(report, null, 2)}\n`);
 console.log(JSON.stringify(report, null, 2));
