@@ -227,10 +227,11 @@ describe("automatic exclusion replacement (Planning Engine reuse)", () => {
     const ahmed = maleHandler("ahmed", "explosives");
     const karim = maleHandler("karim", "explosives");
     const youssef = maleHandler("youssef", "explosives");
+    const bilal = maleHandler("bilal", "explosives");
 
     const result = runPlanningEngine({
       sectionId: SECTION_ID,
-      agents: [ahmed, karim, youssef],
+      agents: [ahmed, karim, youssef, bilal],
       exclusions,
       checkpoints: [checkpoint("Point 91", "explosives"), checkpoint("Point 20", "explosives")],
       shift: "day",
@@ -259,7 +260,8 @@ describe("automatic exclusion replacement (Planning Engine reuse)", () => {
     const point20 = result.assignments.find((row) => row.checkpoint_post_id === "post-Point 20");
 
     expect(point91?.agent_id).not.toBe("ahmed");
-    expect(point91?.agent_id).toBe("youssef");
+    expect(point91?.agent_id).not.toBe("youssef");
+    expect(point91?.agent_id).toBe("bilal");
     expect(point20?.agent_id).toBe("karim");
   });
 

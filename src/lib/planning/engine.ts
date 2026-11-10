@@ -16,10 +16,20 @@ import {
 } from "@/lib/agent-exclusions";
 import { pickHighestPriorityDogExclusionTypeName } from "@/lib/dog-operational-status";
 import {
+  agentBlockedFromCriticalCheckpointAssignment,
+  buildCriticalP1CooldownBlockedAgents,
+  checkpointPriorityMapFromInputs,
+} from "@/lib/planning/critical-p1-cooldown";
+import {
   compareFemaleCheckpointScores,
   scoreFemaleCheckpointCandidate,
   type FemaleAssignmentHistoryMaps,
 } from "@/lib/planning/female-rotation";
+
+export {
+  buildCriticalP1CooldownBlockedAgents,
+  agentBlockedFromCriticalCheckpointAssignment,
+} from "@/lib/planning/critical-p1-cooldown";
 
 export {
   AGENT_LEVEL_EXCLUSION_TYPES,
@@ -823,6 +833,8 @@ type PickContext = {
   /** Most recent prior assignment date (any checkpoint) per agent. */
   lastAssignmentDateByAgent: Map<string, string>;
   femaleHistory?: FemaleAssignmentHistoryMaps;
+  /** Agents barred from any P1 assignment today (worked P1 on previous planning date). */
+  criticalP1CooldownAgents?: ReadonlySet<string>;
 };
 
 /**
@@ -859,9 +871,18 @@ function pickAgent(candidates: EligibleTeam[], ctx: PickContext): EligibleTeam |
 
   if (genderAndSpecialtyPool.length === 0) return null;
 
-  let pool = genderAndSpecialtyPool;
+  let pool = genderAndSpecialtyPool.filter(
+    (t) =>
+      !agentBlockedFromCriticalCheckpointAssignment(
+        t.agent_id,
+        ctx.checkpoint.priority,
+        ctx.criticalP1CooldownAgents,
+      ),
+  );
+  if (pool.length === 0) return null;
+
   if (ctx.requireSmartRotation) {
-    pool = genderAndSpecialtyPool.filter((t) =>
+    pool = pool.filter((t) =>
       canAssignBySmartRotation(
         t.agent_id,
         ctx.checkpoint.id,
@@ -945,9 +966,18 @@ function pickFemaleRotationAgent(
 
   if (genderAndSpecialtyPool.length === 0) return null;
 
-  let pool = genderAndSpecialtyPool;
+  let pool = genderAndSpecialtyPool.filter(
+    (t) =>
+      !agentBlockedFromCriticalCheckpointAssignment(
+        t.agent_id,
+        ctx.checkpoint.priority,
+        ctx.criticalP1CooldownAgents,
+      ),
+  );
+  if (pool.length === 0) return null;
+
   if (ctx.requireSmartRotation) {
-    pool = genderAndSpecialtyPool.filter((t) =>
+    pool = pool.filter((t) =>
       canAssignBySmartRotation(
         t.agent_id,
         ctx.checkpoint.id,
@@ -1466,6 +1496,7 @@ function assignOpenSlots(
      * Default true.
      */
     enableOperationalRescue?: boolean;
+    criticalP1CooldownAgents?: ReadonlySet<string>;
   },
 ): PlanningStructuredWarning[] {
   const planningDateISO = format(params.planningDate, "yyyy-MM-dd");
@@ -1497,6 +1528,16 @@ function assignOpenSlots(
       warnings.push(
         `Checkpoint ${pending.checkpoint.name}: rejected invalid gender assignment for ${pending.slot.specialty_required}.`,
       );
+      return false;
+    }
+
+    if (
+      agentBlockedFromCriticalCheckpointAssignment(
+        team.agent_id,
+        pending.checkpoint.priority,
+        params.criticalP1CooldownAgents,
+      )
+    ) {
       return false;
     }
 
@@ -1581,6 +1622,7 @@ function assignOpenSlots(
             planningDateISO,
             lastAssignmentDateByAgent: params.lastAssignmentDateByAgent,
             femaleHistory: options.femaleHistory,
+            criticalP1CooldownAgents: params.criticalP1CooldownAgents,
           };
 
           const team = pending.post
@@ -1722,6 +1764,7 @@ function assignOpenSlots(
             fairnessCounts: params.fairnessCounts,
             planningDateISO,
             lastAssignmentDateByAgent: params.lastAssignmentDateByAgent,
+            criticalP1CooldownAgents: params.criticalP1CooldownAgents,
           };
 
           const pool = remaining.filter((team) => !assignedToday.has(team.agent_id));
@@ -2117,10 +2160,20 @@ function teamCanFillOpenSlotUnderRules(
   assignedToday: Set<string>,
   allowNightFallback: boolean,
   smartRotation?: SmartRotationAuditMaps,
+  criticalP1CooldownAgents?: ReadonlySet<string>,
 ): boolean {
   if (!pending.post) return false;
   // Males must never fill day female-reserved positions.
   if (isFemaleReservedSlot(pending)) return false;
+  if (
+    agentBlockedFromCriticalCheckpointAssignment(
+      team.agent_id,
+      pending.checkpoint.priority,
+      criticalP1CooldownAgents,
+    )
+  ) {
+    return false;
+  }
   if (
     !teamMatchesPostRequirements(
       team,
@@ -2573,6 +2626,11 @@ export function runPlanningEngine(params: EngineParams): PlanningEngineResult {
   const sectionRotationHistory = params.rotationHistory.filter((row) =>
     planningAgentIds.has(row.agent_id),
   );
+  const criticalP1CooldownAgents = buildCriticalP1CooldownBlockedAgents(
+    sectionRotationHistory,
+    previousPlanningDate(params.planningDate),
+    checkpointPriorityMapFromInputs(params.checkpoints),
+  );
 
   const { eligible: sectionEligible, excluded: sectionExcluded } = qualifyTeams(
     sectionAgents,
@@ -2672,6 +2730,7 @@ export function runPlanningEngine(params: EngineParams): PlanningEngineResult {
       lastAssignmentDateByAgent,
       maleExcludedPostIds,
       hqReserveEligible: hqEligible,
+      criticalP1CooldownAgents,
     }),
   );
 
@@ -2703,6 +2762,7 @@ export function runPlanningEngine(params: EngineParams): PlanningEngineResult {
         lastAssignmentDateByAgent,
         maleExcludedPostIds,
         hqReserveEligible: [],
+        criticalP1CooldownAgents,
       },
     ),
   );
@@ -2741,6 +2801,7 @@ export function runPlanningEngine(params: EngineParams): PlanningEngineResult {
               params.shift === "night",
               // No Smart Rotation gate — last-resort operational coverage.
               undefined,
+              criticalP1CooldownAgents,
             ),
         ),
     );
@@ -2760,6 +2821,7 @@ export function runPlanningEngine(params: EngineParams): PlanningEngineResult {
         maleExcludedPostIds,
         hqReserveEligible: [],
         enableOperationalRescue: true,
+        criticalP1CooldownAgents,
       }),
     );
   }
