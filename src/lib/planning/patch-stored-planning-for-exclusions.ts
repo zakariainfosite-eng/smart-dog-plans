@@ -286,6 +286,7 @@ export async function patchStoredPlanningForExclusions(
     yesterdayCheckpointByAgent: context.yesterdayCheckpointByAgent,
     fairnessCounts: context.fairnessCounts,
     exclusionDebug: context.exclusionDebug,
+    femaleAgentsForReservation: context.femaleAgentsForReservation,
     exclusionPatch: patchOptions,
   });
 

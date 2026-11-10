@@ -21,6 +21,12 @@ import {
   checkpointPriorityMapFromInputs,
 } from "@/lib/planning/critical-p1-cooldown";
 import {
+  findFillableFemaleForReservation,
+  qualifyFemaleReservationPool,
+} from "@/lib/planning/female-reservation";
+
+export { qualifyFemaleReservationPool } from "@/lib/planning/female-reservation";
+import {
   compareFemaleCheckpointScores,
   scoreFemaleCheckpointCandidate,
   type FemaleAssignmentHistoryMaps,
@@ -1246,20 +1252,44 @@ function hasAssignableOpenSlots(pendingSlots: readonly PendingSlot[]): boolean {
 
 /**
  * DAY planning only: reserve one Stupéfiants + one Explosifs operational slot
- * for manual female PDF insertion. Deterministic. Night is unchanged.
+ * for manual female PDF insertion when a fillable female handler exists on the
+ * active rotation day. Skip unfillable reservations (especially P1).
  */
 function markDayFemaleReservedSlots(
   pendingSlots: PendingSlot[],
   shift: Shift,
+  options: {
+    planningDate: Date;
+    femaleReservationPool: readonly EligibleTeam[];
+  },
 ): PlanningStructuredWarning[] {
   if (shift !== "day") return [];
 
   const warnings: PlanningStructuredWarning[] = [];
   const specialties: Specialty[] = ["narcotics", "explosives"];
+  const reservedFemaleIds = new Set<string>();
+  const reservedFemaleByCheckpoint = new Map<string, Set<string>>();
+
+  const sortCandidates = (list: PendingSlot[]) =>
+    [...list].sort((a, b) => {
+      const policyRank = (p: PendingSlot) =>
+        (p.checkpoint.female_policy ?? "allowed") === "preferred" ? 0 : 1;
+      const policyDiff = policyRank(a) - policyRank(b);
+      if (policyDiff !== 0) return policyDiff;
+      const priorityDiff =
+        normalizeCheckpointPriority(b.checkpoint.priority) -
+        normalizeCheckpointPriority(a.checkpoint.priority);
+      if (priorityDiff !== 0) return priorityDiff;
+      const nameDiff = a.checkpoint.name.localeCompare(b.checkpoint.name, undefined, {
+        numeric: true,
+      });
+      if (nameDiff !== 0) return nameDiff;
+      return (a.post?.id ?? "").localeCompare(b.post?.id ?? "");
+    });
 
   for (const specialty of specialties) {
-    const candidates = pendingSlots
-      .filter((pending) => {
+    const candidates = sortCandidates(
+      pendingSlots.filter((pending) => {
         if (!pending.post || !pending.post.active) return false;
         if (pending.slot.specialty_required !== specialty) return false;
         if (isFemaleReservedSlot(pending)) return false;
@@ -1269,37 +1299,50 @@ function markDayFemaleReservedSlots(
         const gender = pending.configuredGender;
         if (normalizeAllowedGender(gender) === "male") return false;
         return true;
-      })
-      .sort((a, b) => {
-        const policyRank = (p: PendingSlot) =>
-          (p.checkpoint.female_policy ?? "allowed") === "preferred" ? 0 : 1;
-        const policyDiff = policyRank(a) - policyRank(b);
-        if (policyDiff !== 0) return policyDiff;
-        // Prefer lower operational priority so P1–P2 male coverage stays available.
-        const priorityDiff =
-          normalizeCheckpointPriority(b.checkpoint.priority) -
-          normalizeCheckpointPriority(a.checkpoint.priority);
-        if (priorityDiff !== 0) return priorityDiff;
-        const nameDiff = a.checkpoint.name.localeCompare(b.checkpoint.name, undefined, {
-          numeric: true,
-        });
-        if (nameDiff !== 0) return nameDiff;
-        return (a.post?.id ?? "").localeCompare(b.post?.id ?? "");
+      }),
+    );
+
+    for (const chosen of candidates) {
+      if (!chosen.post) continue;
+
+      const fillable = findFillableFemaleForReservation(
+        {
+          checkpoint: chosen.checkpoint,
+          post: chosen.post,
+          specialty,
+        },
+        options.femaleReservationPool,
+        options.planningDate,
+        reservedFemaleIds,
+        teamMatchesPostRequirements,
+        shift,
+      );
+
+      if (!fillable) {
+        continue;
+      }
+
+      const cpFemales = reservedFemaleByCheckpoint.get(chosen.checkpoint.id) ?? new Set<string>();
+      if (cpFemales.has(fillable.agent_id)) {
+        continue;
+      }
+
+      chosen.reservedForFemale = true;
+      chosen.slot.reservation = FEMALE_SLOT_RESERVATION_CODE;
+      reservedFemaleIds.add(fillable.agent_id);
+      cpFemales.add(fillable.agent_id);
+      reservedFemaleByCheckpoint.set(chosen.checkpoint.id, cpFemales);
+
+      warnings.push({
+        code: FEMALE_SLOT_RESERVATION_CODE,
+        checkpoint_id: chosen.checkpoint.id,
+        checkpoint_name: chosen.checkpoint.name,
+        post_id: chosen.post.id,
+        specialty_required: specialty,
+        message: `Checkpoint ${chosen.checkpoint.name}: reserved for female ${specialty} assignment (manual PDF insertion).`,
       });
-
-    const chosen = candidates[0];
-    if (!chosen) continue;
-
-    chosen.reservedForFemale = true;
-    chosen.slot.reservation = FEMALE_SLOT_RESERVATION_CODE;
-    warnings.push({
-      code: FEMALE_SLOT_RESERVATION_CODE,
-      checkpoint_id: chosen.checkpoint.id,
-      checkpoint_name: chosen.checkpoint.name,
-      post_id: chosen.post!.id,
-      specialty_required: specialty,
-      message: `Checkpoint ${chosen.checkpoint.name}: reserved for female ${specialty} assignment (manual PDF insertion).`,
-    });
+      break;
+    }
   }
 
   return warnings.sort((a, b) => {
@@ -1453,10 +1496,28 @@ function forEachPendingSlotInPriorityOrder(
   visit: (pending: PendingSlot) => void,
 ): void {
   for (const priorityLevel of CHECKPOINT_PRIORITY_LEVELS) {
-    const tierSlots = openSlots.filter(
+    const tierSlots = sortOpenSlotsAtPriority(openSlots, priorityLevel, compareCtx);
+    for (const pending of tierSlots) {
+      visit(pending);
+    }
+  }
+}
+
+function sortOpenSlotsAtPriority(
+  openSlots: readonly PendingSlot[],
+  priorityLevel: number,
+  compareCtx: {
+    eligible: EligibleTeam[];
+    assignedToday: Set<string>;
+    shift: Shift;
+    allowNightFallback: boolean;
+  },
+): PendingSlot[] {
+  return [...openSlots]
+    .filter(
       (pending) => normalizeCheckpointPriority(pending.checkpoint.priority) === priorityLevel,
-    );
-    tierSlots.sort((a, b) =>
+    )
+    .sort((a, b) =>
       comparePendingSlots(
         a,
         b,
@@ -1466,8 +1527,154 @@ function forEachPendingSlotInPriorityOrder(
         compareCtx.allowNightFallback,
       ),
     );
-    for (const pending of tierSlots) {
-      visit(pending);
+}
+
+type PriorityTierFillParams = {
+  pendingSlots: PendingSlot[];
+  candidatePool: EligibleTeam[];
+  planningEligible: EligibleTeam[];
+  assignedToday: Set<string>;
+  assignments: PersistableAssignment[];
+  warnings: string[];
+  params: {
+    shift: Shift;
+    planningDate: Date;
+    checkpoints: CheckpointInput[];
+    compatibleCheckpointsByAgent: Map<string, Set<string>>;
+    agentVisitedCheckpoints: Map<string, Set<string>>;
+    yesterdayCheckpointByAgent: Map<string, string>;
+    fairnessCounts: Map<string, number>;
+    lastAssignmentDateByAgent: Map<string, string>;
+    criticalP1CooldownAgents?: ReadonlySet<string>;
+  };
+  allowNightFallback: boolean;
+  planningDateISO: string;
+  useFemaleHistoryRanking?: boolean;
+  femaleHistory?: FemaleAssignmentHistoryMaps;
+  enableTierRescue: boolean;
+  commitAssignment: (
+    pending: PendingSlot,
+    team: EligibleTeam,
+    allowNightFallback: boolean,
+  ) => boolean;
+  rotationOverrides: PlanningStructuredWarning[];
+};
+
+/**
+ * Fills open slots P1 → P4. Within each tier: Smart Rotation (strict), then operational
+ * rescue for that tier before any lower-priority tier is considered.
+ */
+function fillOpenSlotsByOperationalPriorityTier(params: PriorityTierFillParams): void {
+  const compareCtx = {
+    eligible: params.planningEligible,
+    assignedToday: params.assignedToday,
+    shift: params.params.shift,
+    allowNightFallback: params.allowNightFallback,
+  };
+
+  const filterOpenSlots = (): PendingSlot[] =>
+    params.pendingSlots.filter((pending) => {
+      if (pending.slot.team) return false;
+      if (isFemaleReservedSlot(pending)) return false;
+      if (params.allowNightFallback) {
+        return shouldApplyNightFemaleFallback(
+          pending.configuredGender,
+          params.params.shift,
+          params.planningEligible,
+          params.assignedToday,
+          pending.slot.specialty_required,
+        );
+      }
+      return true;
+    });
+
+  const buildPickCtx = (pending: PendingSlot, requireSmartRotation: boolean): PickContext => ({
+    shift: params.params.shift,
+    checkpoint: pending.checkpoint,
+    post: pending.post!,
+    assignedToday: params.assignedToday,
+    eligible: params.planningEligible,
+    allowNightFallback: params.allowNightFallback,
+    requireSmartRotation,
+    compatibleCheckpointsByAgent: params.params.compatibleCheckpointsByAgent,
+    agentVisitedCheckpoints: params.params.agentVisitedCheckpoints,
+    yesterdayCheckpointByAgent: params.params.yesterdayCheckpointByAgent,
+    fairnessCounts: params.params.fairnessCounts,
+    planningDateISO: params.planningDateISO,
+    lastAssignmentDateByAgent: params.params.lastAssignmentDateByAgent,
+    femaleHistory: params.femaleHistory,
+    criticalP1CooldownAgents: params.params.criticalP1CooldownAgents,
+  });
+
+  const pickForSlot = (
+    pending: PendingSlot,
+    requireSmartRotation: boolean,
+  ): EligibleTeam | null => {
+    if (!pending.post) return null;
+    const pickCtx = buildPickCtx(pending, requireSmartRotation);
+    return params.useFemaleHistoryRanking
+      ? pickFemaleRotationAgent(params.candidatePool, pickCtx)
+      : pickAgent(params.candidatePool, pickCtx);
+  };
+
+  for (const priorityLevel of CHECKPOINT_PRIORITY_LEVELS) {
+    while (true) {
+      const openAtTier = sortOpenSlotsAtPriority(
+        filterOpenSlots(),
+        priorityLevel,
+        compareCtx,
+      );
+      if (openAtTier.length === 0) break;
+
+      let progress = false;
+      for (const pending of openAtTier) {
+        if (pending.slot.team || !pending.post) continue;
+        const team = pickForSlot(pending, true);
+        if (!team) continue;
+        if (params.commitAssignment(pending, team, params.allowNightFallback)) {
+          progress = true;
+        }
+      }
+      if (!progress) break;
+    }
+
+    if (!params.enableTierRescue) continue;
+
+    while (true) {
+      const openAtTier = sortOpenSlotsAtPriority(
+        filterOpenSlots(),
+        priorityLevel,
+        compareCtx,
+      );
+      if (openAtTier.length === 0) break;
+
+      let progress = false;
+      for (const pending of openAtTier) {
+        if (pending.slot.team || !pending.post || isFemaleReservedSlot(pending)) continue;
+
+        const strictTeam = pickForSlot(pending, true);
+        const rescueTeam = pickForSlot(pending, false);
+        const team = strictTeam ?? rescueTeam;
+        if (!team) continue;
+
+        if (!params.commitAssignment(pending, team, params.allowNightFallback)) {
+          continue;
+        }
+
+        if (!strictTeam && rescueTeam) {
+          params.rotationOverrides.push({
+            code: ROTATION_OVERRIDE_CODE,
+            checkpoint_id: pending.checkpoint.id,
+            checkpoint_name: pending.checkpoint.name,
+            post_id: pending.post.id,
+            specialty_required: pending.slot.specialty_required,
+            message: `Checkpoint ${pending.checkpoint.name}: Smart Rotation overridden to staff ${pending.slot.specialty_required} with ${team.agent_name} (operational coverage before ${POINT_653_NAME}).`,
+          });
+        }
+
+        progress = true;
+      }
+      if (!progress) break;
     }
   }
 }
@@ -1576,6 +1783,37 @@ function assignOpenSlots(
     femaleHistory?: FemaleAssignmentHistoryMaps;
   }) => {
     const candidatePool = options.candidates ?? maleEligible;
+    if (candidatePool.length === 0) return;
+
+    if (options.requireSmartRotation) {
+      fillOpenSlotsByOperationalPriorityTier({
+        pendingSlots,
+        candidatePool,
+        planningEligible,
+        assignedToday,
+        assignments,
+        warnings,
+        params: {
+          shift: params.shift,
+          planningDate: params.planningDate,
+          checkpoints: params.checkpoints,
+          compatibleCheckpointsByAgent: params.compatibleCheckpointsByAgent,
+          agentVisitedCheckpoints: params.agentVisitedCheckpoints,
+          yesterdayCheckpointByAgent: params.yesterdayCheckpointByAgent,
+          fairnessCounts: params.fairnessCounts,
+          lastAssignmentDateByAgent: params.lastAssignmentDateByAgent,
+          criticalP1CooldownAgents: params.criticalP1CooldownAgents,
+        },
+        allowNightFallback: options.allowNightFallback,
+        planningDateISO,
+        useFemaleHistoryRanking: options.useFemaleHistoryRanking,
+        femaleHistory: options.femaleHistory,
+        enableTierRescue: params.enableOperationalRescue !== false,
+        commitAssignment,
+        rotationOverrides,
+      });
+      return;
+    }
 
     while (true) {
       const openSlots = pendingSlots.filter((pending) => {
@@ -1595,7 +1833,6 @@ function assignOpenSlots(
       if (openSlots.length === 0) break;
 
       let progress = false;
-
       forEachPendingSlotInPriorityOrder(
         openSlots,
         {
@@ -1605,16 +1842,16 @@ function assignOpenSlots(
           allowNightFallback: options.allowNightFallback,
         },
         (pending) => {
-          if (pending.slot.team) return;
+          if (pending.slot.team || !pending.post) return;
 
           const pickCtx: PickContext = {
             shift: params.shift,
             checkpoint: pending.checkpoint,
-            post: pending.post!,
+            post: pending.post,
             assignedToday,
             eligible: planningEligible,
             allowNightFallback: options.allowNightFallback,
-            requireSmartRotation: options.requireSmartRotation,
+            requireSmartRotation: false,
             compatibleCheckpointsByAgent: params.compatibleCheckpointsByAgent,
             agentVisitedCheckpoints: params.agentVisitedCheckpoints,
             yesterdayCheckpointByAgent: params.yesterdayCheckpointByAgent,
@@ -1625,21 +1862,13 @@ function assignOpenSlots(
             criticalP1CooldownAgents: params.criticalP1CooldownAgents,
           };
 
-          const team = pending.post
-            ? options.useFemaleHistoryRanking
-              ? pickFemaleRotationAgent(candidatePool, pickCtx)
-              : pickAgent(candidatePool, pickCtx)
-            : null;
-
-          if (!team) {
-            return;
+          const team = options.useFemaleHistoryRanking
+            ? pickFemaleRotationAgent(candidatePool, pickCtx)
+            : pickAgent(candidatePool, pickCtx);
+          if (!team) return;
+          if (commitAssignment(pending, team, options.allowNightFallback)) {
+            progress = true;
           }
-
-          if (!commitAssignment(pending, team, options.allowNightFallback)) {
-            return;
-          }
-
-          progress = true;
         },
       );
 
@@ -1719,86 +1948,36 @@ function assignOpenSlots(
     }
   }
 
-  // Phase 2.2 — last-resort operational coverage rescue before Point 653.
-  // May break Smart Rotation when a specialty-compatible agent still exists.
-  // Female reserved daytime slots remain untouched.
-  if (params.enableOperationalRescue !== false) {
-    const allowNightFallback = params.shift === "night";
-
-    while (hasAssignableOpenSlots(pendingSlots)) {
-      const remaining = planningEligible.filter(
-        (team) => team.gender === "male" && !assignedToday.has(team.agent_id),
-      );
-      if (remaining.length === 0) break;
-
-      const openSlots = pendingSlots.filter(
-        (pending) =>
-          !pending.slot.team && pending.post && !isFemaleReservedSlot(pending),
-      );
-
-      let progress = false;
-      forEachPendingSlotInPriorityOrder(
-        openSlots,
-        {
-          eligible: planningEligible,
-          assignedToday,
+  // Phase 2.2 — extra global drain if anything remains (same P1→P4 tier rescue ordering).
+  if (params.enableOperationalRescue !== false && hasAssignableOpenSlots(pendingSlots)) {
+    const remaining = planningEligible.filter(
+      (team) => team.gender === "male" && !assignedToday.has(team.agent_id),
+    );
+    if (remaining.length > 0) {
+      fillOpenSlotsByOperationalPriorityTier({
+        pendingSlots,
+        candidatePool: remaining,
+        planningEligible,
+        assignedToday,
+        assignments,
+        warnings,
+        params: {
           shift: params.shift,
-          allowNightFallback,
+          planningDate: params.planningDate,
+          checkpoints: params.checkpoints,
+          compatibleCheckpointsByAgent: params.compatibleCheckpointsByAgent,
+          agentVisitedCheckpoints: params.agentVisitedCheckpoints,
+          yesterdayCheckpointByAgent: params.yesterdayCheckpointByAgent,
+          fairnessCounts: params.fairnessCounts,
+          lastAssignmentDateByAgent: params.lastAssignmentDateByAgent,
+          criticalP1CooldownAgents: params.criticalP1CooldownAgents,
         },
-        (pending) => {
-          if (pending.slot.team || isFemaleReservedSlot(pending) || !pending.post) {
-            return;
-          }
-
-          const pickCtx: PickContext = {
-            shift: params.shift,
-            checkpoint: pending.checkpoint,
-            post: pending.post,
-            assignedToday,
-            eligible: planningEligible,
-            allowNightFallback,
-            requireSmartRotation: true,
-            compatibleCheckpointsByAgent: params.compatibleCheckpointsByAgent,
-            agentVisitedCheckpoints: params.agentVisitedCheckpoints,
-            yesterdayCheckpointByAgent: params.yesterdayCheckpointByAgent,
-            fairnessCounts: params.fairnessCounts,
-            planningDateISO,
-            lastAssignmentDateByAgent: params.lastAssignmentDateByAgent,
-            criticalP1CooldownAgents: params.criticalP1CooldownAgents,
-          };
-
-          const pool = remaining.filter((team) => !assignedToday.has(team.agent_id));
-          const strictTeam = pickAgent(pool, {
-            ...pickCtx,
-            requireSmartRotation: true,
-          });
-          const rescueTeam = pickAgent(pool, {
-            ...pickCtx,
-            requireSmartRotation: false,
-          });
-          const team = strictTeam ?? rescueTeam;
-          if (!team) return;
-
-          if (!commitAssignment(pending, team, allowNightFallback)) {
-            return;
-          }
-
-          if (!strictTeam && rescueTeam) {
-            rotationOverrides.push({
-              code: ROTATION_OVERRIDE_CODE,
-              checkpoint_id: pending.checkpoint.id,
-              checkpoint_name: pending.checkpoint.name,
-              post_id: pending.post.id,
-              specialty_required: pending.slot.specialty_required,
-              message: `Checkpoint ${pending.checkpoint.name}: Smart Rotation overridden to staff ${pending.slot.specialty_required} with ${team.agent_name} (operational coverage before ${POINT_653_NAME}).`,
-            });
-          }
-
-          progress = true;
-        },
-      );
-
-      if (!progress) break;
+        allowNightFallback: params.shift === "night",
+        planningDateISO,
+        enableTierRescue: true,
+        commitAssignment,
+        rotationOverrides,
+      });
     }
   }
 
@@ -2500,6 +2679,8 @@ export type EngineParams = {
   exclusionDebug?: PlanningExclusionDebugReport;
   /** Partial re-plan: fill only open posts; preserve unrelated stored assignments. */
   exclusionPatch?: ExclusionPatchOptions;
+  /** Active female handlers used only to validate day female slot reservations (not male pool). */
+  femaleAgentsForReservation?: AgentInput[];
 };
 
 function resolveEligibleTeamForPreserved(
@@ -2685,10 +2866,17 @@ export function runPlanningEngine(params: EngineParams): PlanningEngineResult {
 
   // DAY only: reserve one Stupéfiants + one Explosifs slot for manual female PDF insertion.
   // Cycle compatibility is computed after this so males do not owe a visit to reserved posts.
-  const femaleReservationWarnings = markDayFemaleReservedSlots(
-    pendingSlots,
-    params.shift,
-  );
+  const femaleReservationPool =
+    params.shift === "day"
+      ? qualifyFemaleReservationPool(
+          params.femaleAgentsForReservation ?? [],
+          sectionExclusions,
+        )
+      : [];
+  const femaleReservationWarnings = markDayFemaleReservedSlots(pendingSlots, params.shift, {
+    planningDate: params.planningDate,
+    femaleReservationPool,
+  });
   const maleExcludedPostIds = collectMaleCycleExcludedPostIds(pendingSlots);
 
   let compatibleCheckpointsByAgent = buildCompatibleCheckpointsByAgent(

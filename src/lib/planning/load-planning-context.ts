@@ -41,6 +41,24 @@ async function loadPlanningAgents(
   );
 }
 
+/** Female handlers — feasibility for day slot reservations only (not male planning pool). */
+async function loadFemaleAgentsForReservation(db: DbClient): Promise<AgentInput[]> {
+  const agentSelect =
+    "id, first_name, last_name, professional_number, gender, fonction, active, section_id, dog_id, dogs:dog_id(id, name, specialty, status, active)";
+
+  const res = await db
+    .from("agents")
+    .select(agentSelect)
+    .eq("active", true)
+    .eq("gender", "female");
+
+  if (res.error) throw res.error;
+
+  return ((res.data ?? []) as Array<AgentInput & { fonction?: string }>).filter((row) =>
+    isCynotechnicienFonction(row.fonction),
+  );
+}
+
 /**
  * Load agents + checkpoints + exclusions for automatic planning.
  * Exclusion effectiveness uses `dateISO` (the planning form date), not wall-clock today.
@@ -57,7 +75,8 @@ export async function loadPlanningContext(
   const agentIds = agents.map((agent: any) => agent.id);
   const emptyList = { data: [] as never[], error: null };
 
-  const [checkpointsRes, exclusionsRaw, rotationHistoryRes, restrictionsRes] = await Promise.all([
+  const [checkpointsRes, exclusionsRaw, rotationHistoryRes, restrictionsRes, femaleAgentsRes] =
+    await Promise.all([
     db
       .from("checkpoints")
       .select(CHECKPOINT_PLANNING_SELECT)
@@ -76,6 +95,7 @@ export async function loadPlanningContext(
           .in("agent_id", agentIds)
       : Promise.resolve(emptyList),
     db.from("agent_checkpoint_restrictions").select("agent_id, checkpoint_id"),
+    loadFemaleAgentsForReservation(db),
   ]);
 
   const sectionAgentIds = new Set(agentIds);
@@ -97,9 +117,11 @@ export async function loadPlanningContext(
   );
   logPlanningExclusionDebug(exclusionDebug);
 
-  const errors = [checkpointsRes.error, rotationHistoryRes.error, restrictionsRes.error].filter(
-    Boolean,
-  );
+  const errors = [
+    checkpointsRes.error,
+    rotationHistoryRes.error,
+    restrictionsRes.error,
+  ].filter(Boolean);
   if (errors.length > 0) {
     throw errors[0];
   }
@@ -149,5 +171,6 @@ export async function loadPlanningContext(
     rotationHistory,
     yesterdayCheckpointByAgent,
     fairnessCounts,
+    femaleAgentsForReservation: femaleAgentsRes,
   };
 }

@@ -63,6 +63,26 @@ function male(id, specialty = "narcotics") {
   };
 }
 
+function female(id, specialty) {
+  return {
+    id,
+    first_name: "F",
+    last_name: id,
+    professional_number: id.toUpperCase(),
+    gender: "female",
+    active: true,
+    section_id: null,
+    dog_id: `df-${id}`,
+    dogs: {
+      id: `df-${id}`,
+      name: `DogF-${id}`,
+      specialty,
+      status: "available",
+      active: true,
+    },
+  };
+}
+
 console.log("=== DAY: reserve one narcotics + one explosives ===");
 {
   const agents = [
@@ -87,6 +107,13 @@ console.log("=== DAY: reserve one narcotics + one explosives ===");
     rotationHistory: [],
     yesterdayCheckpointByAgent: new Map(),
     fairnessCounts: new Map(),
+    // Group A active 2026-04-01 — need one narc + one expl in group A (101–102).
+    femaleAgentsForReservation: [
+      { ...female("f-narc", "narcotics"), professional_number: "101" },
+      { ...female("f-expl", "explosives"), professional_number: "102" },
+      { ...female("f-narc-b", "narcotics"), professional_number: "103" },
+      { ...female("f-expl-b", "explosives"), professional_number: "104" },
+    ],
   });
 
   const reserved = result.checkpoints.flatMap((c) =>
@@ -171,7 +198,7 @@ console.log("\n=== NIGHT: no female reservations ===");
   );
 }
 
-console.log("\n=== Male never assigned to reserved slot ===");
+console.log("\n=== No reservation without fillable female — male may fill ===");
 {
   const agents = [male("solo", "narcotics")];
   const checkpoints = [checkpoint("cp1", "Only", 3, "narcotics")];
@@ -185,6 +212,32 @@ console.log("\n=== Male never assigned to reserved slot ===");
     rotationHistory: [],
     yesterdayCheckpointByAgent: new Map(),
     fairnessCounts: new Map(),
+    femaleAgentsForReservation: [],
+  });
+  const slot = result.checkpoints[0]?.slots[0];
+  assert(slot?.reservation !== FEMALE_SLOT_RESERVATION_CODE, "no reservation without female pool");
+  assert(slot?.team !== null, "male placed when no reservation");
+  assert(result.assignments.length === 1, "male assignment when slot is open");
+}
+
+console.log("\n=== Male never assigned to fillable reserved slot ===");
+{
+  const agents = [male("solo", "narcotics")];
+  const checkpoints = [checkpoint("cp1", "Only", 3, "narcotics")];
+  const result = runPlanningEngine({
+    sectionId: "sec1",
+    shift: "day",
+    planningDate: new Date(2026, 3, 1),
+    agents,
+    exclusions: [],
+    checkpoints,
+    rotationHistory: [],
+    yesterdayCheckpointByAgent: new Map(),
+    fairnessCounts: new Map(),
+    femaleAgentsForReservation: [
+      { ...female("f-narc", "narcotics"), professional_number: "101" },
+      { ...female("f-narc-b", "narcotics"), professional_number: "103" },
+    ],
   });
   const slot = result.checkpoints[0]?.slots[0];
   assert(slot?.reservation === FEMALE_SLOT_RESERVATION_CODE, "sole narcotics slot reserved");

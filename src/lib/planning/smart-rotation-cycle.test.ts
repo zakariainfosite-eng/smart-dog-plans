@@ -13,6 +13,78 @@ import {
 
 const PLANNING_DATE = new Date(2026, 7, 22);
 
+/** Active group B on PLANNING_DATE — pair with 101/102 for day reservations. */
+const FEMALES_FOR_DAY_RESERVATION: AgentInput[] = [
+  {
+    id: "f-expl-a",
+    first_name: "F",
+    last_name: "ExplA",
+    professional_number: "103",
+    gender: "female",
+    active: true,
+    section_id: null,
+    dog_id: "dog-f-expl-a",
+    dogs: {
+      id: "dog-f-expl-a",
+      name: "NalaA",
+      specialty: "explosives",
+      status: "available",
+      active: true,
+    },
+  },
+  {
+    id: "f-expl-b",
+    first_name: "F",
+    last_name: "ExplB",
+    professional_number: "104",
+    gender: "female",
+    active: true,
+    section_id: null,
+    dog_id: "dog-f-expl-b",
+    dogs: {
+      id: "dog-f-expl-b",
+      name: "NalaB",
+      specialty: "explosives",
+      status: "available",
+      active: true,
+    },
+  },
+  {
+    id: "f-expl-c",
+    first_name: "F",
+    last_name: "ExplC",
+    professional_number: "101",
+    gender: "female",
+    active: true,
+    section_id: null,
+    dog_id: "dog-f-expl-c",
+    dogs: {
+      id: "dog-f-expl-c",
+      name: "NalaC",
+      specialty: "explosives",
+      status: "available",
+      active: true,
+    },
+  },
+  {
+    id: "f-expl-d",
+    first_name: "F",
+    last_name: "ExplD",
+    professional_number: "102",
+    gender: "female",
+    active: true,
+    section_id: null,
+    dog_id: "dog-f-expl-d",
+    dogs: {
+      id: "dog-f-expl-d",
+      name: "NalaD",
+      specialty: "explosives",
+      status: "available",
+      active: true,
+    },
+  },
+];
+
 function explosivesMale(
   id: string,
   sectionId: string,
@@ -142,6 +214,7 @@ describe("Smart Rotation cycle excludes female-reserved posts for males", () => 
       ],
       yesterdayCheckpointByAgent: new Map(),
       fairnessCounts: new Map(),
+      femaleAgentsForReservation: FEMALES_FOR_DAY_RESERVATION,
     });
 
     const reserved78 = result.structuredWarnings.find(

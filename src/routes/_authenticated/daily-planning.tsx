@@ -458,6 +458,7 @@ function DailyPlanningPage() {
         rotationHistory: ctx.rotationHistory,
         yesterdayCheckpointByAgent: ctx.yesterdayCheckpointByAgent,
         fairnessCounts: ctx.fairnessCounts,
+        femaleAgentsForReservation: ctx.femaleAgentsForReservation,
       });
 
       console.info("[daily-planning] executePlanning:persist", {
