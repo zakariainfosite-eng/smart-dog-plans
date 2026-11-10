@@ -8,7 +8,8 @@ export type ExclusionListStatus = "inForce" | "upcoming" | "expired" | "inactive
 
 export type ExclusionListStatusFilter = "all" | "inForce" | "upcoming" | "expired";
 
-export const DEFAULT_EXCLUSION_LIST_STATUS_FILTER: ExclusionListStatusFilter = "inForce";
+/** Show upcoming rows immediately after creation (not only exclusions already in force). */
+export const DEFAULT_EXCLUSION_LIST_STATUS_FILTER: ExclusionListStatusFilter = "all";
 
 export const EXCLUSION_LIST_STATUS_FILTERS: ExclusionListStatusFilter[] = [
   "all",

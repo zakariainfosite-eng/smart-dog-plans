@@ -24,6 +24,8 @@ import type {
   TeamSpecialty,
 } from "@/lib/planning/engine";
 import { buildSectionRotationSchedule } from "@/lib/planning/section-rotation";
+import { findStoredPlanningExclusionConflicts } from "@/lib/planning/stored-planning-exclusion-conflicts";
+import type { StoredPlanningExclusionConflict } from "@/lib/planning/stored-planning-exclusion-conflicts";
 
 type StoredPlanningRow = {
   id: string;
@@ -110,6 +112,7 @@ export type StoredPlanningDetail = {
     index: number;
   };
   engineResult: PlanningEngineResult;
+  exclusionConflicts: StoredPlanningExclusionConflict[];
 };
 
 export type StoredPlanningExportBundle = {
@@ -554,6 +557,13 @@ export async function loadStoredPlanningDetail(
 
   const engineResult = buildEngineResultFromAssignments(hydrated);
 
+  const exclusionsForDate = await fetchActiveExclusionsForDate(client, row.planning_date);
+  const exclusionConflicts = findStoredPlanningExclusionConflicts(
+    row.planning_date,
+    engineResult,
+    exclusionsForDate,
+  );
+
   console.info("[history] loadStoredPlanningDetail:ok", {
     planningId: row.id,
     planning_date: row.planning_date,
@@ -577,6 +587,7 @@ export async function loadStoredPlanningDetail(
       index: sectionIndex,
     },
     engineResult,
+    exclusionConflicts,
   };
 }
 

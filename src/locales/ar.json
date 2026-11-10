@@ -1185,9 +1185,9 @@
       "dog_vet_visit": "تحت الملاحظة"
     },
     "listStatus": {
-      "inForce": "سارية",
-      "upcoming": "قادمة",
-      "expired": "منتهية",
+      "inForce": "🔴 جارية",
+      "upcoming": "🟠 قادمة",
+      "expired": "⚪ منتهية",
       "inactive": "معطّلة"
     },
     "empty": {
@@ -2646,7 +2646,9 @@
       "dogs": "{{count}} كلب(كلاب)"
     },
     "detail": {
-      "title": "تفاصيل التخطيط"
+      "title": "تفاصيل التخطيط",
+      "exclusionConflictsTitle": "تعارضات الاستثناء",
+      "exclusionConflict": "{{name}} في استثناء في هذا التاريخ ويجب استبداله."
     },
     "export": {
       "menu": "تصدير التخطيط",

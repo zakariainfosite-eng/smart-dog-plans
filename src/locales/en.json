@@ -376,9 +376,9 @@
       "end": "End date"
     },
     "listStatus": {
-      "inForce": "In force",
-      "upcoming": "Upcoming",
-      "expired": "Expired",
+      "inForce": "🔴 In progress",
+      "upcoming": "🟠 Upcoming",
+      "expired": "⚪ Ended",
       "inactive": "Disabled"
     },
     "empty": {
@@ -1400,7 +1400,9 @@
       "dogs": "{{count}} dog(s)"
     },
     "detail": {
-      "title": "Planning details"
+      "title": "Planning details",
+      "exclusionConflictsTitle": "Exclusion conflicts",
+      "exclusionConflict": "{{name}} is on exclusion for this date and must be replaced."
     },
     "export": {
       "menu": "Export planning",

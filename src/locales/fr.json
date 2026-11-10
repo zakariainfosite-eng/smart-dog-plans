@@ -1217,9 +1217,9 @@
       "dog_vet_visit": "Sous observation"
     },
     "listStatus": {
-      "inForce": "En vigueur",
-      "upcoming": "À venir",
-      "expired": "Expirée",
+      "inForce": "🔴 En cours",
+      "upcoming": "🟠 À venir",
+      "expired": "⚪ Terminée",
       "inactive": "Désactivée"
     },
     "empty": {
@@ -2673,7 +2673,9 @@
       "dogs": "{{count}} chien(s)"
     },
     "detail": {
-      "title": "Détail de la planification"
+      "title": "Détail de la planification",
+      "exclusionConflictsTitle": "Conflits d'exclusion",
+      "exclusionConflict": "{{name}} est en exclusion à cette date et doit être remplacé."
     },
     "export": {
       "menu": "Exporter la planification",

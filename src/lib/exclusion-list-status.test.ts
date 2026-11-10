@@ -55,12 +55,12 @@ describe("exclusionListStatus — Exclusions page display only", () => {
     ).toBe("inForce");
   });
 
-  it("default En vigueur filter keeps today's rows and hides upcoming", () => {
+  it("default list filter (all) shows in-force and upcoming rows", () => {
     const inForce = { active: 1, start_date: "2026-08-21", end_date: "2026-08-30" };
     const upcoming = { active: 1, start_date: "2026-08-23", end_date: "2026-09-01" };
-    expect(matchesExclusionListStatusFilter(inForce, "inForce", TODAY)).toBe(true);
-    expect(matchesExclusionListStatusFilter(upcoming, "inForce", TODAY)).toBe(false);
+    expect(matchesExclusionListStatusFilter(inForce, "all", TODAY)).toBe(true);
     expect(matchesExclusionListStatusFilter(upcoming, "all", TODAY)).toBe(true);
+    expect(matchesExclusionListStatusFilter(upcoming, "inForce", TODAY)).toBe(false);
   });
 
   it("treats an open-ended enabled row as in force when start has been reached", () => {

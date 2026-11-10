@@ -367,8 +367,8 @@ function exclusionListEmptyCopy(
 }
 
 const LIST_STATUS_TONE: Record<ExclusionListStatus, StatusTone> = {
-  inForce: "success",
-  upcoming: "info",
+  inForce: "danger",
+  upcoming: "warning",
   expired: "neutral",
   inactive: "warning",
 };
@@ -1160,7 +1160,7 @@ function ExclusionsPage() {
         meta={[pageHeroLastUpdatedMeta(t("common.page.lastUpdated"), lastUpdated)]}
       />
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 min-[390px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
         <KpiCard
           variant="minimal"
           icon={Activity}
@@ -1288,7 +1288,7 @@ function ExclusionsPage() {
         <h2 className="text-sm font-semibold text-foreground">
           {t("exclusions.stat.dogBySpecialty")}
         </h2>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 min-[390px]:grid-cols-2 md:grid-cols-3">
           <KpiCard
             variant="minimal"
             icon={Pill}

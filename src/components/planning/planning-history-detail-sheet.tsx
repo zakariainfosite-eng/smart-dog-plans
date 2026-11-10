@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
 import {
+  AlertTriangle,
   Dog as DogIcon,
   FileDown,
   FileText,
@@ -54,6 +55,7 @@ import { prepareStoredPlanningExport } from "@/lib/planning/load-stored-planning
 import type { CheckpointAssignment } from "@/lib/planning/engine";
 import { translatePoint653Reason } from "@/lib/planning-i18n";
 import { useI18n } from "@/hooks/use-i18n";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 type PlanningHistoryDetailSheetProps = {
   detail: StoredPlanningDetail | null;
@@ -216,6 +218,22 @@ export function PlanningHistoryDetailSheet({
           </SheetHeader>
 
           <div className="mt-6 space-y-6">
+            {detail.exclusionConflicts.length > 0 ? (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>{t("history.detail.exclusionConflictsTitle")}</AlertTitle>
+                <AlertDescription>
+                  <ul className="mt-2 list-disc space-y-1 pl-4">
+                    {detail.exclusionConflicts.map((conflict) => (
+                      <li key={conflict.agentId}>
+                        {t("history.detail.exclusionConflict", { name: conflict.agentName })}
+                      </li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            ) : null}
+
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <KpiCard
                 label={t("dailyPlanning.stat.assigned")}
