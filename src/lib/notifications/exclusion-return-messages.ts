@@ -1,6 +1,9 @@
 import { format, parseISO } from "date-fns";
 import type { ExclusionNotificationRecord } from "@/lib/notifications/exclusion-return-types";
-import { daysFromMilestone } from "@/lib/notifications/exclusion-return-types";
+import {
+  daysFromMilestone,
+  isExclusionLifecycleNotificationType,
+} from "@/lib/notifications/exclusion-return-types";
 import { daysUntilEnd } from "@/lib/notifications/exclusion-return-dates";
 import { isValidPlanningDayISO, planningDayISO } from "@/lib/agent-exclusions";
 
@@ -32,9 +35,34 @@ function dogArticlePhrase(exclusionType: string, t: NotificationTranslate): stri
 
 /** Short subject line for the notification center card header. */
 export function formatExclusionEndingSubject(
-  notification: Pick<ExclusionNotificationRecord, "exclusion_type">,
+  notification: Pick<
+    ExclusionNotificationRecord,
+    "exclusion_type" | "subject_kind" | "notification_type" | "milestone"
+  >,
   t: NotificationTranslate,
 ): string {
+  if (
+    notification.notification_type === "exclusion_started" ||
+    notification.milestone === "start"
+  ) {
+    return notification.subject_kind === "dog"
+      ? t("notifications.lifecycle.started.dog.title")
+      : t("notifications.lifecycle.started.personnel.title");
+  }
+  if (
+    notification.notification_type === "exclusion_ended" ||
+    notification.milestone === "ended"
+  ) {
+    return notification.subject_kind === "dog"
+      ? t("notifications.lifecycle.ended.dog.title")
+      : t("notifications.lifecycle.ended.personnel.title");
+  }
+  if (
+    notification.notification_type === "exclusion_ending_soon" ||
+    notification.milestone === "d2"
+  ) {
+    return t("notifications.lifecycle.endingSoon.title");
+  }
   const typeLabel = exclusionTypeLabel(t, notification.exclusion_type);
   return t("notifications.ending.subject", { type: typeLabel });
 }
@@ -62,15 +90,47 @@ export function formatExclusionReturnMessage(
     | "subject_name"
     | "exclusion_type"
     | "end_date"
+    | "return_date"
     | "milestone"
     | "notification_type"
   >,
   t: NotificationTranslate,
   locale = "fr",
+  reference: Date | string = new Date(),
 ): string {
   const name = notification.subject_name;
-  const days = daysFromMilestone(notification.milestone);
   const typeLabel = exclusionTypeLabel(t, notification.exclusion_type);
+
+  if (isExclusionLifecycleNotificationType(notification.notification_type)) {
+    const startDateLabel = formatDisplayDate(notification.return_date, locale);
+    if (notification.notification_type === "exclusion_started") {
+      const startIsToday =
+        startDateLabel === formatDisplayDate(planningDayISO(reference), locale);
+      return notification.subject_kind === "dog"
+        ? t(
+            startIsToday
+              ? "notifications.lifecycle.started.dog.bodyToday"
+              : "notifications.lifecycle.started.dog.bodyCatchUp",
+            { name, type: typeLabel, date: startDateLabel },
+          )
+        : t(
+            startIsToday
+              ? "notifications.lifecycle.started.personnel.bodyToday"
+              : "notifications.lifecycle.started.personnel.bodyCatchUp",
+            { name, type: typeLabel, date: startDateLabel },
+          );
+    }
+    if (notification.notification_type === "exclusion_ending_soon") {
+      return notification.subject_kind === "dog"
+        ? t("notifications.lifecycle.endingSoon.dog.body", { name, type: typeLabel })
+        : t("notifications.lifecycle.endingSoon.personnel.body", { name, type: typeLabel });
+    }
+    return notification.subject_kind === "dog"
+      ? t("notifications.lifecycle.ended.dog.body", { name, type: typeLabel })
+      : t("notifications.lifecycle.ended.personnel.body", { name, type: typeLabel });
+  }
+
+  const days = daysFromMilestone(notification.milestone);
   const endDateLabel = formatDisplayDate(notification.end_date, locale);
 
   if (notification.subject_kind === "dog") {

@@ -165,7 +165,7 @@ export const SCHEMA_STATEMENTS: readonly string[] = [
     dog_id TEXT REFERENCES dogs(id) ON DELETE CASCADE,
     subject_kind TEXT NOT NULL CHECK (subject_kind IN ('personnel', 'dog')),
     notification_type TEXT NOT NULL,
-    milestone TEXT NOT NULL CHECK (milestone IN ('d2', 'd1', 'd0', 'd7', 'd3')),
+    milestone TEXT NOT NULL CHECK (milestone IN ('start', 'ended', 'd2', 'd1', 'd0', 'd7', 'd3')),
     end_date TEXT NOT NULL,
     return_date TEXT NOT NULL,
     subject_name TEXT NOT NULL,

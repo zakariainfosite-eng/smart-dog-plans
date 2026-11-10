@@ -13,16 +13,16 @@ import {
   milestoneForDaysUntilEnd,
   exclusionScanWindow,
 } from "@/lib/notifications/exclusion-return-dates";
-import { fetchExclusionSettingsOrDefault, isConfiguredReminderMilestone } from "@/lib/exclusion-settings";
+import { fetchExclusionSettingsOrDefault } from "@/lib/exclusion-settings";
 import {
-  loadActiveExclusionsInReminderWindow,
   isExclusionRowEnabled,
+  loadExclusionsForLifecycleNotifications,
 } from "@/lib/notifications/exclusion-reminder-candidates";
+import { planExclusionLifecycleNotifications } from "@/lib/notifications/exclusion-lifecycle-events";
 import {
   exclusionNotificationDedupeKey,
   isActiveEndMilestone,
   NOTIFICATION_HISTORY_DAYS,
-  notificationTypeForExclusion,
   type ExclusionNotificationRecord,
   type ExclusionNotificationSubjectKind,
   type ExclusionReturnMilestone,
@@ -35,7 +35,8 @@ type ExclusionRow = {
   agent_id: string | null;
   dog_id: string | null;
   exclusion_type: ExclusionType | string;
-  end_date: string;
+  start_date: string;
+  end_date: string | null;
   active: boolean;
 };
 
@@ -139,9 +140,12 @@ async function reconcileStaleNotifications(
       !exclusion ||
       !isExclusionRowEnabled(exclusion.active) ||
       !endDate ||
-      endDate !== exclusionEnd ||
-      endDate < todayISO ||
-      (isActiveEndMilestone(milestone) && !milestoneForDaysUntilEnd(daysUntilEnd(endDate, todayISO)));
+      (milestone !== "start" &&
+        milestone !== "ended" &&
+        endDate !== exclusionEnd) ||
+      (milestone !== "start" && endDate < todayISO) ||
+      (isActiveEndMilestone(milestone) &&
+        !milestoneForDaysUntilEnd(daysUntilEnd(endDate, todayISO)));
     if (shouldDelete) staleIds.push(row.id as string);
   }
 
@@ -159,6 +163,7 @@ export type SyncExclusionNotificationsResult = {
   pruned: number;
   reconciled: number;
   scanned: number;
+  createdIds: string[];
 };
 
 /**
@@ -173,7 +178,7 @@ export async function syncExclusionReturnNotifications(
   const { minEndDate, maxEndDate } = exclusionScanWindow(todayISO);
   const cutoff = historyCutoffISO(todayISO, NOTIFICATION_HISTORY_DAYS);
 
-  const exclusions = await loadActiveExclusionsInReminderWindow(db, reference);
+  const exclusions = await loadExclusionsForLifecycleNotifications(db, reference);
   const reminderSettings = await fetchExclusionSettingsOrDefault(db);
   const reconciled = await reconcileStaleNotifications(db, todayISO);
   const existing = await loadExistingKeys(db);
@@ -197,45 +202,48 @@ export async function syncExclusionReturnNotifications(
   const inserts: Omit<ExclusionNotificationRecord, "created_at">[] = [];
 
   for (const exclusion of exclusions) {
-    const endDate = exclusion.end_date?.slice?.(0, 10) ?? "";
-    if (!endDate) continue;
-    const daysUntil = daysUntilEnd(endDate, todayISO);
-    const milestone = milestoneForDaysUntilEnd(daysUntil);
-    if (!milestone || !isConfiguredReminderMilestone(milestone, reminderSettings)) continue;
+    const events = planExclusionLifecycleNotifications(exclusion, todayISO, reminderSettings);
 
-    const returnDate = exclusionReturnDateISO(endDate);
-    if (!returnDate) continue;
+    for (const event of events) {
+      const key = exclusionNotificationDedupeKey(exclusion.id, event.milestone);
+      if (existing.has(key)) continue;
 
-    const key = exclusionNotificationDedupeKey(exclusion.id, milestone);
-    if (existing.has(key)) continue;
+      const endDate = exclusion.end_date?.slice?.(0, 10) ?? exclusion.start_date.slice(0, 10);
+      const returnDate =
+        event.milestone === "start"
+          ? exclusion.start_date.slice(0, 10)
+          : event.milestone === "ended"
+            ? exclusionReturnDateISO(endDate) ?? endDate
+            : exclusionReturnDateISO(endDate) ?? endDate;
 
-    const subjectKind: ExclusionNotificationSubjectKind =
-      exclusionApplyTarget(exclusion.exclusion_type, exclusion.dog_id) === "dog"
-        ? "dog"
-        : "personnel";
+      const subjectKind: ExclusionNotificationSubjectKind =
+        exclusionApplyTarget(exclusion.exclusion_type, exclusion.dog_id) === "dog"
+          ? "dog"
+          : "personnel";
 
-    const subjectName = await resolveSubjectName(
-      db,
-      exclusion,
-      subjectKind,
-      agentCache,
-      dogCache,
-    );
+      const subjectName = await resolveSubjectName(
+        db,
+        exclusion as ExclusionRow,
+        subjectKind,
+        agentCache,
+        dogCache,
+      );
 
-    inserts.push({
-      id: randomId(),
-      exclusion_id: exclusion.id,
-      agent_id: exclusion.agent_id,
-      dog_id: exclusion.dog_id,
-      subject_kind: subjectKind,
-      notification_type: notificationTypeForExclusion(exclusion.exclusion_type, subjectKind),
-      milestone: milestone as ExclusionReturnMilestone,
-      end_date: endDate,
-      return_date: returnDate,
-      subject_name: subjectName,
-      exclusion_type: exclusion.exclusion_type,
-      is_read: false,
-    });
+      inserts.push({
+        id: randomId(),
+        exclusion_id: exclusion.id,
+        agent_id: exclusion.agent_id,
+        dog_id: exclusion.dog_id,
+        subject_kind: subjectKind,
+        notification_type: event.notificationType,
+        milestone: event.milestone,
+        end_date: endDate,
+        return_date: returnDate,
+        subject_name: subjectName,
+        exclusion_type: exclusion.exclusion_type,
+        is_read: false,
+      });
+    }
   }
 
   if (inserts.length > 0) {
@@ -244,7 +252,13 @@ export async function syncExclusionReturnNotifications(
   }
 
   const pruned = await pruneOldNotifications(db, cutoff);
-  return { created: inserts.length, pruned, reconciled, scanned: exclusions.length };
+  return {
+    created: inserts.length,
+    pruned,
+    reconciled,
+    scanned: exclusions.length,
+    createdIds: inserts.map((row) => row.id),
+  };
 }
 
 export async function fetchExclusionNotifications(

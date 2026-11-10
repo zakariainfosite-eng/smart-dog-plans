@@ -786,6 +786,39 @@
         "today": "Dog {{name}} is operational again today."
       }
     },
+    "lifecycle": {
+      "started": {
+        "personnel": {
+          "title": "Exclusion started",
+          "bodyToday": "{{name}} entered exclusion today — {{type}}.",
+          "bodyCatchUp": "{{name}} started exclusion ({{type}}) on {{date}}."
+        },
+        "dog": {
+          "title": "Dog exclusion started",
+          "bodyToday": "Dog {{name}} entered exclusion today — {{type}}.",
+          "bodyCatchUp": "Dog {{name}} started exclusion ({{type}}) on {{date}}."
+        }
+      },
+      "endingSoon": {
+        "title": "Return soon",
+        "personnel": {
+          "body": "{{name}} ends exclusion ({{type}}) in 2 days and will be available soon."
+        },
+        "dog": {
+          "body": "Dog {{name}} ends exclusion ({{type}}) in 2 days and will be available soon."
+        }
+      },
+      "ended": {
+        "personnel": {
+          "title": "Available again",
+          "body": "{{name}} is available again after exclusion — {{type}}."
+        },
+        "dog": {
+          "title": "Dog available again",
+          "body": "Dog {{name}} is available again after exclusion — {{type}}."
+        }
+      }
+    },
     "imminent": {
       "title": "Imminent returns",
       "subtitle": "Next availability after exclusions",

@@ -9,6 +9,7 @@ import {
   IMMINENT_RETURNS_QUERY_KEY,
   type ExclusionNotificationRecord,
 } from "@/lib/notifications/exclusion-return-types";
+import { deliverExclusionNativeNotificationsSafe } from "@/lib/notifications/deliver-exclusion-native-notifications";
 import {
   fetchExclusionNotifications,
   syncExclusionReturnNotifications,
@@ -76,6 +77,7 @@ export async function runExclusionNotificationSync(
     for (let attempt = 1; attempt <= SYNC_RETRY_ATTEMPTS; attempt += 1) {
       try {
         const result = await syncExclusionReturnNotifications(db, reference);
+        await deliverExclusionNativeNotificationsSafe(db, result.createdIds);
         console.info("[notifications] sync complete", {
           attempt,
           platform: getRuntimePlatform(),

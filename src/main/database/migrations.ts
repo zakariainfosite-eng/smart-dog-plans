@@ -196,6 +196,40 @@ function migrateExclusionReturnNotifications(database: Database.Database): void 
   `);
 }
 
+function migrateExclusionNotificationsLifecycleMilestones(database: Database.Database): void {
+  const table = database
+    .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'exclusion_notifications'")
+    .get() as { name: string } | undefined;
+  if (!table) return;
+
+  database.exec(`
+    CREATE TABLE exclusion_notifications__lifecycle_v1 (
+      id TEXT PRIMARY KEY NOT NULL,
+      exclusion_id TEXT NOT NULL REFERENCES agent_exclusions(id) ON DELETE CASCADE,
+      agent_id TEXT REFERENCES agents(id) ON DELETE CASCADE,
+      dog_id TEXT REFERENCES dogs(id) ON DELETE CASCADE,
+      subject_kind TEXT NOT NULL CHECK (subject_kind IN ('personnel', 'dog')),
+      notification_type TEXT NOT NULL,
+      milestone TEXT NOT NULL CHECK (milestone IN ('start', 'ended', 'd2', 'd1', 'd0', 'd7', 'd3')),
+      end_date TEXT NOT NULL,
+      return_date TEXT NOT NULL,
+      subject_name TEXT NOT NULL,
+      exclusion_type TEXT NOT NULL,
+      is_read INTEGER NOT NULL DEFAULT 0 CHECK (is_read IN (0, 1)),
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (exclusion_id, milestone)
+    );
+    INSERT INTO exclusion_notifications__lifecycle_v1
+      SELECT * FROM exclusion_notifications;
+    DROP TABLE exclusion_notifications;
+    ALTER TABLE exclusion_notifications__lifecycle_v1 RENAME TO exclusion_notifications;
+    CREATE INDEX IF NOT EXISTS idx_exclusion_notifications_return_date
+      ON exclusion_notifications(return_date);
+    CREATE INDEX IF NOT EXISTS idx_exclusion_notifications_is_read
+      ON exclusion_notifications(is_read);
+  `);
+}
+
 function migrateExclusionNotificationsD2Milestone(database: Database.Database): void {
   const table = database
     .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'exclusion_notifications'")
@@ -1199,6 +1233,11 @@ export const SQLITE_MIGRATIONS: readonly SqliteMigration[] = [
     id: "022_agent_checkpoint_restrictions",
     description: "Permanent per-checkpoint cynotechnician restrictions",
     up: migrateAgentCheckpointRestrictions,
+  },
+  {
+    id: "023_exclusion_notifications_lifecycle_milestones",
+    description: "Exclusion lifecycle notifications — start and ended milestones",
+    up: migrateExclusionNotificationsLifecycleMilestones,
   },
 ];
 

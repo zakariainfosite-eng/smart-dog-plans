@@ -1,7 +1,14 @@
+import { addDays, format, parseISO } from "date-fns";
+
 import type { DbClient } from "@/integrations/database/client";
 import { planningDayISO, isOpenEndedExclusionType, type ExclusionType } from "@/lib/agent-exclusions";
 import { isMissingSoftDeleteColumn } from "@/lib/soft-delete";
 import { exclusionScanWindow } from "@/lib/notifications/exclusion-return-dates";
+import {
+  isExclusionRelevantForLifecycleScan,
+  type ExclusionLifecycleRow,
+} from "@/lib/notifications/exclusion-lifecycle-events";
+import { NOTIFICATION_HISTORY_DAYS } from "@/lib/notifications/exclusion-return-types";
 
 export type ExclusionReminderCandidate = {
   id: string;
@@ -74,5 +81,45 @@ export async function loadActiveExclusionsInReminderWindow(
     (row) =>
       !isOpenEndedExclusionType(row.exclusion_type) &&
       isCurrentlyActiveExclusionForNotifications(row, reference),
+  );
+}
+
+/**
+ * Active exclusions eligible for start / end reminder / availability lifecycle notifications.
+ * Types are read dynamically from each row — no hardcoded exclusion list.
+ */
+export async function loadExclusionsForLifecycleNotifications(
+  db: DbClient,
+  reference: Date | string = new Date(),
+): Promise<ExclusionLifecycleRow[]> {
+  const todayISO = planningDayISO(reference);
+  const maxStart = format(addDays(parseISO(todayISO), 2), "yyyy-MM-dd");
+
+  const run = async (withSoftDelete: boolean) => {
+    let query = db
+      .from("agent_exclusions")
+      .select("id, agent_id, dog_id, exclusion_type, start_date, end_date, active")
+      .lte("start_date", maxStart)
+      .eq("active", true);
+    if (withSoftDelete) {
+      query = query.eq("is_deleted", false);
+    }
+    return query;
+  };
+
+  const { data, error } = await run(true);
+  let rows: ExclusionLifecycleRow[];
+  if (!error) {
+    rows = (data ?? []) as ExclusionLifecycleRow[];
+  } else if (isMissingSoftDeleteColumn(error)) {
+    const legacy = await run(false);
+    if (legacy.error) throw legacy.error;
+    rows = (legacy.data ?? []) as ExclusionLifecycleRow[];
+  } else {
+    throw error;
+  }
+
+  return rows.filter((row) =>
+    isExclusionRelevantForLifecycleScan(row, todayISO, NOTIFICATION_HISTORY_DAYS),
   );
 }

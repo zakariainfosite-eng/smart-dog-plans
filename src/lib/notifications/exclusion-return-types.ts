@@ -8,7 +8,19 @@ export const EXCLUSION_RETURN_MILESTONES = EXCLUSION_END_MILESTONES;
 
 export type ExclusionEndMilestoneDays = (typeof EXCLUSION_END_MILESTONES)[number];
 
-export type ExclusionReturnMilestone = "d2" | "d1" | "d0" | "d7" | "d3";
+export type ExclusionReturnMilestone =
+  | "start"
+  | "ended"
+  | "d2"
+  | "d1"
+  | "d0"
+  | "d7"
+  | "d3";
+
+export type ExclusionLifecycleNotificationType =
+  | "exclusion_started"
+  | "exclusion_ending_soon"
+  | "exclusion_ended";
 
 export type ExclusionNotificationSubjectKind = "personnel" | "dog";
 
@@ -17,14 +29,14 @@ export type ExclusionNotificationSubjectKind = "personnel" | "dog";
  * Covers personnel/dog returns and specific exclusion endings.
  */
 export type ExclusionNotificationType =
+  | ExclusionLifecycleNotificationType
   | "personnel_return"
   | "dog_return"
   | "end_of_sickness"
   | "end_of_heat"
   | "end_of_leave"
   | "end_of_training"
-  | "end_of_mission"
-  | "exclusion_ending_soon";
+  | "end_of_mission";
 
 export type ExclusionNotificationSeverity = "info" | "warning" | "success";
 
@@ -61,6 +73,7 @@ export function milestoneFromDays(days: ExclusionEndMilestoneDays): ExclusionRet
 }
 
 export function daysFromMilestone(milestone: ExclusionReturnMilestone): number {
+  if (milestone === "start" || milestone === "ended") return 0;
   if (milestone === "d7") return 7;
   if (milestone === "d3") return 3;
   return Number(milestone.slice(1));
@@ -68,6 +81,20 @@ export function daysFromMilestone(milestone: ExclusionReturnMilestone): number {
 
 export function isActiveEndMilestone(milestone: ExclusionReturnMilestone): boolean {
   return milestone === "d2" || milestone === "d1" || milestone === "d0";
+}
+
+export function isLifecycleMilestone(milestone: ExclusionReturnMilestone): boolean {
+  return milestone === "start" || milestone === "ended" || isActiveEndMilestone(milestone);
+}
+
+export function isExclusionLifecycleNotificationType(
+  type: string,
+): type is ExclusionLifecycleNotificationType {
+  return (
+    type === "exclusion_started" ||
+    type === "exclusion_ending_soon" ||
+    type === "exclusion_ended"
+  );
 }
 
 /** One bell row per exclusion and milestone — never recreate on refresh. */
@@ -127,6 +154,8 @@ export function severityForDaysUntilEnd(daysUntil: number): ExclusionNotificatio
 export function severityForMilestone(
   milestone: ExclusionReturnMilestone,
 ): ExclusionNotificationSeverity {
+  if (milestone === "start") return "warning";
+  if (milestone === "ended") return "success";
   if (!isActiveEndMilestone(milestone)) {
     return severityForDaysUntilReturn(daysFromMilestone(milestone));
   }

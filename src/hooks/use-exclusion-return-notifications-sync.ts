@@ -43,7 +43,12 @@ export function useExclusionReturnNotificationsSync() {
     window.addEventListener("focus", onFocus);
     window.addEventListener("pageshow", onPageShow);
 
+    const intervalId = window.setInterval(() => {
+      void syncAndInvalidate(queryClient);
+    }, 15 * 60 * 1000);
+
     return () => {
+      window.clearInterval(intervalId);
       cancelled = true;
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", onFocus);
