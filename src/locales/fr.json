@@ -1171,10 +1171,11 @@
       "date": "Date",
       "status": "Statut",
       "statusOption": {
-        "all": "Toutes",
-        "inForce": "En vigueur",
+        "current": "En cours et à venir",
+        "all": "Toutes les exclusions",
+        "inForce": "En cours",
         "upcoming": "À venir",
-        "expired": "Expirées"
+        "expired": "Terminées"
       }
     },
     "table": {
@@ -1227,6 +1228,7 @@
       "none": "Aucune exclusion",
       "noneActive": "Aucune exclusion active.",
       "noneInForce": "Aucune exclusion en vigueur.",
+      "noneInForceOrUpcoming": "Aucune exclusion en cours ni à venir.",
       "noneUpcoming": "Aucune exclusion à venir.",
       "noneExpired": "Aucune exclusion expirée.",
       "noneRecorded": "Aucune exclusion enregistrée.",

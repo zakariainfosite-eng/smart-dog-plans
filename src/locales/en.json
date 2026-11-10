@@ -356,10 +356,11 @@
       "date": "Date",
       "status": "Status",
       "statusOption": {
-        "all": "All",
-        "inForce": "In force",
+        "current": "In progress and upcoming",
+        "all": "All exclusions",
+        "inForce": "In progress",
         "upcoming": "Upcoming",
-        "expired": "Expired"
+        "expired": "Ended"
       }
     },
     "table": {
@@ -386,6 +387,7 @@
       "none": "No exclusions",
       "noneActive": "No active exclusions.",
       "noneInForce": "No exclusions in force.",
+      "noneInForceOrUpcoming": "No in-progress or upcoming exclusions.",
       "noneUpcoming": "No upcoming exclusions.",
       "noneExpired": "No expired exclusions.",
       "noneRecorded": "No exclusions recorded.",

@@ -6,12 +6,18 @@
  */
 export type ExclusionListStatus = "inForce" | "upcoming" | "expired" | "inactive";
 
-export type ExclusionListStatusFilter = "all" | "inForce" | "upcoming" | "expired";
+export type ExclusionListStatusFilter =
+  | "current"
+  | "all"
+  | "inForce"
+  | "upcoming"
+  | "expired";
 
-/** Show upcoming rows immediately after creation (not only exclusions already in force). */
-export const DEFAULT_EXCLUSION_LIST_STATUS_FILTER: ExclusionListStatusFilter = "all";
+/** Default list: En cours + À venir (hides Terminée / inactive from the main table). */
+export const DEFAULT_EXCLUSION_LIST_STATUS_FILTER: ExclusionListStatusFilter = "current";
 
 export const EXCLUSION_LIST_STATUS_FILTERS: ExclusionListStatusFilter[] = [
+  "current",
   "all",
   "inForce",
   "upcoming",
@@ -58,7 +64,11 @@ export function matchesExclusionListStatusFilter(
   todayISO: string,
 ): boolean {
   if (filter === "all") return true;
-  return exclusionListStatus(exclusion, todayISO) === filter;
+  const status = exclusionListStatus(exclusion, todayISO);
+  if (filter === "current") {
+    return status === "inForce" || status === "upcoming";
+  }
+  return status === filter;
 }
 
 export function isUpcomingExclusionStart(

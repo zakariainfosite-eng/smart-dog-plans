@@ -361,6 +361,12 @@ function exclusionListEmptyCopy(
       description: t("exclusions.empty.recordFirst"),
     };
   }
+  if (statusFilter === "current") {
+    return {
+      title: t("exclusions.empty.noneInForceOrUpcoming"),
+      description: t("exclusions.empty.recordFirst"),
+    };
+  }
   return {
     title: t("exclusions.empty.noneInForce"),
     description: t("exclusions.empty.recordFirst"),
