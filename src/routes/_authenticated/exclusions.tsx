@@ -31,6 +31,7 @@ import {
   todayISODate,
   type ExclusionApplyTarget,
 } from "@/lib/agent-exclusions";
+import { syncExclusionPlanningReplacementsForExclusionRange } from "@/lib/planning/sync-exclusion-planning-replacements";
 import {
   DEFAULT_EXCLUSION_LIST_STATUS_FILTER,
   EXCLUSION_LIST_STATUS_FILTERS,
@@ -777,6 +778,16 @@ function ExclusionsPage() {
       setEditing(null);
       invalidateExclusionAssignmentQueries(queryClient);
       refreshExclusionNotifications();
+      if (!vars.id) {
+        void syncExclusionPlanningReplacementsForExclusionRange(
+          db,
+          vars.start_date,
+          vars.end_date,
+          todayISO,
+        ).catch((syncError) => {
+          console.error("[exclusions] automatic planning replacement sync failed", syncError);
+        });
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });

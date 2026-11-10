@@ -2395,6 +2395,17 @@ export function auditReservePriority(
   );
 }
 
+export type ExclusionPatchOptions = {
+  /** Checkpoint posts left open for assignOpenSlots (exclusion replacement). */
+  openCheckpointPostIds: ReadonlySet<string>;
+  /** Non-conflicting checkpoint rows to preserve before assignment phases. */
+  preservedAssignments: PersistableAssignment[];
+  preservedPoint653: Point653Assignment[];
+  preservedOffDuty: EligibleTeam[];
+  /** Conflict agents removed from Point 653 — replaced via buildPoint653Assignments. */
+  point653ReplacementCount: number;
+};
+
 export type EngineParams = {
   sectionId: string;
   agents: AgentInput[];
@@ -2406,7 +2417,51 @@ export type EngineParams = {
   yesterdayCheckpointByAgent: Map<string, string>;
   fairnessCounts: Map<string, number>;
   exclusionDebug?: PlanningExclusionDebugReport;
+  /** Partial re-plan: fill only open posts; preserve unrelated stored assignments. */
+  exclusionPatch?: ExclusionPatchOptions;
 };
+
+function resolveEligibleTeamForPreserved(
+  eligible: EligibleTeam[],
+  preserved: PersistableAssignment,
+): EligibleTeam | null {
+  const exact = eligible.find(
+    (team) => team.agent_id === preserved.agent_id && team.dog_id === preserved.dog_id,
+  );
+  if (exact) return exact;
+  return eligible.find((team) => team.agent_id === preserved.agent_id) ?? null;
+}
+
+function applyExclusionPatchPreservedSlots(
+  patch: ExclusionPatchOptions,
+  pendingSlots: PendingSlot[],
+  planningEligible: EligibleTeam[],
+  assignedToday: Set<string>,
+  assignments: PersistableAssignment[],
+): void {
+  const openPosts = patch.openCheckpointPostIds;
+
+  for (const preserved of patch.preservedAssignments) {
+    if (openPosts.has(preserved.checkpoint_post_id)) continue;
+
+    const pending = pendingSlots.find(
+      (slot) => slot.slot.post_id === preserved.checkpoint_post_id && !slot.slot.team,
+    );
+    if (!pending) continue;
+
+    const team = resolveEligibleTeamForPreserved(planningEligible, preserved);
+    if (!team || assignedToday.has(team.agent_id)) continue;
+
+    pending.slot.team = team;
+    assignedToday.add(team.agent_id);
+    assignments.push({
+      agent_id: team.agent_id,
+      dog_id: team.dog_id,
+      checkpoint_id: preserved.checkpoint_id,
+      checkpoint_post_id: preserved.checkpoint_post_id,
+    });
+  }
+}
 
 function buildAgentExclusionsFromRecords(
   excluded: ExcludedTeam[],
@@ -2525,6 +2580,22 @@ export function runPlanningEngine(params: EngineParams): PlanningEngineResult {
   });
 
   const pendingSlots = buildPendingSlots(activeCheckpoints);
+
+  if (params.exclusionPatch) {
+    applyExclusionPatchPreservedSlots(
+      params.exclusionPatch,
+      pendingSlots,
+      mergeEligibleByAgentId(sectionEligible, hqEligible),
+      assignedToday,
+      assignments,
+    );
+    for (const entry of params.exclusionPatch.preservedPoint653) {
+      assignedToday.add(entry.agent_id);
+    }
+    for (const entry of params.exclusionPatch.preservedOffDuty) {
+      assignedToday.add(entry.agent_id);
+    }
+  }
 
   // DAY only: reserve one Stupéfiants + one Explosifs slot for manual female PDF insertion.
   // Cycle compatibility is computed after this so males do not owe a visit to reserved posts.
@@ -2703,7 +2774,7 @@ export function runPlanningEngine(params: EngineParams): PlanningEngineResult {
   const checkpointResults = buildCheckpointResults(activeCheckpoints, pendingSlots);
 
   // Females are excluded from the engine — REST list stays empty.
-  const offDuty = buildFemaleRestAssignments(
+  let offDuty = buildFemaleRestAssignments(
     sectionAgents,
     assignedToday,
     excluded,
@@ -2712,12 +2783,31 @@ export function runPlanningEngine(params: EngineParams): PlanningEngineResult {
   );
 
   // Point 653 is the final fallback — only after every legal operational match is exhausted.
-  const point653 = buildPoint653Assignments(
+  let point653 = buildPoint653Assignments(
     sectionAgents,
     assignedToday,
     sectionExclusions,
     excluded,
   );
+
+  if (params.exclusionPatch) {
+    offDuty = [...params.exclusionPatch.preservedOffDuty];
+    point653 = [...params.exclusionPatch.preservedPoint653];
+    if (params.exclusionPatch.point653ReplacementCount > 0) {
+      const replacementCandidates = buildPoint653Assignments(
+        sectionAgents,
+        assignedToday,
+        sectionExclusions,
+        excluded,
+      ).filter(
+        (candidate) => !point653.some((entry) => entry.agent_id === candidate.agent_id),
+      );
+      point653.push(
+        ...replacementCandidates.slice(0, params.exclusionPatch.point653ReplacementCount),
+      );
+      point653.sort((a, b) => a.agent_name.localeCompare(b.agent_name));
+    }
+  }
 
   const unassigned = point653
     .filter((entry) => entry.reason === "no_operational_assignment")

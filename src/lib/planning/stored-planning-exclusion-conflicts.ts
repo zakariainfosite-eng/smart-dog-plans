@@ -11,6 +11,16 @@ export type StoredPlanningExclusionConflict = {
   agentName: string;
 };
 
+export type StoredPlanningSlotConflict = {
+  kind: "checkpoint" | "hq_reserve";
+  checkpointPostId: string | null;
+  checkpointId: string | null;
+  checkpointName: string;
+  agentId: string;
+  agentName: string;
+  dogId: string | null;
+};
+
 function collectAssignedTeams(engineResult: PlanningEngineResult): EligibleTeam[] {
   const teams: EligibleTeam[] = [];
 
@@ -66,6 +76,70 @@ function isDogExcludedOnPlanningDate(
  * Detects stored planning rows where an agent or dog is still assigned but
  * would be excluded on the planning date. Non-destructive — caller shows warnings only.
  */
+export function findStoredPlanningSlotConflicts(
+  planningDateISO: string,
+  engineResult: PlanningEngineResult,
+  exclusions: AgentExclusionRecord[],
+): StoredPlanningSlotConflict[] {
+  const conflicts: StoredPlanningSlotConflict[] = [];
+
+  for (const checkpoint of engineResult.checkpoints) {
+    for (const slot of checkpoint.slots) {
+      const team = slot.team;
+      if (!team) continue;
+
+      const agentExcluded = isAgentExcludedOnPlanningDate(
+        team.agent_id,
+        planningDateISO,
+        exclusions,
+      );
+      const dogExcluded = team.dog_id
+        ? isDogExcludedOnPlanningDate(team.dog_id, planningDateISO, exclusions)
+        : false;
+
+      if (!agentExcluded && !dogExcluded) continue;
+
+      conflicts.push({
+        kind: "checkpoint",
+        checkpointPostId: slot.post_id,
+        checkpointId: checkpoint.checkpoint_id,
+        checkpointName: checkpoint.checkpoint_name,
+        agentId: team.agent_id,
+        agentName: team.agent_name.trim(),
+        dogId: team.dog_id,
+      });
+    }
+  }
+
+  for (const entry of engineResult.point653) {
+    const agentExcluded = isAgentExcludedOnPlanningDate(
+      entry.agent_id,
+      planningDateISO,
+      exclusions,
+    );
+    const dogExcluded = entry.dog_id
+      ? isDogExcludedOnPlanningDate(entry.dog_id, planningDateISO, exclusions)
+      : false;
+    if (!agentExcluded && !dogExcluded) continue;
+
+    conflicts.push({
+      kind: "hq_reserve",
+      checkpointPostId: null,
+      checkpointId: null,
+      checkpointName: "Point 653",
+      agentId: entry.agent_id,
+      agentName: entry.agent_name.trim(),
+      dogId: entry.dog_id,
+    });
+  }
+
+  return conflicts.sort((a, b) => {
+    const nameCmp = a.checkpointName.localeCompare(b.checkpointName, "fr", { numeric: true });
+    if (nameCmp !== 0) return nameCmp;
+    return a.agentName.localeCompare(b.agentName, "fr");
+  });
+}
+
 export function findStoredPlanningExclusionConflicts(
   planningDateISO: string,
   engineResult: PlanningEngineResult,
@@ -73,20 +147,11 @@ export function findStoredPlanningExclusionConflicts(
 ): StoredPlanningExclusionConflict[] {
   const byAgentId = new Map<string, StoredPlanningExclusionConflict>();
 
-  for (const team of collectAssignedTeams(engineResult)) {
-    const agentExcluded = isAgentExcludedOnPlanningDate(team.agent_id, planningDateISO, exclusions);
-    const dogExcluded = team.dog_id
-      ? isDogExcludedOnPlanningDate(team.dog_id, planningDateISO, exclusions)
-      : false;
-
-    if (!agentExcluded && !dogExcluded) continue;
-
-    const name = team.agent_name.trim();
-    if (!name || byAgentId.has(team.agent_id)) continue;
-
-    byAgentId.set(team.agent_id, {
-      agentId: team.agent_id,
-      agentName: name,
+  for (const row of findStoredPlanningSlotConflicts(planningDateISO, engineResult, exclusions)) {
+    if (!row.agentName || byAgentId.has(row.agentId)) continue;
+    byAgentId.set(row.agentId, {
+      agentId: row.agentId,
+      agentName: row.agentName,
     });
   }
 

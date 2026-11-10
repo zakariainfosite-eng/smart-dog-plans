@@ -7,6 +7,7 @@ import {
   todayISODate,
 } from "@/lib/agent-exclusions";
 import { loadPlanningContext } from "@/lib/planning/load-planning-context";
+import { syncExclusionPlanningReplacementsUpToToday } from "@/lib/planning/sync-exclusion-planning-replacements";
 import {
   buildSectionRotationSchedule,
   currentOperationalShift,
@@ -96,6 +97,12 @@ export async function fetchOperationalSummary(
 ): Promise<OperationalSummary> {
   // Dashboard reference date is always today — persist expired flags then evaluate.
   await expirePastExclusions(db);
+
+  try {
+    await syncExclusionPlanningReplacementsUpToToday(db, todayISODate());
+  } catch (syncError) {
+    console.error("[operational-summary] exclusion planning replacement sync failed", syncError);
+  }
   const dateISO = todayISODate();
   const hours = await fetchPlanningSettings(db);
   const shift = currentOperationalShift(referenceDate, hours);

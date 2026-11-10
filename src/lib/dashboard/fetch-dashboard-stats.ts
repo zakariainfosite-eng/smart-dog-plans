@@ -12,6 +12,7 @@ import {
   type DashboardPersonnelGroups,
   type DashboardPersonnelStats,
 } from "@/lib/dashboard/compute-dashboard-personnel-stats";
+import { syncExclusionPlanningReplacementsUpToToday } from "@/lib/planning/sync-exclusion-planning-replacements";
 
 export type DashboardPlanningRow = {
   id: string;
@@ -44,6 +45,12 @@ export async function fetchDashboardStats(
 ): Promise<DashboardStats> {
   // Keep exclusion flags in sync whenever the dashboard opens.
   await expirePastExclusions(client);
+
+  try {
+    await syncExclusionPlanningReplacementsUpToToday(client, todayISODate());
+  } catch (syncError) {
+    console.error("[dashboard] exclusion planning replacement sync failed", syncError);
+  }
 
   const [agents, exclusions] = await Promise.all([
     getAgents(),
