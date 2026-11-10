@@ -30,10 +30,15 @@ export function Breadcrumb() {
   if (!pageKey) return null;
 
   return (
-    <nav aria-label="Breadcrumb" className="hidden min-w-0 items-center gap-1.5 text-sm md:flex">
-      <span className="truncate text-muted-foreground">{t("app.name")}</span>
-      <ChevronRight className="h-3.5 w-3.5 shrink-0 text-border" aria-hidden />
-      <span className="truncate font-medium text-foreground">{t(pageKey)}</span>
-    </nav>
+    <>
+      <p className="min-w-0 truncate text-sm font-semibold text-foreground md:hidden">
+        {t(pageKey)}
+      </p>
+      <nav aria-label="Breadcrumb" className="hidden min-w-0 items-center gap-1.5 text-sm md:flex">
+        <span className="truncate text-muted-foreground">{t("app.name")}</span>
+        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-border" aria-hidden />
+        <span className="truncate font-medium text-foreground">{t(pageKey)}</span>
+      </nav>
+    </>
   );
 }

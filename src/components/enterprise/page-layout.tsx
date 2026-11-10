@@ -93,7 +93,7 @@ export function PageHero({
               <Icon className="h-[18px] w-[18px]" strokeWidth={2.25} />
             </span>
             <div className="min-w-0">
-              <h1 className="truncate text-[28px] font-bold leading-tight tracking-tight text-[#0F172A] dark:text-foreground">
+              <h1 className="cyno-page-hero-title truncate text-[28px] font-bold leading-tight tracking-tight text-[#0F172A] dark:text-foreground">
                 {title}
               </h1>
               {subtitle ? (
@@ -140,11 +140,11 @@ export function PageHero({
         </div>
 
         {actionsSlot ? (
-          <div className="flex shrink-0 flex-wrap items-center gap-2 lg:justify-end">
+          <div className="cyno-page-hero-actions flex shrink-0 flex-wrap items-center gap-2 lg:justify-end">
             {actionsSlot}
           </div>
         ) : actions && actions.length > 0 ? (
-          <div className="flex shrink-0 flex-wrap items-center gap-2 lg:justify-end">
+          <div className="cyno-page-hero-actions flex shrink-0 flex-wrap items-center gap-2 lg:justify-end">
             {actions.map((action) => {
               const ActionIcon = action.icon;
               const isPrimary = action.variant !== "secondary";
@@ -282,7 +282,7 @@ export function PageStatCard({
   return (
     <article
       className={cn(
-        "group relative flex flex-col overflow-hidden bg-white dark:bg-card",
+        "cyno-stat-card group relative flex flex-col overflow-hidden bg-white dark:bg-card",
         clickable &&
           "cursor-pointer transition-colors hover:border-[#023A84]/35 focus-within:ring-2 focus-within:ring-ring",
         minimal

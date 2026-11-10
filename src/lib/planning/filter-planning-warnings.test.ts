@@ -30,6 +30,14 @@ describe("filterPlanningWarningsForSelectedSection", () => {
     ]);
   });
 
+  it("returns [] when warnings are undefined or malformed", () => {
+    expect(filterPlanningWarningsForSelectedSection(undefined, baseContext)).toEqual([]);
+    expect(filterPlanningWarningsForSelectedSection(null, baseContext)).toEqual([]);
+    expect(
+      filterPlanningWarningsForSelectedSection([null as unknown as string, "ok"], baseContext),
+    ).toEqual(["ok"]);
+  });
+
   it("drops agent INVALID warnings outside the section pool", () => {
     const warnings = [
       "INVALID: Exclusion ignored — Charlie Other (absence): agent not found in section pool or exclusion not applied.",

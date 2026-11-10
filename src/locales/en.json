@@ -290,6 +290,72 @@
       "criticalTitle": "Critical alerts ({{count}})",
       "infoTitle": "Information ({{count}})"
     },
+    "specialtyShort": {
+      "narcotics": "Narcotics",
+      "explosives": "Explosives"
+    },
+    "alerts": {
+      "unknownCheckpoint": "Checkpoint",
+      "postsUnfilled_one": "1 post unfilled",
+      "postsUnfilled_other": "{{count}} posts unfilled",
+      "criticalSection": {
+        "title": "Checkpoints needing your attention",
+        "subtitle": "Some posts could not be filled automatically."
+      },
+      "attentionSection": {
+        "title": "Special situations",
+        "subtitle": "Reserved assignments or checks — no immediate blocking impact."
+      },
+      "infoSection": {
+        "title": "Information"
+      },
+      "understaffed": {
+        "headline": "Understaffed"
+      },
+      "criticalGeneric": {
+        "headline": "Post unfilled"
+      },
+      "attentionGeneric": {
+        "headline": "Attention required"
+      },
+      "infoGeneric": {
+        "headline": "Information"
+      },
+      "codes": {
+        "_default": {
+          "headline": "Post unfilled",
+          "detail": "No team could be assigned automatically to this post."
+        },
+        "NO_ELIGIBLE_AGENT": {
+          "headline": "Understaffed",
+          "detail": "No eligible handler is available for this post."
+        },
+        "NO_SPECIALTY_MATCH": {
+          "headline": "Understaffed",
+          "detail": "No team with the required specialty is available."
+        },
+        "NO_AVAILABLE_DOG": {
+          "headline": "Understaffed",
+          "detail": "No dog is available to staff this post."
+        },
+        "ALL_AGENTS_EXCLUDED": {
+          "headline": "Understaffed",
+          "detail": "All handlers are excluded for this date."
+        },
+        "SMART_ROTATION_BLOCKED": {
+          "headline": "Understaffed",
+          "detail": "No assignment is possible under current rotation rules."
+        },
+        "RESERVED_FOR_FEMALE_ASSIGNMENT": {
+          "headline": "Reserved assignment",
+          "detail": "This slot is reserved for the female rotation (manual PDF entry)."
+        },
+        "ROTATION_OVERRIDE_FOR_OPERATIONAL_COVERAGE": {
+          "headline": "Priority coverage",
+          "detail": "Rotation was adjusted to maintain operational coverage."
+        }
+      }
+    },
     "coverageReport": {
       "title": "Checkpoint coverage",
       "description": "Mandatory / Optional coverage after planning.",

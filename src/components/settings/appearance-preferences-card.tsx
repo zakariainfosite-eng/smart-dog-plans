@@ -13,6 +13,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { useI18n, type Locale } from "@/hooks/use-i18n";
 import { useUiPreferences } from "@/hooks/use-ui-preferences";
+import { requestAndroidPlanningNotificationPermission } from "@/lib/notifications/sync-android-planning-notifications";
 import type { UiDensity } from "@/lib/ui-preferences";
 
 function PreferenceRow({
@@ -150,7 +151,12 @@ export function AppearancePreferencesCard() {
             <Switch
               id="settings-notifications-enabled"
               checked={notificationsEnabled}
-              onCheckedChange={setNotificationsEnabled}
+              onCheckedChange={(enabled) => {
+                setNotificationsEnabled(enabled);
+                if (enabled) {
+                  void requestAndroidPlanningNotificationPermission();
+                }
+              }}
               aria-label={t("settings.appearance.notificationsEnable")}
             />
           </div>

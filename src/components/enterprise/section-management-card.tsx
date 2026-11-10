@@ -148,7 +148,7 @@ export function SectionManagementCard({
         }
       }}
       className={cn(
-        "group flex h-full flex-col overflow-hidden rounded-[18px] border border-[#023A84]/10 bg-card",
+        "cyno-section-card group flex h-full flex-col overflow-hidden rounded-[18px] border border-[#023A84]/10 bg-card",
         "shadow-[0_3px_14px_-4px_rgba(2,58,132,0.10)] transition-all duration-200",
         "hover:-translate-y-0.5 hover:border-[#023A84]/25 hover:shadow-[0_8px_20px_-6px_rgba(2,58,132,0.16)]",
         onOpen && "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -351,7 +351,7 @@ function StatTile({
   return (
     <div
       className={cn(
-        "rounded-lg border border-[#023A84]/10 bg-[#023A84]/[0.02] px-2.5 py-1.5",
+        "cyno-touch-tile rounded-lg border border-[#023A84]/10 bg-[#023A84]/[0.02] px-2.5 py-1.5",
         interactive &&
           "cursor-pointer transition-all hover:border-[#023A84]/25 hover:bg-[#023A84]/[0.06] hover:shadow-[0_2px_8px_-2px_rgba(2,58,132,0.12)] active:bg-[#023A84]/[0.08]",
       )}
@@ -409,7 +409,7 @@ function SpecialtyStatTile({
   return (
     <div
       className={cn(
-        "min-w-0 rounded-md px-1 py-0.5",
+        "cyno-touch-tile min-w-0 rounded-md px-1 py-0.5",
         interactive &&
           "cursor-pointer transition-all hover:bg-[#023A84]/[0.06] active:bg-[#023A84]/[0.08]",
       )}
@@ -474,7 +474,7 @@ function BreakdownRow({
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-2 rounded-md px-1 py-0.5 text-[11px] leading-4",
+        "cyno-touch-tile flex items-center justify-between gap-2 rounded-md px-1 py-0.5 text-[11px] leading-4",
         interactive &&
           "cursor-pointer transition-colors hover:bg-[#023A84]/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#023A84]/30",
       )}

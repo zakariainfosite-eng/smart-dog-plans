@@ -43,7 +43,7 @@ export function EmployeesTotalStatCard({
   return (
     <article
       className={cn(
-        "group relative flex min-h-[122px] flex-col overflow-hidden rounded-[18px] border border-[#023A84]/10 bg-white px-4 pb-2.5 pt-3.5 shadow-[0_3px_14px_-4px_rgba(2,58,132,0.10)] transition-all duration-200 ease-out dark:bg-card",
+        "cyno-stat-card group relative flex min-h-[122px] flex-col overflow-hidden rounded-[18px] border border-[#023A84]/10 bg-white px-4 pb-2.5 pt-3.5 shadow-[0_3px_14px_-4px_rgba(2,58,132,0.10)] transition-all duration-200 ease-out dark:bg-card",
         "hover:-translate-y-0.5 hover:border-[#023A84]/25 hover:shadow-[0_8px_20px_-6px_rgba(2,58,132,0.16)]",
         onTotalClick && "cursor-pointer",
         className,

@@ -6,7 +6,10 @@ import { useI18n } from "@/hooks/use-i18n";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { usePlanningSettings } from "@/hooks/use-planning-settings";
 import { shiftHoursI18nParams } from "@/lib/planning-settings";
-import { translatePlanningReason, isReserveWarning, isRestWarning, translatePoint653Reason } from "@/lib/planning-i18n";
+import { translatePlanningReason, translatePoint653Reason } from "@/lib/planning-i18n";
+import { DailyPlanningAlertsPanel } from "@/components/planning/daily-planning-alerts-panel";
+import { DailyPlanningResultErrorBoundary } from "@/components/planning/daily-planning-result-error-boundary";
+import { auditDailyPlanningUiPipeline } from "@/lib/planning/daily-planning-ui-pipeline";
 import {
   collectPlanningResultAgentNames,
   filterPlanningWarningsForSelectedSection,
@@ -302,12 +305,27 @@ function DailyPlanningPage() {
     const otherSectionNames = scheduleList
       .filter((row) => row.id !== selectedSection.id)
       .map((row) => row.name);
-    return filterPlanningWarningsForSelectedSection(sectionScopedResult.summary.warnings, {
-      sectionId: selectedSection.id,
-      sectionName: selectedSection.name,
-      otherSectionNames,
-      sectionAgentNames: collectPlanningResultAgentNames(sectionScopedResult),
-    });
+    try {
+      return filterPlanningWarningsForSelectedSection(
+        sectionScopedResult.summary?.warnings,
+        {
+          sectionId: selectedSection.id,
+          sectionName: selectedSection.name,
+          otherSectionNames,
+          sectionAgentNames: collectPlanningResultAgentNames(sectionScopedResult),
+        },
+      );
+    } catch (error) {
+      console.error("[daily-planning] displayWarnings useMemo failed", {
+        error,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        summary: sectionScopedResult.summary,
+        warnings: sectionScopedResult.summary?.warnings,
+        sectionId: selectedSection.id,
+      });
+      throw error;
+    }
   }, [sectionScopedResult, selectedSection, scheduleList]);
 
   const persistPlanning = async (
@@ -475,18 +493,44 @@ function DailyPlanningPage() {
       // UI + toast use section-scoped displayWarnings only.
       setResult(engineResult);
       setResultSectionId(selectedSection.id);
+
+      const otherSectionNamesForAudit = scheduleList
+        .filter((row) => row.id !== selectedSection.id)
+        .map((row) => row.name);
+      const uiAudit = auditDailyPlanningUiPipeline(engineResult, {
+        sectionId: selectedSection.id,
+        sectionName: selectedSection.name,
+        otherSectionNames: otherSectionNamesForAudit,
+        t,
+      });
+      console.info("[daily-planning] post-generate ui-pipeline-audit", {
+        ok: uiAudit.ok,
+        displayWarningCount: uiAudit.displayWarningCount,
+        engineWarningCount: uiAudit.engineWarningCount,
+        summaryKeys: uiAudit.summaryKeys,
+      });
+      if (!uiAudit.ok) {
+        console.error(
+          "[daily-planning] post-generate ui-pipeline-audit FAILURES",
+          uiAudit.failures,
+        );
+      }
+
       await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       await queryClient.invalidateQueries({ queryKey: OPERATIONAL_SUMMARY_QUERY_KEY });
 
       const otherSectionNames = scheduleList
         .filter((row) => row.id !== selectedSection.id)
         .map((row) => row.name);
-      const scopedWarnings = filterPlanningWarningsForSelectedSection(engineResult.summary.warnings, {
-        sectionId: selectedSection.id,
-        sectionName: selectedSection.name,
-        otherSectionNames,
-        sectionAgentNames: collectPlanningResultAgentNames(engineResult),
-      });
+      const scopedWarnings = filterPlanningWarningsForSelectedSection(
+        engineResult.summary?.warnings,
+        {
+          sectionId: selectedSection.id,
+          sectionName: selectedSection.name,
+          otherSectionNames,
+          sectionAgentNames: collectPlanningResultAgentNames(engineResult),
+        },
+      );
 
       console.info("[daily-planning] executePlanning:success");
       if (scopedWarnings.length > 0) {
@@ -953,118 +997,9 @@ function DailyPlanningPage() {
       )}
 
       {sectionScopedResult && !running && (
+        <DailyPlanningResultErrorBoundary scope="planning-result-body">
         <>
-          {(() => {
-            const reserveWarnings = displayWarnings.filter(isReserveWarning);
-            const restWarnings = displayWarnings.filter(isRestWarning);
-            const criticalWarnings = displayWarnings.filter(
-              (w) =>
-                !isReserveWarning(w) &&
-                !isRestWarning(w) &&
-                (w.startsWith("CRITICAL:") || w.includes("UNDERSTAFFED") || w.includes("INVALID:")),
-            );
-            const infoWarnings = displayWarnings.filter((w) => w.startsWith("INFO:"));
-            const operationalWarnings = displayWarnings.filter(
-              (w) =>
-                !isReserveWarning(w) &&
-                !isRestWarning(w) &&
-                !w.startsWith("CRITICAL:") &&
-                !w.startsWith("INFO:") &&
-                !w.includes("UNDERSTAFFED") &&
-                !w.includes("INVALID:"),
-            );
-
-            return (
-              <>
-                {criticalWarnings.length > 0 && (
-                  <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>
-                      {t("dailyPlanning.warnings.criticalTitle", {
-                        count: criticalWarnings.length,
-                      })}
-                    </AlertTitle>
-                    <AlertDescription>
-                      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
-                        {criticalWarnings.map((w: string, i: number) => (
-                          <li key={`crit-${i}`}>{translatePlanningReason(w, t)}</li>
-                        ))}
-                      </ul>
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {operationalWarnings.length > 0 && (
-                  <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>
-                      {t("dailyPlanning.warnings.title", { count: operationalWarnings.length })}
-                    </AlertTitle>
-                    <AlertDescription>
-                      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
-                        {operationalWarnings.map((w: any, i: any) => (
-                          <li key={i}>{translatePlanningReason(w, t)}</li>
-                        ))}
-                      </ul>
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {infoWarnings.length > 0 && (
-                  <Alert className="border-muted-foreground/20 bg-muted/40">
-                    <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                    <AlertTitle>
-                      {t("dailyPlanning.warnings.infoTitle", { count: infoWarnings.length })}
-                    </AlertTitle>
-                    <AlertDescription>
-                      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
-                        {infoWarnings.map((w: string, i: number) => (
-                          <li key={`info-${i}`}>{translatePlanningReason(w, t)}</li>
-                        ))}
-                      </ul>
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {restWarnings.length > 0 && (
-                  <Alert className="border-muted-foreground/20 bg-muted/40">
-                    <Moon className="h-4 w-4 text-muted-foreground" />
-                    <AlertTitle>{t("dailyPlanning.rest.noticeTitle")}</AlertTitle>
-                    <AlertDescription>
-                      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
-                        {restWarnings.map((w: any, i: any) => (
-                          <li key={i}>{translatePlanningReason(w, t)}</li>
-                        ))}
-                      </ul>
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {reserveWarnings.length > 0 && (
-                  <Alert className="border-primary/30 bg-primary/5">
-                    <ShieldCheck className="h-4 w-4 text-primary" />
-                    <AlertTitle>{t("dailyPlanning.point653.noticeTitle")}</AlertTitle>
-                    <AlertDescription>
-                      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
-                        {reserveWarnings.map((w: any, i: any) => (
-                          <li key={i}>{translatePlanningReason(w, t)}</li>
-                        ))}
-                      </ul>
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {criticalWarnings.length === 0 &&
-                  operationalWarnings.length === 0 &&
-                  infoWarnings.length === 0 &&
-                  reserveWarnings.length === 0 &&
-                  restWarnings.length === 0 && (
-                  <Alert>
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <AlertTitle>{t("dailyPlanning.complete.title")}</AlertTitle>
-                    <AlertDescription>
-                      {t("dailyPlanning.complete.description")}
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </>
-            );
-          })()}
+          <DailyPlanningAlertsPanel warnings={displayWarnings} t={t} />
 
           <Card className="mb-6 border-border/60 shadow-soft">
             <CardHeader className="pb-2">
@@ -1224,6 +1159,7 @@ function DailyPlanningPage() {
             </CardContent>
           </Card>
         </>
+        </DailyPlanningResultErrorBoundary>
       )}
 
       <AlertDialog

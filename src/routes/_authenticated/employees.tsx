@@ -1120,7 +1120,7 @@ function EmployeesPage() {
         />
       ) : null}
 
-      <div className="grid auto-rows-fr grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-8">
+      <div className="grid auto-rows-fr grid-cols-1 gap-3 min-[390px]:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-8">
         <EmployeesTotalStatCard
           total={stats.total}
           categories={stats.categoryStats}

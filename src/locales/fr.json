@@ -1587,6 +1587,72 @@
       "criticalTitle": "Alertes critiques ({{count}})",
       "infoTitle": "Informations ({{count}})"
     },
+    "specialtyShort": {
+      "narcotics": "Stupéfiants",
+      "explosives": "Explosifs"
+    },
+    "alerts": {
+      "unknownCheckpoint": "Point",
+      "postsUnfilled_one": "1 poste non couvert",
+      "postsUnfilled_other": "{{count}} postes non couverts",
+      "criticalSection": {
+        "title": "Points nécessitant votre attention",
+        "subtitle": "Certains postes n'ont pas pu être couverts automatiquement."
+      },
+      "attentionSection": {
+        "title": "Situations particulières",
+        "subtitle": "Vérifications ou affectations réservées — sans impact bloquant immédiat."
+      },
+      "infoSection": {
+        "title": "Informations"
+      },
+      "understaffed": {
+        "headline": "Sous-effectif"
+      },
+      "criticalGeneric": {
+        "headline": "Poste non couvert"
+      },
+      "attentionGeneric": {
+        "headline": "Attention requise"
+      },
+      "infoGeneric": {
+        "headline": "Information"
+      },
+      "codes": {
+        "_default": {
+          "headline": "Poste non couvert",
+          "detail": "Aucune équipe n'a pu être affectée automatiquement à ce poste."
+        },
+        "NO_ELIGIBLE_AGENT": {
+          "headline": "Sous-effectif",
+          "detail": "Aucun cynotechnicien éligible n'est disponible pour ce poste."
+        },
+        "NO_SPECIALTY_MATCH": {
+          "headline": "Sous-effectif",
+          "detail": "Aucune équipe de la spécialité requise n'est disponible."
+        },
+        "NO_AVAILABLE_DOG": {
+          "headline": "Sous-effectif",
+          "detail": "Aucun chien disponible pour pourvoir ce poste."
+        },
+        "ALL_AGENTS_EXCLUDED": {
+          "headline": "Sous-effectif",
+          "detail": "Tous les cynotechniciens sont exclus pour cette date."
+        },
+        "SMART_ROTATION_BLOCKED": {
+          "headline": "Sous-effectif",
+          "detail": "Aucune affectation possible dans les règles de rotation actuelles."
+        },
+        "RESERVED_FOR_FEMALE_ASSIGNMENT": {
+          "headline": "Affectation réservée",
+          "detail": "Cette affectation est réservée à la rotation féminine (saisie manuelle PDF)."
+        },
+        "ROTATION_OVERRIDE_FOR_OPERATIONAL_COVERAGE": {
+          "headline": "Couverture prioritaire",
+          "detail": "La rotation a été ajustée pour assurer la couverture opérationnelle."
+        }
+      }
+    },
     "coverageReport": {
       "title": "Couverture des points",
       "description": "Bilan Mandatory / Optional après planification.",

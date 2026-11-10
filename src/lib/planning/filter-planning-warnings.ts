@@ -69,14 +69,18 @@ function setHasNormalized(set: ReadonlySet<string>, value: string): boolean {
  * agent outside this section's pool, are dropped.
  */
 export function filterPlanningWarningsForSelectedSection(
-  warnings: readonly string[],
+  warnings: readonly string[] | null | undefined,
   context: PlanningWarningSectionContext,
 ): string[] {
   const otherNames = context.otherSectionNames.filter(
     (name) => name.trim() && name !== context.sectionName,
   );
 
-  return warnings.filter((warning) => {
+  const scoped = Array.isArray(warnings)
+    ? warnings.filter((warning): warning is string => typeof warning === "string" && warning.length > 0)
+    : [];
+
+  return scoped.filter((warning) => {
     for (const other of otherNames) {
       if (warningMentionsSection(warning, other)) return false;
     }

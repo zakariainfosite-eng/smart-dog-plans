@@ -54,7 +54,7 @@ const navItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const { t } = useI18n();
   const currentPath = useRouterState({ select: (r) => r.location.pathname });
@@ -97,7 +97,11 @@ export function AppSidebar() {
                         "group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0",
                       )}
                     >
-                      <Link to={item.url} className="flex w-full items-center gap-2.5">
+                      <Link
+                        to={item.url}
+                        className="flex w-full items-center gap-2.5"
+                        onClick={() => setOpenMobile(false)}
+                      >
                         <item.icon
                           className={cn(
                             "h-[17px] w-[17px] shrink-0",

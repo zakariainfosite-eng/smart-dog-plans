@@ -117,7 +117,7 @@ export function ExclusionReminderAlertDialog() {
           <DialogTitle className="text-base font-semibold text-[#0F172A]">
             {t("notifications.reminderAlert.title")}
           </DialogTitle>
-          <DialogDescription className="whitespace-pre-line pt-1 text-left text-[13px] leading-relaxed text-[#334155]">
+          <DialogDescription className="whitespace-pre-line pt-1 text-start text-[13px] leading-relaxed text-[#334155]">
             {message}
             {"\n\n"}
             {t("notifications.reminderAlert.footer")}

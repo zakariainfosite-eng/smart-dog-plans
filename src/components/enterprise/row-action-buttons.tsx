@@ -39,7 +39,7 @@ export function RowActionButtons({
 }: RowActionButtonsProps) {
   if (mode === "menu") {
     return (
-      <div className={cn("flex items-center justify-end", className)}>
+      <div className={cn("cyno-row-actions flex items-center justify-end", className)}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -81,7 +81,7 @@ export function RowActionButtons({
   }
 
   return (
-    <div className={cn("flex items-center justify-end gap-2", className)}>
+    <div className={cn("cyno-row-actions flex items-center justify-end gap-2", className)}>
       <button
         type="button"
         className={cn(

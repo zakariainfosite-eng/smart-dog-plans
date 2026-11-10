@@ -25,6 +25,9 @@ const config: CapacitorConfig = {
       androidDatabaseLocation: "default",
       androidIsEncryption: false,
     },
+    LocalNotifications: {
+      iconColor: "#1E3A5F",
+    },
   },
 };
 

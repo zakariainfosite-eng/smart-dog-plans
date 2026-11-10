@@ -1,4 +1,5 @@
 import type { DbClient } from "@/integrations/database/client";
+import { syncAndroidPlanningNotificationsSafe } from "@/lib/notifications/sync-android-planning-notifications";
 
 /** Delete a saved planning and its related rotation history rows for that date. */
 export async function deleteStoredPlanning(
@@ -36,4 +37,6 @@ export async function deleteStoredPlanning(
 
   const { error: deleteError } = await client.from("planning").delete().eq("id", planningId);
   if (deleteError) throw deleteError;
+
+  await syncAndroidPlanningNotificationsSafe(client);
 }
