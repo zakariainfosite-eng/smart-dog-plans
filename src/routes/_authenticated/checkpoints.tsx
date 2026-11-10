@@ -361,26 +361,6 @@ function CheckpointsPage() {
         ),
       },
       {
-        id: "mandatory",
-        header: t("checkpoints.config.mandatory"),
-        meta: { width: "10%", align: "center" },
-        cell: ({ row }) => {
-          const isMandatory = row.original.mandatory !== false;
-          return (
-            <div className="flex justify-center">
-              <StatusBadge
-                tone={isMandatory ? "danger" : "neutral"}
-                className="px-2 py-0.5 text-[11px]"
-              >
-                {isMandatory
-                  ? t("checkpoints.badge.mandatory")
-                  : t("checkpoints.badge.optional")}
-              </StatusBadge>
-            </div>
-          );
-        },
-      },
-      {
         id: "femalePolicy",
         header: t("checkpoints.config.femaleAgents"),
         meta: { width: "12%", align: "center" },
@@ -504,7 +484,7 @@ function CheckpointsPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 min-[390px]:grid-cols-2 md:grid-cols-4">
         <KpiCard
           icon={MapPin}
           label={t("checkpoints.stat.total")}

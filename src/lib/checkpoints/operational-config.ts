@@ -9,6 +9,9 @@ export type CheckpointPriority = 1 | 2 | 3 | 4;
 
 export const CHECKPOINT_PRIORITIES: CheckpointPriority[] = [1, 2, 3, 4];
 
+/** Planning engine processes open slots in this order (P1 → P4). */
+export const CHECKPOINT_PRIORITY_LEVELS: readonly CheckpointPriority[] = CHECKPOINT_PRIORITIES;
+
 export const DEFAULT_CHECKPOINT_PRIORITY: CheckpointPriority = 3;
 
 export function normalizeCheckpointPriority(value: unknown): CheckpointPriority {
@@ -18,21 +21,10 @@ export function normalizeCheckpointPriority(value: unknown): CheckpointPriority 
 }
 
 /**
- * Stored on checkpoints for UI / DB compatibility.
- * The Rotation Engine does NOT use this field — Priority alone drives ordering.
+ * Legacy SQLite column `checkpoints.mandatory` (migration 010).
+ * No longer exposed in the app; new saves always persist 1 for backward compatibility.
  */
-export const DEFAULT_CHECKPOINT_MANDATORY = true;
-
-export function normalizeCheckpointMandatory(value: unknown): boolean {
-  if (value === false || value === 0 || value === "0") return false;
-  if (typeof value === "string") {
-    const normalized = value.trim().toLowerCase();
-    if (normalized === "no" || normalized === "false" || normalized === "optional") {
-      return false;
-    }
-  }
-  return DEFAULT_CHECKPOINT_MANDATORY;
-}
+export const LEGACY_CHECKPOINT_MANDATORY_DB_VALUE = 1 as const;
 
 /** ISO weekday: 1 = Monday … 7 = Sunday */
 export const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7] as const;
@@ -53,8 +45,6 @@ export type CheckpointOperationalConfig = {
   night: ShiftTeamCounts;
   female_policy: FemalePolicy;
   priority: CheckpointPriority;
-  /** Persisted for UI/DB compatibility; ignored by the Rotation Engine. */
-  mandatory: boolean;
   /** Permanent cynotechnician bans for this checkpoint only. */
   restricted_agent_ids: string[];
 };
@@ -77,7 +67,6 @@ export function defaultOperationalConfig(): CheckpointOperationalConfig {
     night: { ...EMPTY_SHIFT_COUNTS },
     female_policy: "allowed",
     priority: DEFAULT_CHECKPOINT_PRIORITY,
-    mandatory: DEFAULT_CHECKPOINT_MANDATORY,
     restricted_agent_ids: [],
   };
 }
@@ -127,7 +116,6 @@ export type CheckpointRowOperational = Pick<
   | "night_narcotics"
   | "female_policy"
   | "priority"
-  | "mandatory"
 > & {
   restricted_agent_ids?: string[];
 };
@@ -152,7 +140,6 @@ export function operationalConfigFromRow(
     },
     female_policy: row.female_policy ?? "allowed",
     priority: normalizeCheckpointPriority(row.priority),
-    mandatory: normalizeCheckpointMandatory(row.mandatory),
     restricted_agent_ids: normalizeRestrictedAgentIds(row.restricted_agent_ids),
   };
 }
@@ -177,7 +164,7 @@ export function operationalConfigToRowPayload(config: CheckpointOperationalConfi
     night_narcotics: config.night.narcotics,
     female_policy: config.female_policy,
     priority: normalizeCheckpointPriority(config.priority),
-    mandatory: normalizeCheckpointMandatory(config.mandatory),
+    mandatory: LEGACY_CHECKPOINT_MANDATORY_DB_VALUE,
     // Legacy columns kept in sync for statistics badges
     night_only: !config.day_shift_enabled && config.night_shift_enabled,
     required_drugs: staffing.narcotics,

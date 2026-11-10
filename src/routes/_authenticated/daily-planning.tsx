@@ -1075,39 +1075,31 @@ function DailyPlanningPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5">
-                  <p className="text-xs text-muted-foreground">
-                    {t("dailyPlanning.coverageReport.mandatory")}
-                  </p>
-                  <p className="mt-1 text-lg font-semibold tabular-nums">
-                    {sectionScopedResult.summary.mandatoryCovered ?? 0} /{" "}
-                    {sectionScopedResult.summary.mandatoryTotal ?? 0}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5">
-                  <p className="text-xs text-muted-foreground">
-                    {t("dailyPlanning.coverageReport.optional")}
-                  </p>
-                  <p className="mt-1 text-lg font-semibold tabular-nums">
-                    {sectionScopedResult.summary.optionalCovered ?? 0} /{" "}
-                    {sectionScopedResult.summary.optionalTotal ?? 0}
-                  </p>
-                </div>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5">
                   <p className="text-xs text-muted-foreground">
                     {t("dailyPlanning.coverageReport.critical")}
                   </p>
                   <p className="mt-1 text-lg font-semibold tabular-nums text-destructive">
-                    {sectionScopedResult.summary.criticalWarnings ?? 0}
+                    {(sectionScopedResult.summary.warnings ?? []).filter((w) =>
+                      /^\[|^INVALID:|^UNDERSTAFFED/i.test(w),
+                    ).length}
                   </p>
                 </div>
                 <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5">
                   <p className="text-xs text-muted-foreground">
-                    {t("dailyPlanning.coverageReport.optionalSkipped")}
+                    {t("dailyPlanning.stat.understaffed")}
                   </p>
                   <p className="mt-1 text-lg font-semibold tabular-nums">
-                    {sectionScopedResult.summary.optionalSkipped ?? 0}
+                    {sectionScopedResult.summary.understaffedCheckpoints}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5">
+                  <p className="text-xs text-muted-foreground">
+                    {t("dailyPlanning.stat.fullyStaffed")}
+                  </p>
+                  <p className="mt-1 text-lg font-semibold tabular-nums">
+                    {sectionScopedResult.summary.fullyStaffedCheckpoints}
                   </p>
                 </div>
               </div>

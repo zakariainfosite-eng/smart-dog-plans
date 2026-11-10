@@ -15,7 +15,6 @@ type CheckpointSummaryRow = Pick<
   | "night_narcotics"
   | "female_policy"
   | "priority"
-  | "mandatory"
   | "operating_days"
 >;
 
@@ -50,19 +49,12 @@ export function CheckpointOperationalSummary({ checkpoint }: { checkpoint: Check
   const { t } = useI18n();
   const days = normalizeOperatingDays(checkpoint.operating_days);
   const dayLabels = days.map((d) => t(`weekday.${WEEKDAY_KEYS[d]}`)).join(", ");
-  const isMandatory = checkpoint.mandatory !== false;
-
   return (
     <div className="space-y-3 px-4 py-3">
       <div className="flex flex-wrap gap-2">
         <StatusBadge tone="neutral">
           {checkpoint.priority} —{" "}
           {t(`checkpoints.config.priorityLevel.${checkpoint.priority ?? 3}`)}
-        </StatusBadge>
-        <StatusBadge tone={isMandatory ? "danger" : "neutral"}>
-          {isMandatory
-            ? t("checkpoints.badge.mandatory")
-            : t("checkpoints.badge.optional")}
         </StatusBadge>
         <StatusBadge tone="neutral">
           {t(`checkpoints.config.femalePolicy.${checkpoint.female_policy}`)}

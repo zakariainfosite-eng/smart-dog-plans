@@ -1056,7 +1056,7 @@
       "nightShiftHint": "Équipes requises la nuit (21:00–09:00).",
       "femaleAgents": "Cynotechniciennes femmes",
       "priority": "Priorité",
-      "priorityHint": "Ordre d'affectation Smart Rotation (1 = critique en premier).",
+      "priorityHint": "Ordre d'affectation : P1 (critique) → P4 (basse), puis réserve HQ.",
       "priorityLevel": {
         "1": "Critique",
         "2": "Haute",

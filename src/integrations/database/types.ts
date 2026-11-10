@@ -195,8 +195,6 @@ export type Checkpoint = {
   night_shift_enabled: boolean;
   female_policy: CheckpointFemalePolicy;
   priority: CheckpointPriority;
-  /** true = Mandatory, false = Optional. Default true. */
-  mandatory: boolean;
   day_explosives: number;
   day_narcotics: number;
   night_explosives: number;
@@ -222,8 +220,6 @@ export type CheckpointOperationalInput = {
   night: { explosives: number; narcotics: number };
   female_policy: CheckpointFemalePolicy;
   priority: CheckpointPriority;
-  /** true = Mandatory, false = Optional. Default true. */
-  mandatory: boolean;
   /** Permanent cynotechnician bans for this checkpoint only. */
   restricted_agent_ids?: string[];
 };

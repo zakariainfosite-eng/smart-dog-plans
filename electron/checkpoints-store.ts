@@ -11,8 +11,6 @@ export type CreateCheckpointInput = {
   night: { explosives: number; narcotics: number };
   female_policy: "allowed" | "preferred" | "not_allowed";
   priority: 1 | 2 | 3 | 4;
-  /** true = Mandatory (YES), false = Optional (NO). Default true. */
-  mandatory: boolean;
   restricted_agent_ids?: string[];
 };
 
@@ -82,8 +80,6 @@ export type CheckpointRecord = {
   night_shift_enabled: boolean;
   female_policy: "allowed" | "preferred" | "not_allowed";
   priority: 1 | 2 | 3 | 4;
-  /** true = Mandatory (YES), false = Optional (NO). */
-  mandatory: boolean;
   day_explosives: number;
   day_narcotics: number;
   night_explosives: number;
@@ -157,7 +153,7 @@ function configToRowPayload(config: CreateCheckpointInput) {
     night_narcotics: config.night.narcotics,
     female_policy: config.female_policy,
     priority: config.priority,
-    mandatory: config.mandatory === false ? 0 : 1,
+    mandatory: 1,
     night_only: !config.day_shift_enabled && config.night_shift_enabled ? 1 : 0,
     // Enabled shifts only — ignore residual counts on disabled shifts.
     required_drugs: Math.max(dayNarcotics, nightNarcotics),
@@ -178,8 +174,6 @@ function mapCheckpoint(row: CheckpointRowDb): CheckpointRecord {
     night_shift_enabled: row.night_shift_enabled === 1,
     female_policy: row.female_policy,
     priority: ([1, 2, 3, 4].includes(row.priority) ? row.priority : 3) as 1 | 2 | 3 | 4,
-    // Missing column (pre-migration) → treat as mandatory YES.
-    mandatory: row.mandatory === 0 ? false : true,
     day_explosives: row.day_explosives,
     day_narcotics: row.day_narcotics,
     night_explosives: row.night_explosives,

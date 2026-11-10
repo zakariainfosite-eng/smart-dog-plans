@@ -4,6 +4,7 @@ import { dedupePostsBySpecialty } from "@/lib/checkpoints/sync-posts";
 import {
   isCheckpointOpenOnDate,
   isoWeekdayFromDate,
+  CHECKPOINT_PRIORITY_LEVELS,
   normalizeCheckpointPriority,
   normalizeOperatingDays,
   type FemalePolicy,
@@ -1410,6 +1411,37 @@ function comparePendingSlots(
   return a.slot.post_id.localeCompare(b.slot.post_id);
 }
 
+/** Visit open slots tier by tier: P1 → P2 → P3 → P4 (stable keys within each tier). */
+function forEachPendingSlotInPriorityOrder(
+  openSlots: readonly PendingSlot[],
+  compareCtx: {
+    eligible: EligibleTeam[];
+    assignedToday: Set<string>;
+    shift: Shift;
+    allowNightFallback: boolean;
+  },
+  visit: (pending: PendingSlot) => void,
+): void {
+  for (const priorityLevel of CHECKPOINT_PRIORITY_LEVELS) {
+    const tierSlots = openSlots.filter(
+      (pending) => normalizeCheckpointPriority(pending.checkpoint.priority) === priorityLevel,
+    );
+    tierSlots.sort((a, b) =>
+      comparePendingSlots(
+        a,
+        b,
+        compareCtx.eligible,
+        compareCtx.assignedToday,
+        compareCtx.shift,
+        compareCtx.allowNightFallback,
+      ),
+    );
+    for (const pending of tierSlots) {
+      visit(pending);
+    }
+  }
+}
+
 function assignOpenSlots(
   pendingSlots: PendingSlot[],
   eligible: EligibleTeam[],
@@ -1521,56 +1553,53 @@ function assignOpenSlots(
       });
       if (openSlots.length === 0) break;
 
-      // RULE 3 — Priority ascending first (then stable secondary keys).
-      openSlots.sort((a, b) =>
-        comparePendingSlots(
-          a,
-          b,
-          planningEligible,
-          assignedToday,
-          params.shift,
-          options.allowNightFallback,
-        ),
-      );
-
       let progress = false;
 
-      for (const pending of openSlots) {
-        if (pending.slot.team) continue;
-
-        const pickCtx: PickContext = {
-          shift: params.shift,
-          checkpoint: pending.checkpoint,
-          post: pending.post!,
-          assignedToday,
+      forEachPendingSlotInPriorityOrder(
+        openSlots,
+        {
           eligible: planningEligible,
+          assignedToday,
+          shift: params.shift,
           allowNightFallback: options.allowNightFallback,
-          requireSmartRotation: options.requireSmartRotation,
-          compatibleCheckpointsByAgent: params.compatibleCheckpointsByAgent,
-          agentVisitedCheckpoints: params.agentVisitedCheckpoints,
-          yesterdayCheckpointByAgent: params.yesterdayCheckpointByAgent,
-          fairnessCounts: params.fairnessCounts,
-          planningDateISO,
-          lastAssignmentDateByAgent: params.lastAssignmentDateByAgent,
-          femaleHistory: options.femaleHistory,
-        };
+        },
+        (pending) => {
+          if (pending.slot.team) return;
 
-        const team = pending.post
-          ? options.useFemaleHistoryRanking
-            ? pickFemaleRotationAgent(candidatePool, pickCtx)
-            : pickAgent(candidatePool, pickCtx)
-          : null;
+          const pickCtx: PickContext = {
+            shift: params.shift,
+            checkpoint: pending.checkpoint,
+            post: pending.post!,
+            assignedToday,
+            eligible: planningEligible,
+            allowNightFallback: options.allowNightFallback,
+            requireSmartRotation: options.requireSmartRotation,
+            compatibleCheckpointsByAgent: params.compatibleCheckpointsByAgent,
+            agentVisitedCheckpoints: params.agentVisitedCheckpoints,
+            yesterdayCheckpointByAgent: params.yesterdayCheckpointByAgent,
+            fairnessCounts: params.fairnessCounts,
+            planningDateISO,
+            lastAssignmentDateByAgent: params.lastAssignmentDateByAgent,
+            femaleHistory: options.femaleHistory,
+          };
 
-        if (!team) {
-          continue;
-        }
+          const team = pending.post
+            ? options.useFemaleHistoryRanking
+              ? pickFemaleRotationAgent(candidatePool, pickCtx)
+              : pickAgent(candidatePool, pickCtx)
+            : null;
 
-        if (!commitAssignment(pending, team, options.allowNightFallback)) {
-          continue;
-        }
+          if (!team) {
+            return;
+          }
 
-        progress = true;
-      }
+          if (!commitAssignment(pending, team, options.allowNightFallback)) {
+            return;
+          }
+
+          progress = true;
+        },
+      );
 
       if (!progress) break;
     }
@@ -1664,68 +1693,67 @@ function assignOpenSlots(
         (pending) =>
           !pending.slot.team && pending.post && !isFemaleReservedSlot(pending),
       );
-      openSlots.sort((a, b) =>
-        comparePendingSlots(
-          a,
-          b,
-          planningEligible,
-          assignedToday,
-          params.shift,
-          allowNightFallback,
-        ),
-      );
 
       let progress = false;
-      for (const pending of openSlots) {
-        if (pending.slot.team || isFemaleReservedSlot(pending) || !pending.post) {
-          continue;
-        }
-
-        const pickCtx: PickContext = {
-          shift: params.shift,
-          checkpoint: pending.checkpoint,
-          post: pending.post,
-          assignedToday,
+      forEachPendingSlotInPriorityOrder(
+        openSlots,
+        {
           eligible: planningEligible,
+          assignedToday,
+          shift: params.shift,
           allowNightFallback,
-          requireSmartRotation: true,
-          compatibleCheckpointsByAgent: params.compatibleCheckpointsByAgent,
-          agentVisitedCheckpoints: params.agentVisitedCheckpoints,
-          yesterdayCheckpointByAgent: params.yesterdayCheckpointByAgent,
-          fairnessCounts: params.fairnessCounts,
-          planningDateISO,
-          lastAssignmentDateByAgent: params.lastAssignmentDateByAgent,
-        };
+        },
+        (pending) => {
+          if (pending.slot.team || isFemaleReservedSlot(pending) || !pending.post) {
+            return;
+          }
 
-        const pool = remaining.filter((team) => !assignedToday.has(team.agent_id));
-        const strictTeam = pickAgent(pool, {
-          ...pickCtx,
-          requireSmartRotation: true,
-        });
-        const rescueTeam = pickAgent(pool, {
-          ...pickCtx,
-          requireSmartRotation: false,
-        });
-        const team = strictTeam ?? rescueTeam;
-        if (!team) continue;
+          const pickCtx: PickContext = {
+            shift: params.shift,
+            checkpoint: pending.checkpoint,
+            post: pending.post,
+            assignedToday,
+            eligible: planningEligible,
+            allowNightFallback,
+            requireSmartRotation: true,
+            compatibleCheckpointsByAgent: params.compatibleCheckpointsByAgent,
+            agentVisitedCheckpoints: params.agentVisitedCheckpoints,
+            yesterdayCheckpointByAgent: params.yesterdayCheckpointByAgent,
+            fairnessCounts: params.fairnessCounts,
+            planningDateISO,
+            lastAssignmentDateByAgent: params.lastAssignmentDateByAgent,
+          };
 
-        if (!commitAssignment(pending, team, allowNightFallback)) {
-          continue;
-        }
-
-        if (!strictTeam && rescueTeam) {
-          rotationOverrides.push({
-            code: ROTATION_OVERRIDE_CODE,
-            checkpoint_id: pending.checkpoint.id,
-            checkpoint_name: pending.checkpoint.name,
-            post_id: pending.post.id,
-            specialty_required: pending.slot.specialty_required,
-            message: `Checkpoint ${pending.checkpoint.name}: Smart Rotation overridden to staff ${pending.slot.specialty_required} with ${team.agent_name} (operational coverage before ${POINT_653_NAME}).`,
+          const pool = remaining.filter((team) => !assignedToday.has(team.agent_id));
+          const strictTeam = pickAgent(pool, {
+            ...pickCtx,
+            requireSmartRotation: true,
           });
-        }
+          const rescueTeam = pickAgent(pool, {
+            ...pickCtx,
+            requireSmartRotation: false,
+          });
+          const team = strictTeam ?? rescueTeam;
+          if (!team) return;
 
-        progress = true;
-      }
+          if (!commitAssignment(pending, team, allowNightFallback)) {
+            return;
+          }
+
+          if (!strictTeam && rescueTeam) {
+            rotationOverrides.push({
+              code: ROTATION_OVERRIDE_CODE,
+              checkpoint_id: pending.checkpoint.id,
+              checkpoint_name: pending.checkpoint.name,
+              post_id: pending.post.id,
+              specialty_required: pending.slot.specialty_required,
+              message: `Checkpoint ${pending.checkpoint.name}: Smart Rotation overridden to staff ${pending.slot.specialty_required} with ${team.agent_name} (operational coverage before ${POINT_653_NAME}).`,
+            });
+          }
+
+          progress = true;
+        },
+      );
 
       if (!progress) break;
     }

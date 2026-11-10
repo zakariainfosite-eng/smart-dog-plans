@@ -177,7 +177,7 @@
     },
     "config": {
       "priority": "Priority",
-      "priorityHint": "Assignment order for Smart Rotation (1 = critical first).",
+      "priorityHint": "Assignment order: P1 (critical) → P4 (low), then HQ reserve.",
       "priorityLevel": {
         "1": "Critical",
         "2": "High",
