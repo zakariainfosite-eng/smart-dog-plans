@@ -44,3 +44,47 @@ jobs:
           name: CynoPlanning-Windows-x64
           path: release/CynoPlanning-*-Setup.exe
           if-no-files-found: error
+
+  release-windows:
+    name: Publish Windows x64 GitHub Release
+    needs: build-windows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Windows installer artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: CynoPlanning-Windows-x64
+          path: installer
+
+      - name: Resolve next release tag
+        id: tag
+        shell: bash
+        run: |
+          git fetch --tags origin
+          max=0
+          while IFS= read -r t; do
+            [[ -z "$t" ]] && continue
+            n="${t#desktop-win-x64-v}"
+            if [[ "$n" =~ ^[0-9]+$ ]] && (( n > max )); then max=$n; fi
+          done < <(git tag -l 'desktop-win-x64-v*')
+          next=$((max + 1))
+          tag="desktop-win-x64-v${next}"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          exe=$(ls -1 installer/*.exe | head -n 1)
+          echo "exe=$(basename "$exe")" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release and upload installer
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: CynoPlanning Windows x64 (${{ steps.tag.outputs.tag }})
+          files: installer/*
+          generate_release_notes: true

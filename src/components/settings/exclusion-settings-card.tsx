@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { PageContentShell } from "@/components/enterprise/page-layout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -31,6 +32,7 @@ import {
   exclusionSettingsEqual,
   fetchExclusionSettings,
   isExclusionTypeEnabledForCreation,
+  normalizeExclusionNativeTimes,
   saveExclusionSettings,
   setExclusionTypeEnabled,
   type ExclusionReminderKey,
@@ -144,6 +146,17 @@ export function ExclusionSettingsCard() {
         ? { ...currentDraft, reminders: { ...currentDraft.reminders, [key]: enabled } }
         : currentDraft,
     );
+  };
+
+  const setNativeTime = (slot: "time1" | "time2", value: string) => {
+    setDraft((currentDraft) => {
+      if (!currentDraft) return currentDraft;
+      const next = normalizeExclusionNativeTimes({
+        ...currentDraft.androidNotificationTimes,
+        [slot]: value || currentDraft.androidNotificationTimes[slot],
+      });
+      return { ...currentDraft, androidNotificationTimes: next };
+    });
   };
 
   const fieldsLocked = !editing;
@@ -305,6 +318,38 @@ export function ExclusionSettingsCard() {
                     />
                   </div>
                 ))}
+              </div>
+            </section>
+
+            <section className="space-y-4 p-5">
+              <div>
+                <h3 className="text-sm font-semibold tracking-tight">Notifications Android (heures)</h3>
+                <p className="mt-1 text-[13px] text-muted-foreground">
+                  Chaque rappel du cycle d&apos;exclusion est envoyé deux fois le jour concerné, à ces horaires (fuseau
+                  local de l&apos;appareil).
+                </p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="exclusion-android-time1">Première notification</Label>
+                  <Input
+                    id="exclusion-android-time1"
+                    type="time"
+                    disabled={fieldsLocked}
+                    value={current.androidNotificationTimes.time1}
+                    onChange={(e) => setNativeTime("time1", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="exclusion-android-time2">Deuxième notification</Label>
+                  <Input
+                    id="exclusion-android-time2"
+                    type="time"
+                    disabled={fieldsLocked}
+                    value={current.androidNotificationTimes.time2}
+                    onChange={(e) => setNativeTime("time2", e.target.value)}
+                  />
+                </div>
               </div>
             </section>
 

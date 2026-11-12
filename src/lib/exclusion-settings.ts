@@ -22,9 +22,31 @@ export type ExclusionReminderSettings = {
   d0: boolean;
 };
 
+/** Heures locales (HH:mm) pour les notifications natives Android du cycle d'exclusion. */
+export type ExclusionAndroidNotificationTimes = {
+  time1: string;
+  time2: string;
+};
+
+export const DEFAULT_EXCLUSION_NATIVE_NOTIFICATION_TIMES: ExclusionAndroidNotificationTimes = {
+  time1: "08:00",
+  time2: "14:00",
+};
+
+const HHMM_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+export function normalizeExclusionNativeTimes(
+  input: ExclusionAndroidNotificationTimes,
+): ExclusionAndroidNotificationTimes {
+  const time1 = HHMM_PATTERN.test(input.time1.trim()) ? input.time1.trim() : DEFAULT_EXCLUSION_NATIVE_NOTIFICATION_TIMES.time1;
+  const time2 = HHMM_PATTERN.test(input.time2.trim()) ? input.time2.trim() : DEFAULT_EXCLUSION_NATIVE_NOTIFICATION_TIMES.time2;
+  return { time1, time2 };
+}
+
 export type ExclusionSettings = {
   disabledTypes: ExclusionType[];
   reminders: ExclusionReminderSettings;
+  androidNotificationTimes: ExclusionAndroidNotificationTimes;
 };
 
 export type ExclusionSettingsCatalogRow = {
@@ -43,6 +65,7 @@ export const DEFAULT_EXCLUSION_REMINDERS: ExclusionReminderSettings = {
 export const DEFAULT_EXCLUSION_SETTINGS: ExclusionSettings = {
   disabledTypes: [],
   reminders: { ...DEFAULT_EXCLUSION_REMINDERS },
+  androidNotificationTimes: { ...DEFAULT_EXCLUSION_NATIVE_NOTIFICATION_TIMES },
 };
 
 export const EXCLUSION_REMINDER_KEYS: ExclusionReminderKey[] = ["d2", "d1", "d0"];
@@ -139,6 +162,7 @@ export function parseExclusionSettings(value: unknown): ExclusionSettings {
   return normalizeExclusionSettings({
     disabledTypes: parseDisabledTypes(source),
     reminders: parseReminders(source),
+    androidNotificationTimes: parseAndroidNotificationTimes(source),
   });
 }
 
@@ -157,6 +181,9 @@ export function normalizeExclusionSettings(input: ExclusionSettings): ExclusionS
       d1: input.reminders.d1 !== false,
       d0: input.reminders.d0 !== false,
     },
+    androidNotificationTimes: normalizeExclusionNativeTimes(
+      input.androidNotificationTimes ?? DEFAULT_EXCLUSION_NATIVE_NOTIFICATION_TIMES,
+    ),
   };
 }
 
@@ -166,7 +193,9 @@ export function exclusionSettingsEqual(a: ExclusionSettings, b: ExclusionSetting
   if (
     left.reminders.d2 !== right.reminders.d2 ||
     left.reminders.d1 !== right.reminders.d1 ||
-    left.reminders.d0 !== right.reminders.d0
+    left.reminders.d0 !== right.reminders.d0 ||
+    left.androidNotificationTimes.time1 !== right.androidNotificationTimes.time1 ||
+    left.androidNotificationTimes.time2 !== right.androidNotificationTimes.time2
   ) {
     return false;
   }
@@ -236,7 +265,20 @@ function cloneExclusionSettings(settings: ExclusionSettings): ExclusionSettings 
   return {
     disabledTypes: [...settings.disabledTypes],
     reminders: { ...settings.reminders },
+    androidNotificationTimes: { ...settings.androidNotificationTimes },
   };
+}
+
+function parseAndroidNotificationTimes(source: Record<string, unknown>): ExclusionAndroidNotificationTimes {
+  const raw =
+    source.androidNotificationTimes &&
+    typeof source.androidNotificationTimes === "object" &&
+    !Array.isArray(source.androidNotificationTimes)
+      ? (source.androidNotificationTimes as Record<string, unknown>)
+      : source;
+  const time1 = typeof raw.time1 === "string" ? raw.time1 : DEFAULT_EXCLUSION_NATIVE_NOTIFICATION_TIMES.time1;
+  const time2 = typeof raw.time2 === "string" ? raw.time2 : DEFAULT_EXCLUSION_NATIVE_NOTIFICATION_TIMES.time2;
+  return normalizeExclusionNativeTimes({ time1, time2 });
 }
 
 function parseDisabledTypes(source: Record<string, unknown>): ExclusionType[] {

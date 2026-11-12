@@ -27,6 +27,7 @@ const config: CapacitorConfig = {
     },
     LocalNotifications: {
       iconColor: "#1E3A5F",
+      smallIcon: "ic_stat_cyno",
     },
   },
 };

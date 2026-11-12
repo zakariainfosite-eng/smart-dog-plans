@@ -293,6 +293,7 @@
       "cynotechniciensBySpecialty": "Cynotechniciens par spécialité",
       "activeCynotechniciens": "Cynotechniciens actifs",
       "cynotechniciensWithoutDog": "Cynotechniciens sans chien",
+      "chiensSansMaitre": "Chiens sans maître",
       "excludedCynotechniciensBySpecialty": "Cynotechniciens exclus par spécialité",
       "narcotics": "Stupéfiants & Billets de banque",
       "explosives": "Explosifs",
@@ -834,7 +835,8 @@
       "active": "Chiens actifs",
       "excluded": "Chiens exclus",
       "narcotics": "Stupéfiants & Billets de banque",
-      "explosives": "Explosifs"
+      "explosives": "Explosifs",
+      "withoutHandler": "Chiens sans maître"
     },
     "statistics": {
       "overview": "Vue d’ensemble",

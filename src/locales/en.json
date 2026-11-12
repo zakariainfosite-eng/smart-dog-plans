@@ -126,7 +126,8 @@
       "active": "Active dogs",
       "excluded": "Excluded dogs",
       "narcotics": "Narcotics & Banknotes",
-      "explosives": "Explosives"
+      "explosives": "Explosives",
+      "withoutHandler": "Dogs without a handler"
     },
     "statistics": {
       "overview": "Overview",
@@ -783,6 +784,7 @@
       "cynotechniciensBySpecialty": "Cynotechnicians by specialty",
       "activeCynotechniciens": "Active cynotechnicians",
       "cynotechniciensWithoutDog": "Cynotechnicians without a dog",
+      "chiensSansMaitre": "Dogs without a handler",
       "excludedCynotechniciensBySpecialty": "Excluded cynotechnicians by specialty",
       "narcotics": "Narcotics & Banknotes",
       "explosives": "Explosives",

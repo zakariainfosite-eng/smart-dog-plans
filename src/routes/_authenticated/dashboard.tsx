@@ -31,8 +31,8 @@ import {
   invalidateExclusionNotificationQueries,
   runExclusionNotificationSync,
 } from "@/lib/notifications/run-exclusion-notification-sync";
-import { personnelStatisticColumns } from "@/lib/statistics/statistic-detail-columns";
-import { mapPersonnelDetailRows } from "@/lib/statistics/map-statistic-detail-rows";
+import { personnelStatisticColumns, dogStatisticColumns } from "@/lib/statistics/statistic-detail-columns";
+import { mapPersonnelDetailRows, mapDogDetailRows } from "@/lib/statistics/map-statistic-detail-rows";
 import type { StatisticDetailsPayload } from "@/lib/statistics/statistic-details";
 
 const kpiCardClass =
@@ -93,6 +93,14 @@ function DashboardPage() {
       rows: mapPersonnelDetailRows(rows, t, exclusions),
     };
     details.showDetails(payload);
+  };
+
+  const showDogsWithoutHandler = () => {
+    details.showDetails({
+      title: t("dashboard.stat.chiensSansMaitre"),
+      columns: dogStatisticColumns(t),
+      rows: mapDogDetailRows(data?.dogsWithoutHandlerList ?? [], t, exclusions),
+    });
   };
 
   return (
@@ -177,20 +185,31 @@ function DashboardPage() {
             )
           }
         />
-        <KpiCard
-          label={t("dashboard.stat.cynotechniciensWithoutDog")}
-          value={personnel.cynotechniciensWithoutDog}
-          icon={Unlink}
-          accent="warning"
-          loading={isLoading}
-          className={cn("page-enter stagger-4", kpiCardClass)}
-          onDetailsClick={() =>
-            showPersonnel(
-              t("dashboard.stat.cynotechniciensWithoutDog"),
-              personnelGroups.cynotechniciensWithoutDog,
-            )
-          }
-        />
+        <div className="flex min-h-[148px] flex-col gap-3 max-md:min-h-0">
+          <KpiCard
+            label={t("dashboard.stat.cynotechniciensWithoutDog")}
+            value={personnel.cynotechniciensWithoutDog}
+            icon={Unlink}
+            accent="warning"
+            loading={isLoading}
+            className={cn("page-enter stagger-4 flex-1", kpiCardClass)}
+            onDetailsClick={() =>
+              showPersonnel(
+                t("dashboard.stat.cynotechniciensWithoutDog"),
+                personnelGroups.cynotechniciensWithoutDog,
+              )
+            }
+          />
+          <KpiCard
+            label={t("dashboard.stat.chiensSansMaitre")}
+            value={data?.dogsWithoutHandler ?? 0}
+            icon={Dog}
+            accent="warning"
+            loading={isLoading}
+            className={cn("page-enter stagger-4 flex-1", kpiCardClass)}
+            onDetailsClick={showDogsWithoutHandler}
+          />
+        </div>
         <DashboardSpecialtyKpiCard
           label={t("dashboard.stat.excludedCynotechniciensBySpecialty")}
           icon={Ban}

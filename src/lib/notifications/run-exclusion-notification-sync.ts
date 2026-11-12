@@ -10,6 +10,7 @@ import {
   type ExclusionNotificationRecord,
 } from "@/lib/notifications/exclusion-return-types";
 import { deliverExclusionNativeNotificationsSafe } from "@/lib/notifications/deliver-exclusion-native-notifications";
+import { syncAndroidExclusionNativeNotificationsSafe } from "@/lib/notifications/sync-android-exclusion-native-notifications";
 import {
   fetchExclusionNotifications,
   syncExclusionReturnNotifications,
@@ -76,7 +77,12 @@ export async function runExclusionNotificationSync(
 
     for (let attempt = 1; attempt <= SYNC_RETRY_ATTEMPTS; attempt += 1) {
       try {
+        console.info("[EXCLUSION-NATIVE-TRACE] runExclusionNotificationSync → syncExclusionReturnNotifications");
         const result = await syncExclusionReturnNotifications(db, reference);
+        console.info(
+          "[EXCLUSION-NATIVE-TRACE] runExclusionNotificationSync → deliverExclusionNativeNotificationsSafe",
+          { createdIds: result.createdIds.length },
+        );
         await deliverExclusionNativeNotificationsSafe(db, result.createdIds);
         console.info("[notifications] sync complete", {
           attempt,
@@ -102,9 +108,16 @@ export async function runExclusionNotificationSync(
     }
 
     throw lastError;
-  })().finally(() => {
-    inFlightSync = null;
-  });
+  })()
+    .finally(async () => {
+      console.info(
+        "[EXCLUSION-NATIVE-TRACE] runExclusionNotificationSync → syncAndroidExclusionNativeNotificationsSafe (always)",
+      );
+      await syncAndroidExclusionNativeNotificationsSafe(db);
+    })
+    .finally(() => {
+      inFlightSync = null;
+    });
 
   return inFlightSync;
 }

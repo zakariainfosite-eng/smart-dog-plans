@@ -1,13 +1,16 @@
 import type { DbClient } from "@/integrations/database/client";
 import { isAndroidCapacitorRuntime } from "@/lib/runtime-platform";
+import { formatExclusionReturnMessage } from "@/lib/notifications/exclusion-return-messages";
 import {
-  formatExclusionEndingSubject,
-  formatExclusionReturnMessage,
-} from "@/lib/notifications/exclusion-return-messages";
+  EXCLUSION_NATIVE_CHANNEL_ID,
+  EXCLUSION_NATIVE_EXTRA_TYPE,
+  EXCLUSION_NATIVE_TITLE,
+  notificationIdForExclusionMilestone,
+} from "@/lib/notifications/android-exclusion-local-notifications";
 import type { ExclusionNotificationRecord } from "@/lib/notifications/exclusion-return-types";
 
 const DESKTOP_DELIVERED_KEY = "cynoplanning.exclusion-native-delivered.v1";
-export const EXCLUSION_NATIVE_EXTRA_TYPE = "exclusion-lifecycle";
+export { EXCLUSION_NATIVE_EXTRA_TYPE };
 
 type LocalNotificationsApi = typeof import("@capacitor/local-notifications").LocalNotifications;
 
@@ -38,13 +41,10 @@ function deliveryKey(notification: Pick<ExclusionNotificationRecord, "id">): str
   return notification.id;
 }
 
-function stableNotificationId(id: string): number {
-  let hash = 2166136261;
-  for (let i = 0; i < id.length; i += 1) {
-    hash ^= id.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  return (hash >>> 0) % 800_000_000 + 200_000;
+function nativeIdForRecord(notification: ExclusionNotificationRecord): number | null {
+  const milestone = notification.milestone;
+  if (!milestone) return null;
+  return notificationIdForExclusionMilestone(notification.exclusion_id, milestone);
 }
 
 async function loadLocalNotifications(): Promise<LocalNotificationsApi | null> {
@@ -96,34 +96,24 @@ export async function deliverExclusionNativeNotifications(
     const key = deliveryKey(notification);
     if (delivered.has(key)) continue;
 
-    const title = formatExclusionEndingSubject(notification, t);
+    const nativeId = nativeIdForRecord(notification);
+    if (!nativeId) continue;
+
+    const title = EXCLUSION_NATIVE_TITLE;
     const body = formatExclusionReturnMessage(notification, t, "fr");
 
     if (plugin) {
-      const perm = await plugin.requestPermissions();
-      if (perm.display !== "granted") continue;
-
-      await plugin.schedule({
-        notifications: [
-          {
-            id: stableNotificationId(notification.id),
-            title,
-            body,
-            schedule: { at: new Date(now.getTime() + 500), allowWhileIdle: true },
-            channelId: "exclusion-lifecycle",
-            extra: {
-              type: EXCLUSION_NATIVE_EXTRA_TYPE,
-              exclusionNotificationId: notification.id,
-            },
-          },
-        ],
-      });
+      // Android : les jalons futurs sont planifiés par syncAndroidExclusionNativeNotifications (vraies dates).
+      // Ne pas reprogrammer ici en now+500ms (doublon / annulation du sens lifecycle).
+      delivered.add(key);
+      shown += 1;
+      continue;
     } else if (typeof globalThis.Notification !== "undefined") {
       if (globalThis.Notification.permission === "default") {
         await globalThis.Notification.requestPermission();
       }
       if (globalThis.Notification.permission === "granted") {
-        new globalThis.Notification(title, { body });
+        new globalThis.Notification(title || EXCLUSION_NATIVE_TITLE, { body });
       }
     }
 

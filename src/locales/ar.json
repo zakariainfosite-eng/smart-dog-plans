@@ -285,6 +285,7 @@
       "cynotechniciensBySpecialty": "Cynotechniciens حسب التخصص",
       "activeCynotechniciens": "Cynotechniciens نشطون",
       "cynotechniciensWithoutDog": "Cynotechniciens بلا كلب",
+      "chiensSansMaitre": "كلاب بلا معالج",
       "excludedCynotechniciensBySpecialty": "Cynotechniciens المستثنون حسب التخصص",
       "narcotics": "مخدرات وأوراق نقدية",
       "explosives": "متفجرات",
@@ -786,7 +787,8 @@
       "active": "الكلاب النشطة",
       "excluded": "الكلاب المستبعدة",
       "narcotics": "مخدرات وأوراق نقدية",
-      "explosives": "متفجرات"
+      "explosives": "متفجرات",
+      "withoutHandler": "كلاب بلا معالج"
     },
     "statistics": {
       "overview": "نظرة عامة",

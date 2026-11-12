@@ -420,15 +420,16 @@ function ExclusionsPage() {
   useDocumentTitle("meta.exclusions.title");
   const queryClient = useQueryClient();
 
-  const refreshExclusionNotifications = () => {
-    void (async () => {
-      try {
-        await runExclusionNotificationSync(db);
-        invalidateExclusionNotificationQueries(queryClient);
-      } catch (error) {
-        console.warn("[notifications] exclusions sync failed", error);
-      }
-    })();
+  const refreshExclusionNotifications = async () => {
+    console.info("[EXCLUSION-NATIVE-TRACE] refreshExclusionNotifications → entrée (après save)");
+    try {
+      await runExclusionNotificationSync(db);
+      console.info("[EXCLUSION-NATIVE-TRACE] refreshExclusionNotifications → terminé");
+      invalidateExclusionNotificationQueries(queryClient);
+    } catch (error) {
+      console.warn("[notifications] exclusions sync failed", error);
+      throw error;
+    }
   };
 
   useEffect(() => {
@@ -765,12 +766,29 @@ function ExclusionsPage() {
       if (values.id) {
         const { error } = await db.from("agent_exclusions").update(payload).eq("id", values.id);
         if (error) throw error;
+        return values.id;
       } else {
-        const { error } = await db.from("agent_exclusions").insert(payload);
+        const { data: inserted, error } = await db
+          .from("agent_exclusions")
+          .insert(payload)
+          .select("id")
+          .single();
         if (error) throw error;
+        const newId = inserted?.id as string | undefined;
+        console.info("[EXCLUSION-CREATE-TRACE] SQLite insert OK", { id: newId ?? null });
+        if (!newId) {
+          throw new Error("Insert exclusion: aucun id retourné par SQLite");
+        }
+        return newId;
       }
     },
-    onSuccess: (_d, vars) => {
+    onSuccess: async (savedId, vars) => {
+      const isCreate = !vars.id;
+      console.info("[EXCLUSION-CREATE-TRACE] onSuccess", {
+        isCreate,
+        savedId: savedId ?? null,
+        formId: vars.id ?? null,
+      });
       if (!vars.id && isUpcomingExclusionStart(vars.start_date, todayISODate())) {
         toast.success(t("exclusions.toast.createdUpcoming"), {
           description: t("exclusions.toast.createdUpcomingHint", {
@@ -783,7 +801,15 @@ function ExclusionsPage() {
       setDialogOpen(false);
       setEditing(null);
       invalidateExclusionAssignmentQueries(queryClient);
-      refreshExclusionNotifications();
+      try {
+        const { syncAndroidExclusionNativeNotificationsSafe } = await import(
+          "@/lib/notifications/sync-android-exclusion-native-notifications"
+        );
+        await syncAndroidExclusionNativeNotificationsSafe(db);
+        await refreshExclusionNotifications();
+      } catch (syncError) {
+        console.warn("[notifications] exclusions save native sync failed", syncError);
+      }
       if (!vars.id) {
         void syncExclusionPlanningReplacementsForExclusionRange(
           db,
@@ -803,10 +829,18 @@ function ExclusionsPage() {
       const { error } = await db.from("agent_exclusions").update({ active }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: (_d, vars) => {
+    onSuccess: async (_d, vars) => {
       toast.success(vars.active ? t("exclusions.toast.enabled") : t("exclusions.toast.disabled"));
       invalidateExclusionAssignmentQueries(queryClient);
-      refreshExclusionNotifications();
+      try {
+        const { syncAndroidExclusionNativeNotificationsSafe } = await import(
+          "@/lib/notifications/sync-android-exclusion-native-notifications"
+        );
+        await syncAndroidExclusionNativeNotificationsSafe(db);
+        await refreshExclusionNotifications();
+      } catch (syncError) {
+        console.warn("[notifications] exclusions toggle native sync failed", syncError);
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -814,12 +848,25 @@ function ExclusionsPage() {
   const remove = useMutation({
     mutationFn: async (row: ExclusionWithAgent) => {
       await deleteAgentExclusion(db, row.id);
+      return row.id;
     },
-    onSuccess: () => {
+    onSuccess: async (deletedId) => {
       toast.success(t("exclusions.toast.deleted"));
       setDeleteTarget(null);
       invalidateExclusionAssignmentQueries(queryClient);
-      refreshExclusionNotifications();
+      try {
+        const { cancelAndroidExclusionNativeNotificationsForExclusion } = await import(
+          "@/lib/notifications/sync-android-exclusion-native-notifications"
+        );
+        await cancelAndroidExclusionNativeNotificationsForExclusion(deletedId);
+      } catch (cancelError) {
+        console.warn("[notifications] exclusions delete native cancel failed", cancelError);
+      }
+      try {
+        await refreshExclusionNotifications();
+      } catch (syncError) {
+        console.warn("[notifications] exclusions delete native sync failed", syncError);
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });

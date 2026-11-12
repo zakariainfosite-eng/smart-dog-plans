@@ -63,20 +63,48 @@ export function isBrowserRuntime(): boolean {
   return !isElectronDesktopRuntime() && !isNativeCapacitorRuntime();
 }
 
+type CapacitorWindow = Window & {
+  Capacitor?: {
+    getPlatform?: () => string;
+    isNativePlatform?: () => boolean;
+  };
+};
+
 /** True on the Capacitor Android WebView (not Electron, not iOS). */
 export function isAndroidCapacitorRuntime(): boolean {
-  if (!isNativeCapacitorRuntime()) return false;
+  if (typeof window === "undefined") return false;
+  if (isElectronDesktopRuntime()) return false;
+
   try {
-    const capacitor = (
-      window as Window & { Capacitor?: { getPlatform?: () => string } }
-    ).Capacitor;
-    if (typeof capacitor?.getPlatform === "function") {
+    const capacitor = (window as CapacitorWindow).Capacitor;
+    if (capacitor && typeof capacitor.getPlatform === "function") {
       return capacitor.getPlatform() === "android";
     }
   } catch {
-    // fall through to UA
+    // fall through
   }
-  return typeof navigator !== "undefined" && /android/i.test(navigator.userAgent);
+
+  try {
+    const capacitor = (window as CapacitorWindow).Capacitor;
+    if (
+      capacitor &&
+      typeof capacitor.isNativePlatform === "function" &&
+      capacitor.isNativePlatform() &&
+      typeof navigator !== "undefined" &&
+      /android/i.test(navigator.userAgent)
+    ) {
+      return true;
+    }
+  } catch {
+    // fall through
+  }
+
+  // With androidScheme "https", protocol is often https:// — not capacitor: (see capacitor.config server.androidScheme).
+  if (isNativeCapacitorRuntime() && typeof navigator !== "undefined" && /android/i.test(navigator.userAgent)) {
+    return true;
+  }
+
+  return false;
 }
 
 export function getRuntimePlatform(): RuntimePlatform {

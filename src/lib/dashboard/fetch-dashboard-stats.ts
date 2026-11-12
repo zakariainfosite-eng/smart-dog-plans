@@ -1,5 +1,6 @@
 import { db, type DbClient } from "@/integrations/database/client";
-import { getAgents } from "@/integrations/database";
+import { getAgents, getDogs, type DogRow } from "@/integrations/database";
+import { collectDogsWithoutHandler } from "@/lib/dog-handler-assignment";
 import {
   expirePastExclusions,
   fetchActiveExclusionsForDate,
@@ -26,6 +27,8 @@ export type DashboardStats = {
   agents: number;
   personnel: DashboardPersonnelStats;
   personnelGroups: DashboardPersonnelGroups;
+  dogsWithoutHandler: number;
+  dogsWithoutHandlerList: DogRow[];
   exclusions: AgentExclusionRecord[];
   planning: DashboardPlanningRow[];
 };
@@ -52,8 +55,9 @@ export async function fetchDashboardStats(
     console.error("[dashboard] exclusion planning replacement sync failed", syncError);
   }
 
-  const [agents, exclusions] = await Promise.all([
+  const [agents, dogs, exclusions] = await Promise.all([
     getAgents(),
+    getDogs(),
     fetchActiveExclusionsForDate(client, todayISODate()),
   ]);
 
@@ -62,6 +66,8 @@ export async function fetchDashboardStats(
     exclusions as AgentExclusionRecord[],
   );
   const personnel = dashboardPersonnelStatsFromGroups(personnelGroups);
+  const agentRefs = agents.map((agent) => ({ id: agent.id, dog_id: agent.dog_id }));
+  const dogsWithoutHandlerList = collectDogsWithoutHandler(dogs, agentRefs);
 
   let planning: DashboardPlanningRow[] = [];
   try {
@@ -110,6 +116,8 @@ export async function fetchDashboardStats(
     agents: personnel.totalFonctionnaires,
     personnel,
     personnelGroups,
+    dogsWithoutHandler: dogsWithoutHandlerList.length,
+    dogsWithoutHandlerList,
     exclusions: exclusions as AgentExclusionRecord[],
     planning,
   };

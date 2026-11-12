@@ -88,6 +88,7 @@ import { formatDogAgeLabel } from "@/lib/dog-ui";
 import { formatPageLastUpdated, paginate, totalPages } from "@/lib/page-ui";
 import { useI18n } from "@/hooks/use-i18n";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { collectDogsWithoutHandler } from "@/lib/dog-handler-assignment";
 import { buildDogsListPdfData, dogsListFilename } from "@/lib/documents/build-dogs-list-pdf-data";
 import { shouldAnnounceBrowserPdfExport } from "@/lib/documents/export-binary";
 import { downloadDogsListPdfWithLogo } from "@/lib/documents/feuille-presence-pdf";
@@ -320,9 +321,13 @@ function DogsPage() {
       }).length,
     }));
 
+    const dogsWithoutHandler = collectDogsWithoutHandler(list, agents);
+
     return {
       total: list.length,
       list,
+      dogsWithoutHandler: dogsWithoutHandler.length,
+      dogsWithoutHandlerList: dogsWithoutHandler,
       active: activeDogs.length,
       activeDogs,
       excluded: excludedDogs.length,
@@ -338,7 +343,7 @@ function DogsPage() {
       specialties,
       exclusionReasons,
     };
-  }, [dogs, exclusions]);
+  }, [dogs, exclusions, agents]);
 
   const filtered = useMemo(() => {
     const list = (dogs ?? []).filter((dog) => {
@@ -825,7 +830,7 @@ function DogsPage() {
         <h2 id="dogs-overview-title" className="text-sm font-semibold text-foreground">
           {t("dogs.statistics.overview")}
         </h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard
             icon={DogIcon}
             label={t("dogs.stat.total")}
@@ -862,6 +867,15 @@ function DogsPage() {
                 stats.list.filter((dog) => dog.specialty === "explosives"),
               )
             }
+          />
+          <KpiCard
+            icon={DogIcon}
+            label={t("dogs.stat.withoutHandler")}
+            value={stats.dogsWithoutHandler}
+            accent="warning"
+            loading={isLoading}
+            className="h-full"
+            onDetailsClick={() => showDogs(t("dogs.stat.withoutHandler"), stats.dogsWithoutHandlerList)}
           />
         </div>
       </section>
